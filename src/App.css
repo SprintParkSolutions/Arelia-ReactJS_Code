@@ -1,0 +1,121 @@
+body {
+  min-height: 100vh;
+  position: relative;
+  background: transparent;
+  overflow-x: hidden;
+}
+.app-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 8rem 1.5rem 3rem;
+}
+
+.home-page {
+  position: relative;
+  z-index: 1;
+}
+
+.page__inner {
+  width: min(100%, 64rem);
+  padding: 2rem;
+  text-align: center;
+  color: #f8f5ef;
+}
+
+.page__eyebrow {
+  margin: 0 0 1rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: rgba(212, 175, 55, 0.88);
+}
+
+.page__title {
+  margin: 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: clamp(3rem, 8vw, 6rem);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-shadow: 0 10px 35px rgba(0, 0, 0, 0.55);
+}
+
+.page--hero .page__inner {
+  width: min(100%, 68rem);
+}
+
+.page--hero .page__title {
+  font-size: clamp(3rem, 6.2vw, 5.8rem);
+  line-height: 1.08;
+  letter-spacing: 0.03em;
+  text-wrap: balance;
+}
+
+
+.page__description {
+  width: min(100%, 42rem);
+  margin: 1.25rem auto 0;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.page__secondary {
+  width: min(100%, 34rem);
+  margin: 1rem auto 0;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+  margin-top: 1.8rem;
+}
+
+.page__action-pill {
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.35);
+  color: rgba(248, 245, 239, 0.88);
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 767px) {
+  .page {
+    padding-top: 9rem;
+  }
+
+  .page__inner {
+    padding: 1rem;
+  }
+
+  .page--hero .page__title {
+    font-size: clamp(2.6rem, 11vw, 4.4rem);
+  }
+
+  .page__actions {
+    gap: 0.55rem;
+  }
+
+  .page__action-pill {
+    width: 100%;
+  }
+
+}

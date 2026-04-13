@@ -1,0 +1,39 @@
+.video-background {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+  background: #050505;
+}
+
+.video-background--section {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  height: 100vh;
+}
+
+.video-background__media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video-background__media--home {
+  filter: brightness(1.18) saturate(1.05);
+}
+
+.video-background__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(3, 3, 3, 0.45) 0%, rgba(3, 3, 3, 0.7) 100%),
+    rgba(0, 0, 0, 0.28);
+}
+
+.video-background__overlay--home {
+  background:
+    linear-gradient(180deg, rgba(3, 3, 3, 0.12) 0%, rgba(3, 3, 3, 0.3) 100%),
+    rgba(0, 0, 0, 0.08);
+}
