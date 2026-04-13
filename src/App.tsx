@@ -72,6 +72,16 @@ function App() {
           }
         />
         <Route
+          path="/projects"
+          element={
+            <PageContent
+              eyebrow="Offerings"
+              title="projects"
+              description="Your projects page now has a dedicated route, making the navigation work cleanly in this React app."
+            />
+          }
+        />
+        <Route
           path="/reach-us"
           element={
             <PageContent
