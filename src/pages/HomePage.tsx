@@ -4,10 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { VideoBackground } from '../components/videoBackground/VideoBackground'
-import homeVideo from '../assets/Home_Video.mp4'
 import './HomePage.css'
 
 gsap.registerPlugin(ScrollTrigger)
+
+const HOME_PAGE_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page`
+
+const homePageImagePath = (fileName: string) =>
+  `${HOME_PAGE_IMAGES_PATH}/${fileName}`
 
 type FeatureItem = {
   id: string
@@ -27,15 +31,11 @@ type Testimonial = {
   image: string
 }
 
-const SHOWCASE_IMAGE =
-  '/home/showcase-main.jpg'
-const QUOTE_BACKGROUND_LAYER =
-  '/home/quote-background.jpg'
-const QUOTE_FOREGROUND_LAYER =
-  '/home/quote-foreground.jpg'
+const SHOWCASE_IMAGE = homePageImagePath('showcase-main.jpg')
+const QUOTE_BACKGROUND_LAYER = homePageImagePath('quote-background.jpg')
+const QUOTE_FOREGROUND_LAYER = homePageImagePath('quote-foreground.jpg')
 const QUOTE_TEXT = 'Luxury is not a stage of living, but a state of architecture.'
-const CONTACT_IMAGE =
-  '/home/contact-cta-background.jpg'
+const CONTACT_IMAGE = homePageImagePath('contact-cta-background.jpg')
 
 const stats = [
   { label: 'Years Experience', value: '05+' },
@@ -50,7 +50,7 @@ const testimonials: readonly Testimonial[] = [
     role: 'Founder, Atelier Living',
     quote:
       'Arelia brought calm to an otherwise complex build. Every approval, budget check, and milestone felt beautifully controlled from day one.',
-    image: '/home/testimonial-sana.jpg',
+    image: homePageImagePath('testimonial-sana.jpg'),
   },
   {
     id: 'arjun',
@@ -58,7 +58,7 @@ const testimonials: readonly Testimonial[] = [
     role: 'Luxury Home Client',
     quote:
       'What stood out was the clarity. Instead of chasing updates, I always knew where the project stood and what was coming next.',
-    image: '/home/testimonial-arjun.jpg',
+    image: homePageImagePath('testimonial-arjun.jpg'),
   },
   {
     id: 'mira',
@@ -66,7 +66,7 @@ const testimonials: readonly Testimonial[] = [
     role: 'Creative Director, House of Form',
     quote:
       'The experience felt premium throughout. Arelia made collaboration smoother, the numbers easier to trust, and the entire project far more elegant.',
-    image: '/home/testimonial-mira.jpg',
+    image: homePageImagePath('testimonial-mira.jpg'),
   },
   {
     id: 'dev',
@@ -74,7 +74,7 @@ const testimonials: readonly Testimonial[] = [
     role: 'Private Villa Client',
     quote:
       'The project never felt overwhelming because the communication was so clear. It felt as considered as the design itself.',
-    image: '/home/testimonial-dev.jpg',
+    image: homePageImagePath('testimonial-dev.jpg'),
   },
   {
     id: 'anya',
@@ -82,7 +82,7 @@ const testimonials: readonly Testimonial[] = [
     role: 'Interior Principal, Studio Vale',
     quote:
       'From approvals to budget visibility, Arelia introduced a level of confidence our clients noticed immediately.',
-    image: '/home/testimonial-anya.jpg',
+    image: homePageImagePath('testimonial-anya.jpg'),
   },
   {
     id: 'rohan',
@@ -90,7 +90,7 @@ const testimonials: readonly Testimonial[] = [
     role: 'Hospitality Developer',
     quote:
       'It felt less like software and more like having an elegant command center for the entire experience.',
-    image: '/home/testimonial-rohan.jpg',
+    image: homePageImagePath('testimonial-rohan.jpg'),
   },
 ] as const
 
@@ -139,8 +139,8 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     title: 'Everything in One Platform',
     description:
       'Replace multiple tools with a single interior design platform designed for planning, coordination, and execution.',
-    image: '/home/why-choose-platform-main.jpg',
-    thumbnail: '/home/why-choose-platform-thumb.jpg',
+    image: homePageImagePath('why-choose-platform-main.jpg'),
+    thumbnail: homePageImagePath('why-choose-platform-thumb.jpg'),
     Icon: PlatformIcon,
   },
   {
@@ -148,8 +148,8 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     number: '02',
     title: 'Control Your Budget with Clarity',
     description: 'Stay financially in control with structured estimation and real-time cost tracking.',
-    image: '/home/why-choose-budget-main.jpg',
-    thumbnail: '/home/why-choose-budget-thumb.jpg',
+    image: homePageImagePath('why-choose-budget-main.jpg'),
+    thumbnail: homePageImagePath('why-choose-budget-thumb.jpg'),
     Icon: BudgetIcon,
   },
   {
@@ -157,8 +157,8 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     number: '03',
     title: 'Total Transparency at Every Step',
     description: 'Track updates, milestones, and execution progress with full visibility.',
-    image: '/home/why-choose-transparency-main.jpg',
-    thumbnail: '/home/why-choose-transparency-thumb.jpg',
+    image: homePageImagePath('why-choose-transparency-main.jpg'),
+    thumbnail: homePageImagePath('why-choose-transparency-thumb.jpg'),
     Icon: TransparencyIcon,
   },
   {
@@ -166,8 +166,8 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     number: '04',
     title: 'Your Project, In Your Pocket',
     description: 'Monitor progress, updates, and communication anytime through mobile access.',
-    image: '/home/why-choose-mobile-main.jpg',
-    thumbnail: '/home/why-choose-mobile-thumb.jpg',
+    image: homePageImagePath('why-choose-mobile-main.jpg'),
+    thumbnail: homePageImagePath('why-choose-mobile-thumb.jpg'),
     Icon: MobileIcon,
   },
 ] as const
@@ -175,7 +175,7 @@ const whyChooseFeatures: readonly FeatureItem[] = [
 function HomeHeroSection() {
   return (
     <section className="home-page__hero">
-      <VideoBackground src={homeVideo} isHome isSection />
+      <VideoBackground src="/videos/Home_Video.mp4" isHome isSection />
       <div className="home-page__content">
         <h1 className="home-page__title">
           <span className="home-page__line">Execute your dream</span>
@@ -247,7 +247,11 @@ function WhyChooseSection() {
     imageLayerRef.current.appendChild(nextBackground)
 
     const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
-    timeline.to(navRef.current.querySelectorAll('.why-choose-luxe__nav-item'), { x: (_index, target) => (target.classList.contains('is-active') ? 10 : 0), duration: 0.46, stagger: 0.02 }, 0)
+    timeline.to(navRef.current.querySelectorAll('.why-choose-luxe__nav-item'), {
+      x: (_index: number, target: Element) => (target.classList.contains('is-active') ? 10 : 0),
+      duration: 0.46,
+      stagger: 0.02,
+    }, 0)
     timeline.to(contentRef.current, { autoAlpha: 0, y: 24, filter: 'blur(8px)', duration: 0.2 })
     timeline.fromTo(nextBackground, { autoAlpha: 0, scale: 1.1, xPercent: 4 }, { autoAlpha: 1, scale: 1, xPercent: 0, duration: 0.8 }, 0)
     timeline.to(activeImageRef.current, { autoAlpha: 0, scale: 0.96, xPercent: -2, duration: 0.7 }, 0)
@@ -633,7 +637,7 @@ function ContactCTASection() {
     if (isTransitioning) return
     setIsTransitioning(true)
     transitionTimerRef.current = window.setTimeout(() => {
-      navigate('/reach-us')
+      navigate('/contact-us')
     }, 720)
   }
 
