@@ -8,8 +8,7 @@ const navItems = [
   { label: 'Home', path: '/' },
   { label: 'About Us', path: '/about-us' },
   { label: 'Services', path: '/services' },
-  { label: 'Projects', path: '/projects' },
-  { label: 'Reach Us', path: '/reach-us' },
+  { label: 'Contact Us', path: '/contact-us' },
 ]
 
 export function NavigationMenu() {
@@ -210,7 +209,7 @@ export function NavigationMenu() {
               type="button"
               className="navigation-menu__cta"
               onClick={() => {
-                navigate('/reach-us')
+                navigate('/contact-us')
                 setIsMobileMenuOpen(false)
               }}
             >
