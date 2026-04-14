@@ -4,6 +4,7 @@ import { NavigationMenu } from './components/navigationMenu/naviagationMenu'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
 import defaultBackgroundVideo from './assets/arelia-global-background.mp4'
 import { HomePage } from './pages/HomePage'
+import ServicesSection from './pages/ServicesSection'
 
 type PageContentProps = {
   eyebrow?: string
@@ -63,13 +64,7 @@ function App() {
         />
         <Route
           path="/services"
-          element={
-            <PageContent
-              eyebrow="Offerings"
-              title="Services"
-              description="Your services page now has a dedicated route, making the navigation work cleanly in this React app."
-            />
-          }
+          element={<ServicesSection />}
         />
         <Route
           path="/reach-us"
