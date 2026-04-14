@@ -2,7 +2,6 @@ import './App.css'
 import { Route, Routes } from 'react-router-dom'
 import { NavigationMenu } from './components/navigationMenu/naviagationMenu'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
-import defaultBackgroundVideo from './assets/arelia-global-background.mp4'
 import { HomePage } from './pages/HomePage'
 import ServicesSection from './pages/ServicesSection'
 import { AboutPage } from './pages/AboutPage'
@@ -48,29 +47,18 @@ function PageContent({
 function App() {
   return (
     <div className="app-shell">
-      <VideoBackground src={defaultBackgroundVideo} />
+      <VideoBackground src="/videos/arelia-global-background.mp4" />
       <NavigationMenu />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about-us" element={<AboutPage />} />
+        <Route path="/services" element={<ServicesSection />} />
         <Route
-          path="/services"
-          element={
-            <PageContent
-              eyebrow="Offerings"
-              title="Services"
-              description="Your services page now has a dedicated route, making the navigation work cleanly in this React app."
-            />
-          }
-        />
-        <Route
-          path="/services"
-          element={<ServicesSection />}
           path="/projects"
           element={
             <PageContent
               eyebrow="Offerings"
-              title="projects"
+              title="Projects"
               description="Your projects page now has a dedicated route, making the navigation work cleanly in this React app."
             />
           }

@@ -123,7 +123,7 @@ const serviceProcess = [
   },
 ];
 
-const BASE_IMG_PATH = "/images/services";
+const BASE_IMG_PATH = "/images/Service%20Page";
 const serviceImagePath = (category: string, fileName: string) =>
   `${BASE_IMG_PATH}/${category}/${fileName}`;
 
@@ -267,7 +267,7 @@ function ServicesHero() {
               playsInline
               preload="auto"
             >
-              <source src="/video/services-hero-loop.mp4" type="video/mp4" />
+              <source src="/videos/services-hero-loop.mp4" type="video/mp4" />
             </video>
 
             <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,6,8,0.5),rgba(4,6,8,0.28)_24%,rgba(4,6,8,0.66)_100%)]" />

@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
-import bathRetreatImage from '../assets/Bath Retreat.avif'
-import bedroomImage from '../assets/Bedroom.avif'
-import livingSpaceImage from '../assets/Living Space.jpg'
-import officeSpaceImage from '../assets/Office Space.avif'
-import obsidianResidenceImage from '../assets/The Obsidian Residence.avif'
-import velourExecutiveSuitesImage from '../assets/Velour Executive Suites.avif'
-import maisonAreliaSuiteImage from '../assets/Maison Arelia Suite.avif'
-import terraceGardenImage from '../assets/The Terrace Garden.avif'
-import noirAtelierFlagshipImage from '../assets/Noir Atelier Flagship.jpg'
-import registrationImage from '../assets/Registration.jpg'
-import leadGenerationImage from '../assets/lead-generation.jpg'
-import siteVisitImage from '../assets/Site Visit.jpg'
-import feasibilityImage from '../assets/Feasibility.avif'
-import proposalImage from '../assets/Proposal.avif'
-import approvalImage from '../assets/Approval.avif'
-import executionImage from '../assets/Execution.avif'
-import qualityAuditImage from '../assets/Quality Audit.jpg'
 import './AboutPage.css'
+
+const ABOUT_US_IMAGES_PATH = '/images/AboutUs%20Page'
+const aboutUsImagePath = (fileName: string) => `${ABOUT_US_IMAGES_PATH}/${fileName}`
+
+const bathRetreatImage = aboutUsImagePath('Bath Retreat.avif')
+const bedroomImage = aboutUsImagePath('Bedroom.avif')
+const livingSpaceImage = aboutUsImagePath('Living Space.jpg')
+const officeSpaceImage = aboutUsImagePath('Office Space.avif')
+const obsidianResidenceImage = aboutUsImagePath('The Obsidian Residence.avif')
+const velourExecutiveSuitesImage = aboutUsImagePath('Velour Executive Suites.avif')
+const maisonAreliaSuiteImage = aboutUsImagePath('Maison Arelia Suite.avif')
+const terraceGardenImage = aboutUsImagePath('The Terrace Garden.avif')
+const noirAtelierFlagshipImage = aboutUsImagePath('Noir Atelier Flagship.jpg')
+const registrationImage = aboutUsImagePath('Registration.jpg')
+const leadGenerationImage = aboutUsImagePath('lead-generation.jpg')
+const siteVisitImage = aboutUsImagePath('Site Visit.jpg')
+const feasibilityImage = aboutUsImagePath('Feasibility.avif')
+const proposalImage = aboutUsImagePath('Proposal.avif')
+const approvalImage = aboutUsImagePath('Approval.avif')
+const executionImage = aboutUsImagePath('Execution.avif')
+const qualityAuditImage = aboutUsImagePath('Quality Audit.jpg')
 
 const heroSlides = [
   {
