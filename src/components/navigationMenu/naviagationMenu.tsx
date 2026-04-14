@@ -2,7 +2,6 @@ import { LayoutGroup, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { Variants } from 'framer-motion'
-import areliaLogo from '../../assets/Arelia_Logo.png'
 import './naviagationMenu.css'
 
 const navItems = [
@@ -135,7 +134,7 @@ export function NavigationMenu() {
         >
           <img
             className="navigation-menu__brand-image"
-            src={areliaLogo}
+            src="/images/Logos/Arelia_Logo.png"
             alt="Arelia"
           />
         </motion.button>
