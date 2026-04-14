@@ -9,6 +9,8 @@ import { VideoBackground } from './components/videoBackground/VideoBackground'
 import { Loader } from './components/loader/Loader'
 import defaultBackgroundVideo from './assets/arelia-global-background.mp4'
 import { HomePage } from './pages/HomePage'
+import ServicesSection from './pages/ServicesSection'
+import { AboutPage } from './pages/AboutPage'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -95,6 +97,23 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       {STATIC_PAGE_CONTENT.map((page) => (
+    <div className="app-shell">
+      <VideoBackground src="/videos/arelia-global-background.mp4" />
+      <NavigationMenu />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/about-us" element={<AboutPage />} />
+        <Route path="/services" element={<ServicesSection />} />
+        <Route
+          path="/projects"
+          element={
+            <PageContent
+              eyebrow="Offerings"
+              title="Projects"
+              description="Your projects page now has a dedicated route, making the navigation work cleanly in this React app."
+            />
+          }
+        />
         <Route
           key={page.path}
           path={page.path}

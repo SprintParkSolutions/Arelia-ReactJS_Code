@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   --font-display: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Garamond, serif;
   --font-sans: Optima, Candara, 'Segoe UI', sans-serif;
@@ -10,14 +12,37 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --font-serif: "Bodoni 72", "Didot", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --font-sans: "Avenir Next", "Optima", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --background: #0b1117;
+  --background-soft: #121922;
+  --foreground: #f8f6f2;
+  --muted: #d6cec3;
+  --gold: #d4a373;
+  --gold-soft: #f0c48d;
+  --line: rgba(255, 255, 255, 0.1);
 }
 
 * {
   box-sizing: border-box;
 }
 
-html,
-body,
+html {
+  scroll-behavior: smooth;
+  background: var(--background);
+}
+
+body {
+  min-height: 100vh;
+  position: relative;
+  background: transparent;
+  color: var(--foreground);
+  overflow-x: hidden;
+  font-family: var(--font-sans), sans-serif;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga" 1, "kern" 1;
+}
+
 #root {
   min-height: 100%;
   margin: 0;
@@ -28,6 +53,20 @@ body {
   background:
     radial-gradient(circle at top, rgba(229, 188, 89, 0.08), transparent 20%),
     #050505;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-serif);
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+p,
+li {
+  text-wrap: pretty;
 }
 
 button,
@@ -57,4 +96,11 @@ html.lenis body {
 
 .lenis.lenis-stopped {
   overflow: hidden;
+img {
+  display: block;
+}
+
+::selection {
+  background: rgba(212, 163, 115, 0.35);
+  color: #fff;
 }
