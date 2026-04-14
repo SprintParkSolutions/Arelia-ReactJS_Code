@@ -53,6 +53,7 @@ body {
   background:
     radial-gradient(circle at top, rgba(229, 188, 89, 0.08), transparent 20%),
     #050505;
+}
 h1,
 h2,
 h3,
@@ -96,6 +97,8 @@ html.lenis body {
 
 .lenis.lenis-stopped {
   overflow: hidden;
+}
+
 img {
   display: block;
 }
