@@ -4,6 +4,7 @@ import { NavigationMenu } from './components/navigationMenu/naviagationMenu'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
 import defaultBackgroundVideo from './assets/arelia-global-background.mp4'
 import { HomePage } from './pages/HomePage'
+import ServicesSection from './pages/ServicesSection'
 import { AboutPage } from './pages/AboutPage'
 
 type PageContentProps = {
@@ -63,6 +64,8 @@ function App() {
           }
         />
         <Route
+          path="/services"
+          element={<ServicesSection />}
           path="/projects"
           element={
             <PageContent
