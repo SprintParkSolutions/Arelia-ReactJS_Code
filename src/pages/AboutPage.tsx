@@ -590,7 +590,7 @@ export function AboutPage() {
               <a href="/reach-us" className="about-button about-button--primary">
                 Book a Consultation
               </a>
-              <a href="/services" className="about-button about-button--secondary">
+              <a href="/projects" className="about-button about-button--secondary">
                 View Our Portfolio
               </a>
             </div>
