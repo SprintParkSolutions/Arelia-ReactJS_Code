@@ -9,6 +9,7 @@ const navItems = [
   { label: 'Home', path: '/' },
   { label: 'About Us', path: '/about-us' },
   { label: 'Services', path: '/services' },
+  { label: 'Projects', path: '/projects' },
   { label: 'Reach Us', path: '/reach-us' },
 ]
 
@@ -17,6 +18,7 @@ export function NavigationMenu() {
   const location = useLocation()
   const [isExpanded, setIsExpanded] = useState(false)
   const [showItems, setShowItems] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const expandTimer = window.setTimeout(() => setIsExpanded(true), 800)
@@ -27,6 +29,10 @@ export function NavigationMenu() {
       window.clearTimeout(itemsTimer)
     }
   }, [])
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false)
+  }, [location.pathname])
 
   const activeIndex = navItems.findIndex((item) => item.path === location.pathname)
 
@@ -95,45 +101,63 @@ export function NavigationMenu() {
         <div className="navigation-menu__pattern-fade" />
       </div>
 
-      <motion.button
-        type="button"
-        initial={{
-          opacity: 0,
-          filter: 'blur(12px)',
-          scale: 1.08,
-          left: '50%',
-          x: '-50%',
-          y: '-50%',
-          top: '50%',
-        }}
-        animate={{
-          opacity: 1,
-          filter: 'blur(0px)',
-          scale: 1,
-          left: isExpanded ? '32px' : '50%',
-          x: isExpanded ? '0%' : '-50%',
-          y: '-50%',
-          top: '50%',
-        }}
-        transition={{
-          opacity: { duration: 1.2, ease: 'easeOut' },
-          filter: { duration: 1.2, ease: 'easeOut' },
-          scale: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
-          left: { duration: 1.4, ease: [0.77, 0, 0.175, 1], delay: 0.2 },
-          x: { duration: 1.4, ease: [0.77, 0, 0.175, 1], delay: 0.2 },
-        }}
-        className="navigation-menu__brand"
-        onClick={() => navigate('/')}
-        aria-label="Go to home"
-      >
-        <img
-          className="navigation-menu__brand-image"
-          src={areliaLogo}
-          alt="Arelia"
-        />
-      </motion.button>
+      <div className="navigation-menu__header">
+        <motion.button
+          type="button"
+          initial={{
+            opacity: 0,
+            filter: 'blur(12px)',
+            scale: 1.08,
+            left: '50%',
+            x: '-50%',
+            y: '-50%',
+            top: '50%',
+          }}
+          animate={{
+            opacity: 1,
+            filter: 'blur(0px)',
+            scale: 1,
+            left: isExpanded ? '32px' : '50%',
+            x: isExpanded ? '0%' : '-50%',
+            y: '-50%',
+            top: '50%',
+          }}
+          transition={{
+            opacity: { duration: 1.2, ease: 'easeOut' },
+            filter: { duration: 1.2, ease: 'easeOut' },
+            scale: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
+            left: { duration: 1.4, ease: [0.77, 0, 0.175, 1], delay: 0.2 },
+            x: { duration: 1.4, ease: [0.77, 0, 0.175, 1], delay: 0.2 },
+          }}
+          className="navigation-menu__brand"
+          onClick={() => navigate('/')}
+          aria-label="Go to home"
+        >
+          <img
+            className="navigation-menu__brand-image"
+            src={areliaLogo}
+            alt="Arelia"
+          />
+        </motion.button>
 
-      <div className="navigation-menu__content">
+        <button
+          type="button"
+          className={`navigation-menu__toggle${isMobileMenuOpen ? ' is-open' : ''}`}
+          onClick={() => setIsMobileMenuOpen((current) => !current)}
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="navigation-menu-links"
+          aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+      </div>
+
+      <div
+        id="navigation-menu-links"
+        className={`navigation-menu__content${isMobileMenuOpen ? ' is-open' : ''}`}
+      >
         <motion.div
           className="navigation-menu__motion-wrap"
           variants={staggerContainer}
@@ -150,7 +174,10 @@ export function NavigationMenu() {
                     key={item.path}
                     variants={navItemWrapper}
                     className="navigation-menu__item"
-                    onClick={() => navigate(item.path)}
+                    onClick={() => {
+                      navigate(item.path)
+                      setIsMobileMenuOpen(false)
+                    }}
                   >
                     {isActive && (
                       <motion.div
@@ -183,7 +210,10 @@ export function NavigationMenu() {
             <button
               type="button"
               className="navigation-menu__cta"
-              onClick={() => navigate('/reach-us')}
+              onClick={() => {
+                navigate('/reach-us')
+                setIsMobileMenuOpen(false)
+              }}
             >
               <motion.div
                 className="navigation-menu__cta-glint"
