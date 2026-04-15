@@ -1,6 +1,5 @@
 import type { CSSProperties, ReactElement, SVGProps } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { VideoBackground } from '../components/videoBackground/VideoBackground'
@@ -29,6 +28,10 @@ type Testimonial = {
   role: string
   quote: string
   image: string
+}
+
+type HomePageProps = {
+  onOpenConsultation: () => void
 }
 
 const SHOWCASE_IMAGE = homePageImagePath('showcase-main.jpg')
@@ -599,12 +602,9 @@ function ClientTestimonialsSection() {
   )
 }
 
-function ContactCTASection() {
-  const navigate = useNavigate()
+function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => void }) {
   const sectionRef = useRef<HTMLElement | null>(null)
   const backgroundRef = useRef<HTMLDivElement | null>(null)
-  const transitionTimerRef = useRef<number | null>(null)
-  const [isTransitioning, setIsTransitioning] = useState(false)
 
   useEffect(() => {
     if (sectionRef.current === null || backgroundRef.current === null) return
@@ -626,45 +626,31 @@ function ContactCTASection() {
     }, sectionRef)
 
     return () => {
-      if (transitionTimerRef.current !== null) {
-        window.clearTimeout(transitionTimerRef.current)
-      }
       animationContext.revert()
     }
   }, [])
 
-  const handleNavigate = () => {
-    if (isTransitioning) return
-    setIsTransitioning(true)
-    transitionTimerRef.current = window.setTimeout(() => {
-      navigate('/contact-us')
-    }, 720)
-  }
-
   return (
-    <>
-      <div className={`contact-cta__transition${isTransitioning ? ' is-active' : ''}`} aria-hidden="true" />
-      <section ref={sectionRef} className="contact-cta luxury-section luxury-section--wide">
-        <div ref={backgroundRef} className="contact-cta__background" style={{ backgroundImage: `url(${CONTACT_IMAGE})` }} />
-        <div className="contact-cta__overlay" />
-        <div className="contact-cta__vignette" />
-        <div className="contact-cta__content">
-          <p className="contact-cta__eyebrow contact-cta__reveal">Begin The Conversation</p>
-          <h2 className="contact-cta__reveal">Ready to get started, or want to know more?</h2>
-          <p className="contact-cta__copy contact-cta__reveal">
-            Let&apos;s shape a project experience that feels cinematic from first impression to final reveal.
-          </p>
-          <button type="button" onClick={handleNavigate} className="contact-cta__button contact-cta__reveal" data-magnetic>
-            <span className="contact-cta__button-fill" />
-            <span className="contact-cta__button-label">Contact Us</span>
-          </button>
-        </div>
-      </section>
-    </>
+    <section ref={sectionRef} className="contact-cta luxury-section luxury-section--wide">
+      <div ref={backgroundRef} className="contact-cta__background" style={{ backgroundImage: `url(${CONTACT_IMAGE})` }} />
+      <div className="contact-cta__overlay" />
+      <div className="contact-cta__vignette" />
+      <div className="contact-cta__content">
+        <p className="contact-cta__eyebrow contact-cta__reveal">Begin The Conversation</p>
+        <h2 className="contact-cta__reveal">Ready to get started, or want to know more?</h2>
+        <p className="contact-cta__copy contact-cta__reveal">
+          Let&apos;s shape a project experience that feels cinematic from first impression to final reveal.
+        </p>
+        <button type="button" onClick={onOpenConsultation} className="contact-cta__button contact-cta__reveal" data-magnetic>
+          <span className="contact-cta__button-fill" />
+          <span className="contact-cta__button-label">Book Consultation</span>
+        </button>
+      </div>
+    </section>
   )
 }
 
-export function HomePage() {
+export function HomePage({ onOpenConsultation }: HomePageProps) {
   return (
     <main className="home-page">
       <HomeHeroSection />
@@ -674,7 +660,7 @@ export function HomePage() {
         <QuoteSectionSection />
         <StatsSection />
         <ClientTestimonialsSection />
-        <ContactCTASection />
+        <ContactCTASection onOpenConsultation={onOpenConsultation} />
       </div>
     </main>
   )

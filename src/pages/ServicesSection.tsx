@@ -93,8 +93,9 @@ type ServiceImageProps = {
 };
 
 type LuxuryButtonProps = {
-  href: string;
+  href?: string;
   label: string;
+  onClick?: () => void;
   variant?: "gold" | "ghost";
 };
 
@@ -123,9 +124,13 @@ const serviceProcess = [
   },
 ];
 
-const BASE_IMG_PATH = "/images/Service%20Page";
+const BASE_IMG_PATH = `${import.meta.env.BASE_URL}images/Service%20Page`;
 const serviceImagePath = (category: string, fileName: string) =>
   `${BASE_IMG_PATH}/${category}/${fileName}`;
+const SERVICE_HERO_VIDEO = serviceImagePath(
+  "LandingPage",
+  "Service Video.mp4",
+);
 
 const FALLBACK_SERVICE_IMAGE = serviceImagePath(
   "residential",
@@ -214,7 +219,7 @@ function FadeIn({ children, className, delay = 0, y = 32 }: FadeInProps) {
   );
 }
 
-function LuxuryButton({ href, label, variant = "gold" }: LuxuryButtonProps) {
+function LuxuryButton({ href, label, onClick, variant = "gold" }: LuxuryButtonProps) {
   const baseClasses =
     "inline-flex items-center justify-center rounded-full px-6 py-3 text-xs font-medium uppercase tracking-[0.28em] transition-all duration-300";
 
@@ -223,10 +228,20 @@ function LuxuryButton({ href, label, variant = "gold" }: LuxuryButtonProps) {
       ? "border border-[#d4a373] bg-[linear-gradient(135deg,rgba(212,163,115,0.18),rgba(212,163,115,0.34))] text-[#f8f6f2] shadow-[0_18px_45px_rgba(212,163,115,0.16)] hover:-translate-y-0.5 hover:border-[#f0c48d] hover:shadow-[0_24px_60px_rgba(212,163,115,0.22)]"
       : "border border-white/15 bg-white/5 text-[#f8f6f2] backdrop-blur-sm hover:-translate-y-0.5 hover:border-[#d4a373]/60 hover:bg-white/10";
 
+  const className = `${baseClasses} ${variantClasses}`;
+
+  if (href) {
+    return (
+      <a href={href} className={className}>
+        {label}
+      </a>
+    );
+  }
+
   return (
-    <a href={href} className={`${baseClasses} ${variantClasses}`}>
+    <button type="button" onClick={onClick} className={className}>
       {label}
-    </a>
+    </button>
   );
 }
 
@@ -253,25 +268,24 @@ function SectionHeading({
   );
 }
 
-function ServicesHero() {
+function ServicesHero({ onOpenConsultation }: { onOpenConsultation: () => void }) {
   return (
-    <section className="relative overflow-hidden px-6 pb-20 pt-[7.5rem] sm:px-8 sm:pt-[8rem] lg:px-10 lg:pb-28 lg:pt-[8.5rem]">
+    <section className="relative overflow-hidden px-6 pb-20 pt-[8.5rem] sm:px-8 sm:pt-[8.9rem] lg:px-10 lg:pb-28 lg:pt-[9.1rem]">
       <div className="mx-auto max-w-7xl">
         <FadeIn>
-          <article className="relative isolate flex min-h-[82vh] items-center justify-center overflow-hidden rounded-[2.4rem] border border-white/10 px-6 py-20 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:px-10 lg:min-h-[92vh] lg:px-16 lg:py-24">
+          <article className="relative isolate flex min-h-[78vh] items-center justify-center overflow-hidden rounded-[2.4rem] border border-white/10 px-6 py-20 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:px-10 lg:min-h-[84vh] lg:px-16 lg:py-24">
             <video
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover object-center"
               autoPlay
-              muted
               loop
+              muted
               playsInline
               preload="auto"
             >
-              <source src="/videos/services-hero-loop.mp4" type="video/mp4" />
+              <source src={SERVICE_HERO_VIDEO} type="video/mp4" />
             </video>
-
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,6,8,0.5),rgba(4,6,8,0.28)_24%,rgba(4,6,8,0.66)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,163,115,0.18),transparent_24%),radial-gradient(circle_at_bottom,rgba(0,0,0,0.24),transparent_38%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,6,8,0.22),rgba(8,8,10,0.16)_42%,rgba(8,8,10,0.42)_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,163,115,0.16),transparent_24%),radial-gradient(circle_at_bottom,rgba(0,0,0,0.2),transparent_38%)]" />
 
             <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center text-center">
               <div className="mb-8 h-px w-full max-w-3xl bg-gradient-to-r from-transparent via-white/18 to-transparent sm:mb-10" />
@@ -294,8 +308,8 @@ function ServicesHero() {
               <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row">
                 <LuxuryButton href="#services" label="View Signature Services" />
                 <LuxuryButton
-                  href="#contact"
                   label="Book A Consultation"
+                  onClick={onOpenConsultation}
                   variant="ghost"
                 />
               </div>
@@ -789,7 +803,11 @@ function ServicesProcessSection() {
   );
 }
 
-function ServicesConsultationSection() {
+function ServicesConsultationSection({
+  onOpenConsultation,
+}: {
+  onOpenConsultation: () => void;
+}) {
   return (
     <section id="contact" className="px-6 py-20 sm:px-8 lg:px-10 lg:py-24">
       <div className="mx-auto max-w-7xl">
@@ -810,7 +828,7 @@ function ServicesConsultationSection() {
             </div>
 
             <div className="mt-8 lg:mt-0 lg:pl-8">
-              <LuxuryButton href="#contact" label="Start A Consultation" />
+              <LuxuryButton label="Start A Consultation" onClick={onOpenConsultation} />
             </div>
           </div>
         </FadeIn>
@@ -819,7 +837,11 @@ function ServicesConsultationSection() {
   );
 }
 
-export default function ServicesSection() {
+export default function ServicesSection({
+  onOpenConsultation,
+}: {
+  onOpenConsultation: () => void;
+}) {
   return (
     <main className="relative overflow-hidden bg-transparent text-[#f8f6f2]">
       <div className="pointer-events-none absolute inset-0">
@@ -827,11 +849,11 @@ export default function ServicesSection() {
         <div className="absolute right-[-6rem] top-[18rem] h-[28rem] w-[28rem] bg-[radial-gradient(circle,rgba(212,163,115,0.1),transparent_60%)]" />
       </div>
 
-      <ServicesHero />
+      <ServicesHero onOpenConsultation={onOpenConsultation} />
       <ServicesCatalogueIntro />
       <SignatureServicesSection />
       <ServicesProcessSection />
-      <ServicesConsultationSection />
+      <ServicesConsultationSection onOpenConsultation={onOpenConsultation} />
     </main>
   );
 }

@@ -21,26 +21,42 @@ export function VideoBackground({
       return
     }
 
+    const tryPlay = () => {
+      const playPromise = videoElement.play()
+
+      if (playPromise) {
+        playPromise.catch(() => {
+          // Some browsers may block autoplay until the element is fully ready.
+        })
+      }
+    }
+
+    // Reinforce autoplay-related flags at the DOM level for Safari/iOS reliability.
+    videoElement.muted = true
+    videoElement.defaultMuted = true
+    videoElement.playsInline = true
+    videoElement.setAttribute('muted', '')
+    videoElement.setAttribute('playsinline', '')
+    videoElement.setAttribute('webkit-playsinline', '')
+
     videoElement.load()
+    videoElement.addEventListener('canplay', tryPlay)
 
-    const playPromise = videoElement.play()
+    tryPlay()
 
-    if (playPromise) {
-      playPromise.catch(() => {
-        // Some browsers may block autoplay until the element is ready.
-      })
+    return () => {
+      videoElement.removeEventListener('canplay', tryPlay)
     }
   }, [src])
 
   return (
     <div
-      className={`video-background${isSection ? ' video-background--section' : ''}`}
+      className={`site-video-background${isSection ? ' site-video-background--section' : ' site-video-background--fixed'}`}
       aria-hidden="true"
     >
       <video
-        key={src}
         ref={videoRef}
-        className={`video-background__media${isHome ? ' video-background__media--home' : ''}`}
+        className={`site-video-background__media${isHome ? ' site-video-background__media--home' : ''}`}
         autoPlay
         loop
         muted
@@ -50,7 +66,7 @@ export function VideoBackground({
         <source src={src} type="video/mp4" />
       </video>
       <div
-        className={`video-background__overlay${isHome ? ' video-background__overlay--home' : ''}`}
+        className={`site-video-background__overlay${isHome ? ' site-video-background__overlay--home' : ''}`}
       />
     </div>
   )
