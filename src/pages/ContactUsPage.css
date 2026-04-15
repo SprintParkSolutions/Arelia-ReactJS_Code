@@ -20,106 +20,169 @@
 
 .contact-page__hero-shell,
 .contact-page__section-inner {
+  width: 100%;
+  margin: 0;
+}
+
+.contact-page__hero-shell {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  padding: 0;
+}
+
+/* Restore section-inner with proper width */
+.contact-page__section-inner {
   width: min(100% - 2rem, 92rem);
   margin: 0 auto;
 }
 
-.contact-page__hero-shell {
-  padding-top: 3.9rem;
-}
-
 .contact-page__hero {
   position: relative;
-  min-height: 84vh;
+  width: 100%;
+  height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3.8rem 1.5rem 3.2rem;
+  padding: 0;
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
   overflow: hidden;
-  border-radius: 2.6rem;
-  box-shadow:
-    0 28px 90px rgba(0, 0, 0, 0.24),
-    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .contact-page__hero::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: inherit;
+  background-image: inherit;
+  background-position: inherit;
+  background-size: inherit;
+  background-repeat: inherit;
   transform: scale(1);
-  animation: contact-page-zoom-hero 14s ease-in-out infinite alternate;
+  animation: contact-page-zoom-hero 24s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+.contact-page__hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 8, 6, 0.3) 0%,
+    rgba(15, 12, 10, 0.5) 45%,
+    rgba(20, 16, 12, 0.65) 100%
+  );
+  z-index: 1;
+  pointer-events: none;
 }
 
 .contact-page__hero-overlay {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background:
-    linear-gradient(
-      180deg,
-      rgba(6, 6, 8, 0.08) 0%,
-      rgba(8, 8, 10, 0.14) 45%,
-      rgba(8, 8, 10, 0.24) 100%
-    ),
-    radial-gradient(circle at center, rgba(255, 214, 153, 0.05), transparent 38%);
+  background: transparent;
+  display: none;
+}
+
+/* ============= SCROLL INDICATOR ============= */
+.contact-page__hero-shell::after {
+  content: '';
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 40px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  background: transparent;
+  z-index: 3;
+  animation: scrollBounce 2s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .contact-page__hero-content {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  width: min(860px, calc(100% - 2rem));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 2rem;
   text-align: center;
-  padding: 0;
-  animation: fadeUp 1.2s ease;
+  animation: fadeUp 1.2s ease-out 0.3s both;
 }
 
 .contact-page__tag {
-  margin: 0 0 1rem;
-  color: #c5914d;
-  letter-spacing: 0.34em;
-  font-size: 0.82rem;
-  font-weight: 600;
+  margin: 0 0 1.5rem;
+  color: rgba(213, 160, 84, 0.95);
+  letter-spacing: 0.42em;
+  font-size: 0.85rem;
+  font-weight: 700;
   text-transform: uppercase;
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  animation: fadeInDown 1s ease-out 0.4s both;
 }
 
 .contact-page__hero-title {
-  margin: 0 0 1.35rem;
-  font-size: clamp(3.4rem, 6vw, 6rem);
-  line-height: 0.94;
-  color: #fffaf2;
+  margin: 0 0 1.8rem;
+  font-size: clamp(3.2rem, 8vw, 7.2rem);
+  line-height: 0.95;
+  font-weight: 800;
+  color: #fffef9;
+  letter-spacing: -0.8px;
   text-shadow:
-    0 8px 30px rgba(0, 0, 0, 0.28),
-    0 0 28px rgba(255, 196, 120, 0.06);
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(213, 160, 84, 0.15);
+  opacity: 0;
+  animation: fadeInScale 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
+  max-width: 1000px;
 }
 
 .contact-page__hero-title span {
   color: #ddb07a;
   font-style: italic;
+  position: relative;
+  display: inline-block;
+  background: linear-gradient(135deg, #d5a054, #e8b870, #d5a054);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .contact-page__hero-text {
   margin: 0 auto;
-  max-width: 720px;
-  color: rgba(255, 250, 242, 0.95);
-  font-size: 1.05rem;
-  line-height: 1.8;
-  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  max-width: 700px;
+  color: rgba(255, 250, 242, 0.92);
+  font-size: clamp(0.95rem, 2vw, 1.2rem);
+  line-height: 1.85;
+  text-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  opacity: 0;
+  animation: fadeInUp 1.2s ease-out 0.7s both;
 }
 
 /* IMPORTANT: keep this transparent so bg video is visible */
 .contact-page__contact-section {
   position: relative;
   z-index: 3;
-  padding: 2.25rem 0 1.75rem;
+  padding: 3rem 0 2.5rem;
   background: transparent;
+  margin-top: -1px;
 }
 
 .contact-page__contact-grid {
+  width: min(100% - 2rem, 92rem);
+  margin: 0 auto;
   display: grid;
   grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
   gap: 2.25rem;
@@ -538,6 +601,50 @@
   }
 }
 
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scrollBounce {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateX(-50%) translateY(8px);
+    opacity: 1;
+  }
+}
+
 @keyframes contact-page-map-float {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -563,12 +670,12 @@
 
 @media (max-width: 960px) {
   .contact-page__hero-shell {
-    padding-top: 6.8rem;
+    position: relative;
   }
 
   .contact-page__hero {
-    min-height: 74vh;
-    padding: 3.2rem 1.25rem 3rem;
+    height: 100vh;
+    padding: 0;
   }
 
   .contact-page__contact-section {
@@ -600,13 +707,16 @@
   }
 
   .contact-page__hero-shell {
-    padding-top: 5.9rem;
+    position: relative;
+    width: 100vw;
+    margin-left: calc(-50vw + 50%);
+    padding: 0;
   }
 
   .contact-page__hero {
-    min-height: 58vh;
-    padding: 2.6rem 1rem 2.2rem;
-    border-radius: 1.8rem;
+    height: 100vh;
+    padding: 0;
+    border-radius: 0;
   }
 
   .contact-page__details,
