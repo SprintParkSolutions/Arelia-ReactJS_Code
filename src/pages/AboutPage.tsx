@@ -9,7 +9,6 @@ const aboutUsImagePath = (fileName: string) => `${ABOUT_US_IMAGES_PATH}/${fileNa
 const bathRetreatImage = aboutUsImagePath('Bath Retreat.avif')
 const bedroomImage = aboutUsImagePath('Bedroom.avif')
 const livingSpaceImage = aboutUsImagePath('Living Space.jpg')
-const officeSpaceImage = aboutUsImagePath('Office Space.avif')
 const obsidianResidenceImage = aboutUsImagePath('The Obsidian Residence.avif')
 const velourExecutiveSuitesImage = aboutUsImagePath('Velour Executive Suites.avif')
 const maisonAreliaSuiteImage = aboutUsImagePath('Maison Arelia Suite.avif')
@@ -24,22 +23,23 @@ const approvalImage = aboutUsImagePath('Approval.avif')
 const executionImage = aboutUsImagePath('Execution.avif')
 const qualityAuditImage = aboutUsImagePath('Quality Audit.jpg')
 
-const heroSlides = [
+// Image pairs for hero composition rotation
+const heroPairs = [
   {
-    label: 'Bath Retreat',
-    image: bathRetreatImage,
+    primary: { image: obsidianResidenceImage, label: 'The Obsidian Residence' },
+    secondary: { image: velourExecutiveSuitesImage, label: 'Velour Executive Suites' },
   },
   {
-    label: 'Bedroom',
-    image: bedroomImage,
+    primary: { image: maisonAreliaSuiteImage, label: 'Maison Arelia Suite' },
+    secondary: { image: terraceGardenImage, label: 'The Terrace Garden' },
   },
   {
-    label: 'Living Space',
-    image: livingSpaceImage,
+    primary: { image: noirAtelierFlagshipImage, label: 'Noir Atelier Flagship' },
+    secondary: { image: bathRetreatImage, label: 'Bath Retreat' },
   },
   {
-    label: 'Office Space',
-    image: officeSpaceImage,
+    primary: { image: bedroomImage, label: 'Bedroom' },
+    secondary: { image: livingSpaceImage, label: 'Living Space' },
   },
 ]
 
@@ -47,7 +47,6 @@ const studioStats = [
   { value: '320+', label: 'Projects delivered' },
   { value: '14', label: 'Years of expertise' },
   { value: '98%', label: 'Client satisfaction' },
-  
 ]
 
 const designCards = [
@@ -204,14 +203,19 @@ type AboutPageProps = {
 }
 
 export function AboutPage({ onOpenConsultation }: AboutPageProps) {
-  const [activeSlide, setActiveSlide] = useState(0)
+  const [currentPair, setCurrentPair] = useState(0)
+  const [fadeOut, setFadeOut] = useState(false)
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setActiveSlide((current) => (current + 1) % heroSlides.length)
-    }, 4200)
+    const pairInterval = window.setInterval(() => {
+      setFadeOut(true)
+      setTimeout(() => {
+        setCurrentPair((prev) => (prev + 1) % heroPairs.length)
+        setFadeOut(false)
+      }, 900) // Adjusted timeout to align with smoother 0.9s animation
+    }, 4500)
 
-    return () => window.clearInterval(interval)
+    return () => window.clearInterval(pairInterval)
   }, [])
 
   const marqueeTrack = [...marqueeWords, ...marqueeWords]
@@ -270,54 +274,55 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 1.1, ease: 'easeOut', delay: 0.2 }}
           >
+            {/* Subtle glow backdrop */}
+            <div className="about-hero__glow-backdrop" />
+            
+            {/* Light reflection streak */}
+            <div className="about-hero__light-streak" />
+
+            {/* Primary image - background layer */}
             <motion.div
-              className="about-hero__halo"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 40, repeat: Number.POSITIVE_INFINITY, ease: 'linear' }}
-            />
-            <div className="about-hero__collage">
-              <motion.article
-                key={heroSlides[activeSlide].image}
-                className="about-hero__card about-hero__card--main"
-                initial={{ opacity: 0.55, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.7, ease: 'easeOut' }}
-              >
-                <motion.img
-                  src={heroSlides[activeSlide].image}
-                  alt={heroSlides[activeSlide].label}
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ duration: 6, repeat: Number.POSITIVE_INFINITY, ease: 'easeInOut' }}
-                />
-                <span>{heroSlides[activeSlide].label}</span>
-              </motion.article>
-              {heroSlides.slice(1).map((slide, index) => (
-                <motion.article
-                  key={slide.label}
-                  className={`about-hero__card about-hero__card--side about-hero__card--${index + 1}`}
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{
-                    duration: 5 + index,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: 'easeInOut',
-                    delay: index * 0.5,
-                  }}
-                >
-                  <img src={slide.image} alt={slide.label} />
-                  <span>{slide.label}</span>
-                </motion.article>
-              ))}
-            </div>
-            <div className="about-hero__dots" aria-label="Hero slide indicators">
-              {heroSlides.map((slide, index) => (
-                <button
-                  key={slide.label}
-                  type="button"
-                  className={index === activeSlide ? 'is-active' : ''}
-                  onClick={() => setActiveSlide(index)}
-                />
-              ))}
-            </div>
+              className="about-hero__image about-hero__image--primary"
+              animate={{ opacity: fadeOut ? 0 : 1 }}
+              transition={{
+                duration: 0.9,
+                ease: 'easeInOut'
+              }}
+            >
+              <motion.img
+                src={heroPairs[currentPair].primary.image}
+                alt={heroPairs[currentPair].primary.label}
+                animate={{ 
+                  scale: fadeOut ? 1 : 1.03,
+                }}
+                transition={{
+                  duration: 0.9,
+                  ease: 'easeOut'
+                }}
+              />
+            </motion.div>
+
+            {/* Secondary image - foreground layer */}
+            <motion.div
+              className="about-hero__image about-hero__image--secondary"
+              animate={{ opacity: fadeOut ? 0 : 1 }}
+              transition={{
+                duration: 0.9,
+                ease: 'easeInOut'
+              }}
+            >
+              <motion.img
+                src={heroPairs[currentPair].secondary.image}
+                alt={heroPairs[currentPair].secondary.label}
+                animate={{ 
+                  scale: fadeOut ? 1 : 1.03,
+                }}
+                transition={{
+                  duration: 0.9,
+                  ease: 'easeOut'
+                }}
+              />
+            </motion.div>
           </motion.div>
         </div>
         <motion.div
@@ -330,6 +335,7 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
         </motion.div>
       </section>
 
+      {/* Marquee, Philosophy, Process, Testimonials, & CTA Sections Remain Unchanged */}
       <section className="about-marquee">
         <div className="about-marquee__track">
           {marqueeTrack.map((word, index) => (
