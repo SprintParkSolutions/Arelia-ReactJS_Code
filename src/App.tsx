@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
+import { ConsultationModal } from './components/consultation/ConsultationModal'
 import { NavigationMenu } from './components/navigationMenu/naviagationMenu'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
 import { HomePage } from './pages/HomePage'
@@ -22,6 +23,7 @@ function ScrollToTop() {
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(true)
+  const [isConsultationOpen, setIsConsultationOpen] = useState(false)
 
   return (
     <>
@@ -31,14 +33,27 @@ export default function App() {
         <div className="app-shell">
           <ScrollToTop />
           <VideoBackground src="/videos/arelia-global-background.mp4" />
-          <NavigationMenu />
+          <NavigationMenu onOpenConsultation={() => setIsConsultationOpen(true)} />
           <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/about-us" element={<AboutPage />} />
-            <Route path="/services" element={<ServicesSection />} />
+            <Route
+              path="/"
+              element={<HomePage onOpenConsultation={() => setIsConsultationOpen(true)} />}
+            />
+            <Route
+              path="/about-us"
+              element={<AboutPage onOpenConsultation={() => setIsConsultationOpen(true)} />}
+            />
+            <Route
+              path="/services"
+              element={<ServicesSection onOpenConsultation={() => setIsConsultationOpen(true)} />}
+            />
             <Route path="/contact-us" element={<ContactUsPage />} />
           </Routes>
           <Footer />
+          <ConsultationModal
+            isOpen={isConsultationOpen}
+            onClose={() => setIsConsultationOpen(false)}
+          />
         </div>
       ) : null}
     </>

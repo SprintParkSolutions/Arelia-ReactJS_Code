@@ -199,7 +199,11 @@ const stagger: Variants = {
   },
 }
 
-export function AboutPage() {
+type AboutPageProps = {
+  onOpenConsultation: () => void
+}
+
+export function AboutPage({ onOpenConsultation }: AboutPageProps) {
   const [activeSlide, setActiveSlide] = useState(0)
 
   useEffect(() => {
@@ -243,9 +247,9 @@ export function AboutPage() {
               prestige.
             </motion.p>
             <motion.div className="about-hero__actions" variants={fadeUp}>
-              <a href="/reach-us" className="about-button about-button--primary">
+              <button type="button" className="about-button about-button--primary" onClick={onOpenConsultation}>
                 Book Consultation
-              </a>
+              </button>
               <a href="#philosophy" className="about-button about-button--secondary">
                 Our Philosophy -&gt;
               </a>
@@ -591,9 +595,9 @@ export function AboutPage() {
               let us shape an environment that feels distinctively yours.
             </p>
             <div className="about-cta__actions">
-              <a href="/reach-us" className="about-button about-button--primary">
+              <button type="button" className="about-button about-button--primary" onClick={onOpenConsultation}>
                 Book a Consultation
-              </a>
+              </button>
               <a href="/projects" className="about-button about-button--secondary">
                 View Our Portfolio
               </a>

@@ -1,30 +1,34 @@
-.video-background {
-  position: fixed;
+.site-video-background {
+  position: absolute;
   inset: 0;
-  z-index: -2;
   overflow: hidden;
   pointer-events: none;
   background: #050505;
 }
 
-.video-background--section {
-  position: sticky;
-  top: 0;
+.site-video-background--fixed {
+  position: fixed;
+  inset: 0;
   z-index: 0;
-  height: 100vh;
 }
 
-.video-background__media {
+.site-video-background--section {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.site-video-background__media {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.video-background__media--home {
+.site-video-background__media--home {
   filter: brightness(1.18) saturate(1.05);
 }
 
-.video-background__overlay {
+.site-video-background__overlay {
   position: absolute;
   inset: 0;
   background:
@@ -32,7 +36,7 @@
     rgba(0, 0, 0, 0.28);
 }
 
-.video-background__overlay--home {
+.site-video-background__overlay--home {
   background:
     linear-gradient(180deg, rgba(3, 3, 3, 0.12) 0%, rgba(3, 3, 3, 0.3) 100%),
     rgba(0, 0, 0, 0.08);
