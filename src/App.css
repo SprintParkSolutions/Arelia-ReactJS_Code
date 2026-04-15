@@ -4,10 +4,35 @@ body {
   background: transparent;
   overflow-x: hidden;
 }
+
 .app-shell {
+  --app-shell-page-padding-x: 1.5rem;
+  --app-shell-page-padding-top: 8rem;
+  --app-shell-page-padding-bottom: 3rem;
+  --app-shell-page-width: 64rem;
   position: relative;
   min-height: 100vh;
   overflow-x: hidden;
+  isolation: isolate;
+  transform-origin: center top;
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell--entering {
+  opacity: 0;
+  transform: scale(0.985);
+}
+
+.app-shell--ready {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.app-shell__page-frame {
+  position: relative;
+  z-index: 1;
 }
 
 .page {
@@ -16,7 +41,7 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 8rem 1.5rem 3rem;
+  padding: var(--app-shell-page-padding-top) var(--app-shell-page-padding-x) var(--app-shell-page-padding-bottom);
 }
 
 .home-page {
@@ -25,7 +50,7 @@ body {
 }
 
 .page__inner {
-  width: min(100%, 64rem);
+  width: min(100%, var(--app-shell-page-width));
   padding: 2rem;
   text-align: center;
   color: #f8f5ef;
@@ -98,8 +123,13 @@ body {
 }
 
 @media (max-width: 767px) {
+  .app-shell {
+    --app-shell-page-padding-top: 9rem;
+    --app-shell-page-padding-x: 1rem;
+  }
+
   .page {
-    padding-top: 9rem;
+    padding-top: var(--app-shell-page-padding-top);
   }
 
   .page__inner {
@@ -117,5 +147,4 @@ body {
   .page__action-pill {
     width: 100%;
   }
-
 }

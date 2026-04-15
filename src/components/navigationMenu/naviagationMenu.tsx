@@ -8,11 +8,14 @@ const navItems = [
   { label: 'Home', path: '/' },
   { label: 'About Us', path: '/about-us' },
   { label: 'Services', path: '/services' },
-  { label: 'Projects', path: '/projects' },
-  { label: 'Reach Us', path: '/reach-us' },
+  { label: 'Contact Us', path: '/contact-us' },
 ]
 
-export function NavigationMenu() {
+type NavigationMenuProps = {
+  onOpenConsultation: () => void
+}
+
+export function NavigationMenu({ onOpenConsultation }: NavigationMenuProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const [isExpanded, setIsExpanded] = useState(false)
@@ -210,7 +213,7 @@ export function NavigationMenu() {
               type="button"
               className="navigation-menu__cta"
               onClick={() => {
-                navigate('/reach-us')
+                onOpenConsultation()
                 setIsMobileMenuOpen(false)
               }}
             >
