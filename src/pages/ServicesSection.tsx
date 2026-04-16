@@ -270,52 +270,63 @@ function SectionHeading({
 
 function ServicesHero({ onOpenConsultation }: { onOpenConsultation: () => void }) {
   return (
-    <section className="relative overflow-hidden px-6 pb-20 pt-[8.5rem] sm:px-8 sm:pt-[8.9rem] lg:px-10 lg:pb-28 lg:pt-[9.1rem]">
-      <div className="mx-auto max-w-7xl">
-        <FadeIn>
-          <article className="relative isolate flex min-h-[78vh] items-center justify-center overflow-hidden rounded-[2.4rem] border border-white/10 px-6 py-20 shadow-[0_28px_90px_rgba(0,0,0,0.28)] sm:px-10 lg:min-h-[84vh] lg:px-16 lg:py-24">
-            <video
-              className="absolute inset-0 h-full w-full object-cover object-center"
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="auto"
-            >
-              <source src={SERVICE_HERO_VIDEO} type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,6,8,0.22),rgba(8,8,10,0.16)_42%,rgba(8,8,10,0.42)_100%)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,163,115,0.16),transparent_24%),radial-gradient(circle_at_bottom,rgba(0,0,0,0.2),transparent_38%)]" />
+    <section className="servicesHero relative overflow-hidden">
+      <div className="servicesHeroStage">
+        <div className="servicesHeroMedia">
+          <video
+            className="servicesHeroVideo"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+          >
+            <source src={SERVICE_HERO_VIDEO} type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,6,8,0.22),rgba(8,8,10,0.16)_42%,rgba(8,8,10,0.42)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,163,115,0.16),transparent_24%),radial-gradient(circle_at_bottom,rgba(0,0,0,0.2),transparent_38%)]" />
+        </div>
 
-            <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-col items-center text-center">
-              <div className="mb-8 h-px w-full max-w-3xl bg-gradient-to-r from-transparent via-white/18 to-transparent sm:mb-10" />
+        <div className="servicesHeroContent">
+          <FadeIn className="servicesHeroCopyWrap">
+            <div className="servicesHeroCopy">
+              <div className="servicesHeroDivider" />
 
-              <p className="mb-5 text-[11px] uppercase tracking-[0.42em] text-[#e1bd93] sm:text-xs">
-                Services
-              </p>
+              <p className="servicesHeroEyebrow">Services</p>
 
-              <h1 className="max-w-4xl text-4xl leading-[0.95] text-[#f8f6f2] sm:text-5xl lg:text-7xl [font-family:var(--font-serif)]">
+              <h1 className="servicesHeroHeading">
                 Spaces that breathe softly,
                 <br />
                 and linger beautifully.
               </h1>
 
-              <p className="mt-6 max-w-2xl text-sm leading-7 text-[#e5ddd2] sm:text-base sm:leading-8">
+              <p className="servicesHeroDescription">
                 Residential, commercial, kitchens, and custom furniture shaped
                 with quiet precision and enduring grace.
               </p>
 
-              <div className="mt-9 flex flex-col items-center gap-4 sm:flex-row">
-                <LuxuryButton href="#services" label="View Signature Services" />
-                <LuxuryButton
-                  label="Book A Consultation"
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
+                {/* Secondary Button - Glassmorphic */}
+                <a
+                  href="#services"
+                  className="opacity-0 px-8 py-3.5 rounded-full uppercase text-xs sm:text-sm tracking-[0.15em] font-medium bg-white/5 backdrop-blur-md border border-white/20 text-white transition-all duration-300 hover:bg-white/10 hover:border-white/40 hover:scale-105 inline-flex items-center justify-center"
+                  style={{ animation: 'hero-fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards' }}
+                >
+                  View Signature Services
+                </a>
+
+                {/* Primary Button - Gold Gradient */}
+                <button
                   onClick={onOpenConsultation}
-                  variant="ghost"
-                />
+                  className="opacity-0 px-8 py-3.5 rounded-full uppercase text-xs sm:text-sm tracking-[0.15em] font-semibold bg-gradient-to-r from-[#D4AF37] to-[#AA8222] text-[#050505] shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(212,175,55,0.5)] inline-flex items-center justify-center"
+                  style={{ animation: 'hero-fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards' }}
+                >
+                  Book A Consultation
+                </button>
               </div>
             </div>
-          </article>
-        </FadeIn>
+          </FadeIn>
+        </div>
       </div>
     </section>
   );
@@ -323,12 +334,18 @@ function ServicesHero({ onOpenConsultation }: { onOpenConsultation: () => void }
 
 function ServicesCatalogueIntro() {
   return (
-    <section className="-mt-10 px-6 pb-3 pt-4 sm:-mt-12 sm:px-8 sm:pt-5 lg:-mt-14 lg:px-10 lg:pt-6">
+    <section className="px-6 pb-3 pt-8 sm:px-8 sm:pt-10 lg:px-10 lg:pt-12">
       <div className="mx-auto max-w-7xl">
         <FadeIn className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex items-center justify-center">
+          <div className="inline-flex flex-col items-center justify-center">
             <p className="bg-[linear-gradient(180deg,#f3d2a4_0%,#d4a373_38%,#9f6b2f_100%)] bg-clip-text text-xs font-medium uppercase tracking-[0.22em] text-transparent [text-shadow:0_4px_15px_rgba(212,175,55,0.2)] sm:text-sm">
               Service Catalogue
+            </p>
+            <h2 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#f8f6f2] [font-family:var(--font-serif)] leading-tight">
+              Our Offerings
+            </h2>
+            <p className="mt-4 text-sm sm:text-base text-white/60 tracking-wide [font-family:var(--font-serif)]">
+              Curated spaces designed with intention and grace
             </p>
           </div>
         </FadeIn>
@@ -369,6 +386,7 @@ function SignatureServicesSection() {
   const [expandedImage, setExpandedImage] = useState<ExpandedImage | null>(null);
   const [isCursorVisible, setIsCursorVisible] = useState(false);
   const [isExpandedImageReady, setIsExpandedImageReady] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const cardHoverRowRef = useRef<number | null>(null);
   const frameRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const imageRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -385,9 +403,9 @@ function SignatureServicesSection() {
     stiffness: 150,
   });
   const cursorSpringConfig = {
-    damping: 25,
-    stiffness: 300,
-    mass: 0.5,
+    damping: 35,
+    stiffness: 100,
+    mass: 1.2,
   };
   const cursorXSpring = useSpring(cursorX, cursorSpringConfig);
   const cursorYSpring = useSpring(cursorY, cursorSpringConfig);
@@ -526,7 +544,54 @@ function SignatureServicesSection() {
     if (cardHoverRowRef.current === rowIndex) {
       cardHoverRowRef.current = null;
     }
+    // Guard: Do not close expanded image if lightbox is open
+    if (lightboxIndex === null) {
+      closeExpandedImage(rowIndex);
+    }
   };
+
+  const openLightbox = (imageIndex: number) => {
+    setLightboxIndex(imageIndex);
+    setExpandedImage(null);
+    resetExpandedPan();
+    resetFollowerCursor();
+  };
+
+  const closeLightbox = () => {
+    setLightboxIndex(null);
+    setExpandedImage(null);
+  };
+
+  const goToPrevImage = () => {
+    if (lightboxIndex !== null && expandedImage) {
+      const currentService = servicesData[expandedImage.rowIndex];
+      const prevIndex =
+        lightboxIndex === 0 ? currentService.images.length - 1 : lightboxIndex - 1;
+      setLightboxIndex(prevIndex);
+    }
+  };
+
+  const goToNextImage = () => {
+    if (lightboxIndex !== null && expandedImage) {
+      const currentService = servicesData[expandedImage.rowIndex];
+      const nextIndex =
+        lightboxIndex === currentService.images.length - 1 ? 0 : lightboxIndex + 1;
+      setLightboxIndex(nextIndex);
+    }
+  };
+
+  // Lock page scroll when lightbox is open
+  useEffect(() => {
+    if (lightboxIndex !== null) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = '';
+      };
+    }
+  }, [lightboxIndex]);
+
+  // Guard: Do not close expanded image if lightbox is open
+  // (This is now integrated into handleCardMouseLeave)
 
   return (
     <section
@@ -551,7 +616,7 @@ function SignatureServicesSection() {
                   } ${isPaused ? styles.rowPaused : ""} ${
                     isExpanded ? styles.rowExpanded : ""
                   }`}
-                  onMouseLeave={() => closeExpandedImage(index)}
+                  onMouseLeave={() => handleCardMouseLeave(index)}
                 >
                   <div
                     ref={(node) => {
@@ -670,7 +735,14 @@ function SignatureServicesSection() {
                               return current;
                             });
                           }}
-                          onClick={() => closeExpandedImage(index)}
+                          onClick={() => {
+                            if (expandedImage) {
+                              const imageIndex = servicesData[
+                                expandedImage.rowIndex
+                              ].images.indexOf(expandedImage.src);
+                              openLightbox(imageIndex);
+                            }
+                          }}
                           onMouseLeave={handleExpandedMouseLeave}
                           onMouseMove={handleExpandedMouseMove}
                         >
@@ -701,7 +773,7 @@ function SignatureServicesSection() {
                             isExpandedImageReady &&
                             isCursorVisible ? (
                               <motion.div
-                                className={styles.cursorBadge}
+                                className="absolute flex items-center justify-center w-24 h-24 rounded-full bg-white/10 backdrop-blur-md border border-white/20 shadow-[inset_0_0_15px_rgba(255,255,255,0.2),_0_8px_32px_rgba(0,0,0,0.3)] text-white/70 hover:text-white transition-colors pointer-events-none"
                                 style={{
                                   x: cursorXSpring,
                                   y: cursorYSpring,
@@ -714,8 +786,8 @@ function SignatureServicesSection() {
                                   ease: [0.22, 1, 0.36, 1],
                                 }}
                               >
-                                <span className={styles.cursorBadgeLabel}>
-                                  View Projects
+                                <span className="text-xs font-medium uppercase tracking-widest">
+                                  Gallery
                                 </span>
                               </motion.div>
                             ) : null}
@@ -748,7 +820,7 @@ function SignatureServicesSection() {
                           aria-label={`View ${service.title} projects`}
                           className={styles.button}
                         >
-                          <span className={styles.buttonLabel}>View Projects</span>
+                          <span className={styles.buttonLabel}>View Gallery</span>
                           <span className={styles.buttonIcon} aria-hidden="true">
                             <span className={styles.buttonIconArrow}>
                               &#8599;
@@ -764,14 +836,95 @@ function SignatureServicesSection() {
           })}
         </div>
       </div>
+
+      {/* Lightbox Popup */}
+      <AnimatePresence>
+        {lightboxIndex !== null && expandedImage && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/85 backdrop-blur-lg"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <motion.div
+              className="relative w-[90vw] h-[85vh] rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md p-4 overflow-hidden flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close Button */}
+              <motion.button
+                className="absolute top-6 right-6 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/10 hover:scale-110 transition-all"
+                onClick={closeLightbox}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span className="text-xl leading-none">×</span>
+              </motion.button>
+
+              {/* Image Container */}
+              <div className="w-full h-full flex items-center justify-center">
+                <img
+                  src={servicesData[expandedImage.rowIndex].images[lightboxIndex]}
+                  alt={`${servicesData[expandedImage.rowIndex].title} - Image ${lightboxIndex + 1}`}
+                  className="max-w-full max-h-full object-contain"
+                />
+              </div>
+
+              {/* Navigation Buttons */}
+              <motion.button
+                className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/10 hover:scale-110 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToPrevImage();
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span className="text-lg leading-none">‹</span>
+              </motion.button>
+
+              <motion.button
+                className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/10 hover:scale-110 transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToNextImage();
+                }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span className="text-lg leading-none">›</span>
+              </motion.button>
+
+              {/* Image Counter */}
+              <motion.div
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-white/60 text-xs font-medium tracking-wide"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                {lightboxIndex + 1} / {servicesData[expandedImage.rowIndex].images.length}
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
 
 function ServicesProcessSection() {
   return (
-    <section className="px-6 py-20 sm:px-8 lg:px-10 lg:py-24">
-      <div className="mx-auto max-w-7xl">
+    <section className="relative px-6 py-20 sm:px-8 lg:px-10 lg:py-24 overflow-hidden">
+      {/* Background Gradient Mesh */}
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(212,175,55,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_50%,rgba(212,175,55,0.08)_0%,transparent_50%)]" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl">
         <FadeIn>
           <SectionHeading
             eyebrow="Process"
@@ -781,22 +934,56 @@ function ServicesProcessSection() {
           />
         </FadeIn>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
-          {serviceProcess.map((step, index) => (
-            <FadeIn key={step.title} delay={index * 0.08} className="h-full">
-              <article className="flex h-full flex-col rounded-[1.8rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(18,25,34,0.92))] p-7">
-                <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#d4a373]/35 bg-[#d4a373]/10 text-sm uppercase tracking-[0.24em] text-[#f1d4aa]">
-                  0{index + 1}
-                </span>
-                <h3 className="mt-7 text-2xl text-[#f8f6f2] [font-family:var(--font-serif)]">
-                  {step.title}
-                </h3>
-                <p className="mt-4 text-sm leading-7 text-[#dcd3c7]">
-                  {step.description}
-                </p>
-              </article>
-            </FadeIn>
-          ))}
+        {/* Horizontal Timeline */}
+        <div className="relative mx-auto max-w-6xl mt-20">
+          {/* Horizontal Connecting Line - Desktop Only */}
+          <div className="hidden md:block absolute left-0 right-0 top-8 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
+          
+          {/* Vertical Timeline Line - Mobile Only */}
+          <div className="md:hidden absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-white/5 via-[#D4AF37]/20 to-white/5" />
+
+          {/* Timeline Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 relative">
+            {serviceProcess.map((step, index) => (
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 40 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: index * 0.12 }}
+                className={`group relative ${
+                  index % 2 === 0 ? "md:-translate-y-12" : "md:translate-y-12"
+                }`}
+              >
+                {/* Numbered Badge - Positioned on line */}
+                <div className="absolute -left-9 top-6 md:left-1/2 md:-translate-x-1/2 md:top-0 md:-translate-y-1/2 z-10">
+                  <div className="h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-[#D4AF37] bg-[#0a0a0a] shadow-[0_0_20px_rgba(212,175,55,0.4)] flex items-center justify-center">
+                    <span className="text-xs md:text-sm font-bold tracking-[0.1em] text-[#D4AF37] uppercase">
+                      0{index + 1}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Card Content */}
+                <div className="pl-12 md:pl-0">
+                  <article className="relative rounded-2xl border border-white/10 bg-[#0a0a0a]/40 p-7 sm:p-8 backdrop-blur-md transition-all duration-500 group-hover:border-[#D4AF37]/60 group-hover:bg-[#0a0a0a]/60 group-hover:shadow-[inset_0_0_30px_rgba(212,175,55,0.1),0_0_30px_rgba(212,175,55,0.2)]">
+                    {/* Shimmer Effect on Hover */}
+                    <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-r from-transparent via-[#D4AF37]/5 to-transparent" />
+
+                    {/* Content */}
+                    <div className="relative z-1">
+                      <h3 className="text-xl sm:text-2xl font-semibold text-[#f8f6f2] [font-family:var(--font-serif)] mb-3 tracking-tight">
+                        {step.title}
+                      </h3>
+                      <p className="text-sm sm:text-base leading-7 text-[#d8d1c6]">
+                        {step.description}
+                      </p>
+                    </div>
+                  </article>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
     </section>

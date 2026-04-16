@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import { ConsultationModal } from './components/consultation/ConsultationModal'
-import { NavigationMenu } from './components/navigationMenu/naviagationMenu'
+import NavigationMenu from './components/navigationMenu/navigationMenu'
+import { SocialSidebar } from './components/socialsidebar/SocialSidebar'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
 import { HomePage } from './pages/HomePage'
 import ServicesSection from './pages/ServicesSection'
@@ -54,6 +55,8 @@ export default function App() {
             isOpen={isConsultationOpen}
             onClose={() => setIsConsultationOpen(false)}
           />
+          {/* Global SocialSidebar - Persists across all pages */}
+          <SocialSidebar />
         </div>
       ) : null}
     </>
