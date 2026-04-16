@@ -367,17 +367,39 @@ function WhyChooseSection() {
 
 function SignatureShowcaseSection() {
   const sectionRef = useRef<HTMLElement | null>(null)
+  const imageRef = useRef<HTMLDivElement | null>(null)
+  const introTextRef = useRef<HTMLDivElement | null>(null)
+  const feature1Ref = useRef<HTMLDivElement | null>(null)
+  const feature2Ref = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (sectionRef.current === null) return
+    if (!sectionRef.current || !imageRef.current) return
     const animationContext = gsap.context(() => {
-      gsap.fromTo('.signature-showcase__card', { autoAlpha: 0, y: 72 }, {
-        autoAlpha: 1,
-        y: 0,
-        duration: 1,
-        ease: 'power3.out',
-        stagger: 0.14,
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 80%', once: true },
+      // Image entrance
+      gsap.fromTo(imageRef.current, 
+        { autoAlpha: 0, scale: 0.92 },
+        { autoAlpha: 1, scale: 1, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true } }
+      )
+      
+      // Intro text reveal on scroll
+      if (introTextRef.current) {
+        gsap.fromTo(introTextRef.current, 
+          { autoAlpha: 0, y: 30 },
+          { autoAlpha: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: introTextRef.current, start: 'top 85%', once: true } }
+        )
+      }
+      
+      // Features stagger entrance
+      gsap.fromTo([feature1Ref.current, feature2Ref.current],
+        { autoAlpha: 0, y: 30 },
+        { autoAlpha: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.15, scrollTrigger: { trigger: sectionRef.current, start: 'top 70%', once: true } }
+      )
+      
+      // Image parallax on scroll (subtle)
+      gsap.to(imageRef.current, {
+        y: -20,
+        ease: 'none',
+        scrollTrigger: { trigger: sectionRef.current, start: 'top center', end: 'bottom center', scrub: 1 }
       })
     }, sectionRef)
     return () => animationContext.revert()
@@ -385,25 +407,57 @@ function SignatureShowcaseSection() {
 
   return (
     <section ref={sectionRef} className="signature-showcase luxury-section">
-      <div className="signature-showcase__intro signature-showcase__card">
-        <p className="signature-showcase__eyebrow">Arelia Standard</p>
-        <h2>The precision of craft, the poetry of space.</h2>
-      </div>
-      <div className="signature-showcase__grid">
-        <article className="signature-showcase__feature signature-showcase__card">
-          <span className="signature-showcase__index">01</span>
-          <h3>Refined Coordination</h3>
-          <p>Every vendor, decision, and milestone is organized with the same care as the final aesthetic.</p>
-        </article>
-        <article className="signature-showcase__image signature-showcase__card">
-          <div className="signature-showcase__image-media" style={{ backgroundImage: `url(${SHOWCASE_IMAGE})` }} />
-          <div className="signature-showcase__image-overlay" />
-        </article>
-        <article className="signature-showcase__feature signature-showcase__card">
-          <span className="signature-showcase__index">02</span>
-          <h3>Measured Luxury</h3>
-          <p>Budgets stay visible, approvals stay elegant, and every touchpoint feels polished instead of rushed.</p>
-        </article>
+      <div className="signature-showcase__background" />
+      
+      <div className="signature-showcase__container">
+        {/* Main Content Grid */}
+        <div className="signature-showcase__content">
+          {/* Image Section - Left Side */}
+          <div ref={imageRef} className="signature-showcase__image-container">
+            <div className="signature-showcase__image-frame">
+              <div className="signature-showcase__image-glow" />
+              <div className="signature-showcase__image-media" style={{ backgroundImage: `url(${SHOWCASE_IMAGE})` }} />
+              <div className="signature-showcase__image-overlay" />
+              <div className="signature-showcase__image-edge" />
+              <div className="signature-showcase__image-shine" />
+            </div>
+          </div>
+
+          {/* Right-Side Content Area - Sticky Text Flow */}
+          <div className="signature-showcase__right-content">
+            {/* Intro Section - Top */}
+            <div ref={introTextRef} className="signature-showcase__intro-text">
+              <p className="signature-showcase__eyebrow">Arelia Standard</p>
+              <h2 className="signature-showcase__title">The precision of craft, the poetry of space.</h2>
+              <p className="signature-showcase__subtitle">Every project is orchestrated with cinematic attention to detail.</p>
+            </div>
+
+            {/* Features Section - Bottom Flow */}
+            <div className="signature-showcase__features">
+              {/* Feature 01 */}
+              <div ref={feature1Ref} className="signature-showcase__feature">
+                <div className="signature-showcase__feature-marker">01</div>
+                <div className="signature-showcase__feature-header">
+                  <h3 className="signature-showcase__feature-title">Refined Coordination</h3>
+                  <div className="signature-showcase__feature-divider" />
+                </div>
+                <p className="signature-showcase__feature-text">Every vendor, decision, and milestone is orchestrated with the same care as the final aesthetic. Coordination that feels seamless.</p>
+                <div className="signature-showcase__feature-accent" />
+              </div>
+
+              {/* Feature 02 */}
+              <div ref={feature2Ref} className="signature-showcase__feature">
+                <div className="signature-showcase__feature-marker">02</div>
+                <div className="signature-showcase__feature-header">
+                  <h3 className="signature-showcase__feature-title">Measured Luxury</h3>
+                  <div className="signature-showcase__feature-divider" />
+                </div>
+                <p className="signature-showcase__feature-text">Budgets stay visible, approvals stay elegant, and every touchpoint feels polished instead of rushed. Transparency with sophistication.</p>
+                <div className="signature-showcase__feature-accent" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
