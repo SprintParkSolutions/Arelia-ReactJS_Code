@@ -205,6 +205,7 @@ type AboutPageProps = {
 export function AboutPage({ onOpenConsultation }: AboutPageProps) {
   const [currentPair, setCurrentPair] = useState(0)
   const [fadeOut, setFadeOut] = useState(false)
+  const [activeStep, setActiveStep] = useState(0)
 
   useEffect(() => {
     const pairInterval = window.setInterval(() => {
@@ -216,6 +217,15 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
     }, 4500)
 
     return () => window.clearInterval(pairInterval)
+  }, [])
+
+  // Sequential step highlighting animation
+  useEffect(() => {
+    const stepInterval = window.setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % processSteps.length)
+    }, 2400) // Change active step every 2.4 seconds
+
+    return () => window.clearInterval(stepInterval)
   }, [])
 
   const marqueeTrack = [...marqueeWords, ...marqueeWords]
@@ -508,7 +518,9 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
             {processSteps.map((step, index) => (
               <motion.article
                 key={step.number}
-                className={`about-process__step${index > 3 ? ' is-lower' : ''}`}
+                className={`about-process__step${index > 3 ? ' is-lower' : ''}${
+                  activeStep === index ? ' active' : ''
+                }`}
                 variants={fadeUp}
               >
                 <div className="about-process__image">
@@ -604,7 +616,7 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
               <button type="button" className="about-button about-button--primary" onClick={onOpenConsultation}>
                 Book a Consultation
               </button>
-              <a href="/projects" className="about-button about-button--secondary">
+              <a href="/services" className="about-button about-button--secondary">
                 View Our Portfolio
               </a>
             </div>
