@@ -1,0 +1,15 @@
+/**
+ * SOCIAL SIDEBAR STYLES
+ * Synchronized with NavigationMenu component
+ * 
+ * Features:
+ * - Fixed positioning on right-center edge of screen
+ * - Height animation matching nav easing curve
+ * - Identical background pattern with asymmetric architectural gradients
+ * - 15-second infinite linear background shift animation
+ * - Brand-color hover effects with smooth transitions
+ * - Premium liquid glass aesthetic with backdrop blur
+ * 
+ * All styling is handled via Tailwind classes in the component,
+ * except for the background pattern animation (handled via Framer Motion inline styles)
+ */
