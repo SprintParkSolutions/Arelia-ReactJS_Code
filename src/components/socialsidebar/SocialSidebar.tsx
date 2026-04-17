@@ -1,29 +1,37 @@
-/**
- * SocialSidebar Component
- * 
- * Perfectly synchronized with NavigationMenu:
- * - Same animation timing (expandTimer: 800ms, itemsTimer: 1250ms)
- * - Height animation with matching easing curve: [0.77, 0, 0.175, 1]
- * - Identical background pattern with asymmetric architectural gradients
- * - Icons fade/stagger in after itemsTimer (1250ms)
- * - Brand-color hover effects for each social platform
- * - Sliding golden pill highlight on hover
- * 
- * MOUNTING INSTRUCTIONS:
- * Already mounted globally in src/App.tsx (after ConsultationModal)
- */
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { LayoutGroup, motion, type Variants } from "framer-motion";
 import "./SocialSidebar.css";
 
 const socialLinks = [
+ {
+    name: "WhatsApp",
+    href: "https://whatsapp.com",
+    bgColor: "#25D366", // Exact WhatsApp Green from ref
+    iconColor: "#ffffff",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" className="w-[22px] h-[22px]">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+      </svg>
+    ),
+  },
+  {
+    name: "LinkedIn",
+    href: "https://www.linkedin.com/in/arelia-space-363053394/ ",
+    bgColor: "#0077B5",
+    iconColor: "#ffffff",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" className="w-5 h-5">
+        <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+      </svg>
+    ),
+  },
   {
     name: "Instagram",
-    href: "https://instagram.com",
-    color: "#E1306C",
+    href: "https://www.instagram.com/areliaspace/",
+    bgColor: "linear-gradient(45deg, #FF7A45 0%, #FF3053 50%, #C12283 100%)", // Re-mapped to match ref exactly
+    iconColor: "#ffffff",
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6">
         <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
         <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
         <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
@@ -31,191 +39,79 @@ const socialLinks = [
     ),
   },
   {
-    name: "WhatsApp",
-    href: "https://whatsapp.com",
-    color: "#25D366",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-      </svg>
-    ),
-  },
-  {
-    name: "LinkedIn",
-    href: "https://linkedin.com",
-    color: "#0A66C2",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-        <rect x="2" y="9" width="4" height="12"></rect>
-        <circle cx="4" cy="4" r="2"></circle>
-      </svg>
-    ),
-  },
-  {
     name: "Facebook",
     href: "https://facebook.com",
-    color: "#1877F2",
+    bgColor: "#0077B5", // Exact dark brownish-black from ref
+    iconColor: "#E6D19E", // Exact pale gold icon color from ref
     icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
+      <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" className="w-5 h-5">
+        <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
       </svg>
     ),
   },
-  // {
-  //   name: "Gmail",
-  //   href: "mailto:contact@arelia.com",
-  //   color: "#EA4335",
-  //   icon: (
-  //     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
-  //       <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
-  //       <path d="M2 4l10 8 10-8"></path>
-  //     </svg>
-  //   ),
-  // },
 ];
 
 export const SocialSidebar = () => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showItems, setShowItems] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const directionRef = useRef(1); // 1 for forward, -1 for backward
 
   useEffect(() => {
-    const expandTimer = setTimeout(() => setIsExpanded(true), 800);
     const itemsTimer = setTimeout(() => setShowItems(true), 1250);
-
-    return () => {
-      clearTimeout(expandTimer);
-      clearTimeout(itemsTimer);
-    };
+    return () => clearTimeout(itemsTimer);
   }, []);
-
-  // Auto-cycling pill effect with ping-pong loop (pauses on hover)
-  useEffect(() => {
-    if (isHovered) return; // Pause interval when hovering
-
-    const cycleTimer = setInterval(() => {
-      setActiveIndex((prev) => {
-        const nextIndex = prev + directionRef.current;
-
-        // Reverse direction at boundaries and apply the direction with the new momentum
-        if (nextIndex >= socialLinks.length) {
-          directionRef.current = -1;
-          return prev - 1;
-        } else if (nextIndex < 0) {
-          directionRef.current = 1;
-          return prev + 1;
-        }
-
-        return nextIndex;
-      });
-    }, 1800); // Cycle every 1.8 seconds
-
-    return () => clearInterval(cycleTimer);
-  }, [isHovered]); // Re-run effect when isHovered changes
 
   const staggerContainer: Variants = {
     hidden: {},
-    visible: { transition: { staggerChildren: 0.08 } }
+    visible: { transition: { staggerChildren: 0.1 } }
   };
 
   const iconVariant: Variants = {
-    hidden: { opacity: 0, y: 8 },
+    hidden: { opacity: 0, y: 20, scale: 0.8 },
     visible: {
-      opacity: [0, 0, 1, 1],
-      y: [8, 8, 0, 0],
-      transition: {
-        duration: 1.1,
-        times: [0, 0.25, 0.6, 1],
-        ease: "easeOut"
-      }
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: { type: "spring", stiffness: 300, damping: 20 }
     }
   };
 
   return (
     <motion.div
       initial={false}
-      animate={{ height: isExpanded ? "auto" : "72px" }}
-      transition={{ duration: 1.4, ease: [0.77, 0, 0.175, 1] }}
-      className="fixed top-1/2 -translate-y-1/2 right-6 z-50 w-[72px] rounded-2xl border-t border-white/10 border-b border-black/50 bg-[#070707]/95 backdrop-blur-2xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8),_0_0_20px_rgba(212,175,55,0.05)] overflow-hidden flex flex-col items-center justify-start py-4 px-2"
+      // Fixed to Bottom Right
+      animate={{ 
+        bottom: "30px", 
+        right: "30px",
+      }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
+      className="fixed z-50 flex items-center justify-center social-sidebar-container"
+      // Removed the background, border, and backdrop-filter entirely
     >
-      {/* Asymmetric Architectural Pattern Animation - Synchronized with Nav */}
-      <div className="absolute inset-0 z-[-1] overflow-hidden rounded-2xl pointer-events-none opacity-60">
-        <motion.div
-          className="absolute inset-[-100%] w-[300%] h-[300%]"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(45deg, transparent, transparent 15px, rgba(212,175,55,0.08) 15px, rgba(212,175,55,0.08) 16px),
-              repeating-linear-gradient(-25deg, transparent, transparent 35px, rgba(212,175,55,0.05) 35px, rgba(212,175,55,0.05) 37px),
-              repeating-linear-gradient(110deg, transparent, transparent 70px, rgba(139,115,36,0.06) 70px, rgba(139,115,36,0.06) 71px)
-            `,
-          }}
-          animate={{ x: ["0%", "-10%"], y: ["0%", "-10%"] }}
-          transition={{ duration: 15, ease: "linear", repeat: Infinity }}
-        />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_#070707_100%)]" />
-      </div>
-
-      {/* Arelia Logo - Cinematic Reveal (Immediate, Not Delayed) */}
-      <motion.div
-        initial={{ opacity: 0, filter: "blur(12px)", scale: 1.1 }}
-        animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-        transition={{ duration: 1.2, ease: "easeOut" }}
-        className="mb-5"
-      >
-        <img
-          src="/images/Logos/Arelia_Logo.png"
-          alt="Arelia Logo"
-          className="w-12 h-12 object-contain drop-shadow-[0_4px_12px_rgba(212,175,55,0.6)]"
-        />
-      </motion.div>
-
-      {/* Social Icons Container */}
       <LayoutGroup>
         <motion.div
-          className="flex flex-col gap-3 items-center justify-center w-full z-10"
+          className="flex flex-col gap-4 items-center justify-center z-10" // Always column now since it's bottom right
           variants={staggerContainer}
           initial="hidden"
           animate={showItems ? "visible" : "hidden"}
-          onMouseLeave={() => setIsHovered(false)}
         >
-          {socialLinks.map((link, index) => (
+          {socialLinks.map((link) => (
             <motion.div
               key={link.name}
               variants={iconVariant}
-              className="relative flex items-center justify-center w-11 h-11 cursor-pointer"
-              onMouseEnter={() => {
-                setActiveIndex(index);
-                setIsHovered(true);
-              }}
+              className="relative flex items-center justify-center w-12 h-12 flex-shrink-0"
             >
-              {/* Sliding Pill Highlighter - Auto-cycling based on activeIndex */}
-              {activeIndex === index && (
-                <motion.div
-                  layoutId={`socialHighlighter-${link.name}`}
-                  className="absolute inset-0 rounded-full z-0"
-                  style={{
-                    background: "radial-gradient(circle, rgba(214, 160, 84, 0.25), transparent)",
-                    border: "1px solid rgba(214, 160, 84, 0.15)",
-                  }}
-                  initial={{ opacity: 0, scale: 0.6 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.6 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-
-              {/* Social Icon Link */}
               <a
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={link.name}
-                className="relative z-10 flex items-center justify-center w-full h-full transition-colors duration-300"
+                className="social-icon-btn relative z-10 flex items-center justify-center w-full h-full rounded-full transition-transform duration-300 hover:scale-110"
                 style={{
-                  color: activeIndex === index ? link.color : "rgb(156, 163, 175)",
+                  background: link.bgColor,
+                  color: link.iconColor,
+                  // Added a soft shadow so they pop off the background without a container
+                  boxShadow: link.name === "LinkedIn"
+                    ? "0 6px 18px rgba(0, 119, 181, 0.32), 0 8px 20px rgba(0,0,0,0.35)"
+                    : "0 6px 16px rgba(0,0,0,0.4)" 
                 }}
                 title={link.name}
               >

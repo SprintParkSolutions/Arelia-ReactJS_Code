@@ -25,9 +25,7 @@ type FeatureItem = {
 type Testimonial = {
   id: string
   name: string
-  role: string
   quote: string
-  image: string
 }
 
 type HomePageProps = {
@@ -50,52 +48,48 @@ const testimonials: readonly Testimonial[] = [
   {
     id: 'sana',
     name: 'Sana Mehra',
-    role: 'Founder, Atelier Living',
     quote:
       'Arelia brought calm to an otherwise complex build. Every approval, budget check, and milestone felt beautifully controlled from day one.',
-    image: homePageImagePath('testimonial-sana.jpg'),
   },
   {
     id: 'arjun',
     name: 'Arjun Khanna',
-    role: 'Luxury Home Client',
     quote:
       'What stood out was the clarity. Instead of chasing updates, I always knew where the project stood and what was coming next.',
-    image: homePageImagePath('testimonial-arjun.jpg'),
   },
   {
     id: 'mira',
     name: 'Mira Rao',
-    role: 'Creative Director, House of Form',
     quote:
       'The experience felt premium throughout. Arelia made collaboration smoother, the numbers easier to trust, and the entire project far more elegant.',
-    image: homePageImagePath('testimonial-mira.jpg'),
   },
   {
     id: 'dev',
     name: 'Dev Malhotra',
-    role: 'Private Villa Client',
     quote:
       'The project never felt overwhelming because the communication was so clear. It felt as considered as the design itself.',
-    image: homePageImagePath('testimonial-dev.jpg'),
   },
   {
     id: 'anya',
     name: 'Anya Kapoor',
-    role: 'Interior Principal, Studio Vale',
     quote:
       'From approvals to budget visibility, Arelia introduced a level of confidence our clients noticed immediately.',
-    image: homePageImagePath('testimonial-anya.jpg'),
   },
   {
     id: 'rohan',
     name: 'Rohan Sethi',
-    role: 'Hospitality Developer',
     quote:
       'It felt less like software and more like having an elegant command center for the entire experience.',
-    image: homePageImagePath('testimonial-rohan.jpg'),
   },
 ] as const
+
+const getInitials = (name: string) =>
+  name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('')
 
 function PlatformIcon(props: SVGProps<SVGSVGElement>) {
   return (
@@ -193,12 +187,14 @@ function HomeHeroSection() {
 function WhyChooseSection() {
   const sectionRef = useRef<HTMLElement | null>(null)
   const cardRef = useRef<HTMLElement | null>(null)
+  const layoutRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
   const imageLayerRef = useRef<HTMLDivElement | null>(null)
   const activeImageRef = useRef<HTMLDivElement | null>(null)
   const detailImageRef = useRef<HTMLDivElement | null>(null)
   const navRef = useRef<HTMLElement | null>(null)
   const [activeIndex, setActiveIndex] = useState(0)
+  const [isAutoPaused, setIsAutoPaused] = useState(false)
 
   useEffect(() => {
     if (!sectionRef.current || !cardRef.current || !contentRef.current || !imageLayerRef.current || !navRef.current) {
@@ -271,10 +267,24 @@ function WhyChooseSection() {
     }
   }, [activeIndex])
 
+  useEffect(() => {
+    if (isAutoPaused) {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveIndex((currentIndex) => (currentIndex + 1) % whyChooseFeatures.length)
+    }, 1800)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [isAutoPaused])
+
   const activeFeature = whyChooseFeatures[activeIndex]
 
   return (
-    <section ref={sectionRef} className="why-choose-luxe luxury-section--wide">
+    <section ref={sectionRef} className={`why-choose-luxe luxury-section--wide${isAutoPaused ? '' : ' is-auto-cycling'}`}>
       <div className="why-choose-luxe__backlight" aria-hidden="true" />
       <div className="why-choose-luxe__shell" aria-hidden="true" />
       <div className="why-choose-luxe__inner">
@@ -286,7 +296,18 @@ function WhyChooseSection() {
           </p>
         </header>
 
-        <div className="why-choose-luxe__layout">
+        <div
+          ref={layoutRef}
+          className="why-choose-luxe__layout"
+          onMouseEnter={() => setIsAutoPaused(true)}
+          onMouseLeave={() => setIsAutoPaused(false)}
+          onFocusCapture={() => setIsAutoPaused(true)}
+          onBlurCapture={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setIsAutoPaused(false)
+            }
+          }}
+        >
           <div className="why-choose-luxe__accent why-choose-luxe__accent--left" aria-hidden="true">
             <svg viewBox="0 0 180 180" fill="none">
               <circle cx="90" cy="90" r="78" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.28" />
@@ -592,20 +613,21 @@ function LocalTestimonialCard({ testimonial }: { testimonial: Testimonial }) {
       <span className="client-testimonials__reflection" aria-hidden="true" />
       <div className="client-testimonials__card-inner">
         <div className="client-testimonials__image-wrap">
-          <div className="client-testimonials__image" style={{ backgroundImage: `url(${testimonial.image})` }} aria-hidden="true" />
+          <div className="client-testimonials__avatar-shell" aria-hidden="true">
+            <div className="client-testimonials__avatar">{getInitials(testimonial.name)}</div>
+          </div>
         </div>
         <div className="client-testimonials__copy">
           <div className="client-testimonials__stars" aria-label="5 star testimonial">
-            <span>*</span>
-            <span>*</span>
-            <span>*</span>
-            <span>*</span>
-            <span>*</span>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <span key={index} className="client-testimonials__star" aria-hidden="true">
+                ★
+              </span>
+            ))}
           </div>
           <blockquote className="client-testimonials__quote">"{testimonial.quote}"</blockquote>
           <div className="client-testimonials__meta">
             <p className="client-testimonials__name">{testimonial.name}</p>
-            <p className="client-testimonials__role">{testimonial.role}</p>
           </div>
         </div>
       </div>
