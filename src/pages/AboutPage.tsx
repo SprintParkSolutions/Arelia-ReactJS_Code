@@ -9,7 +9,7 @@ const aboutUsImagePath = (fileName: string) => `${ABOUT_US_IMAGES_PATH}/${fileNa
 const bathRetreatImage = aboutUsImagePath('Bath Retreat.avif')
 const bedroomImage = aboutUsImagePath('Bedroom.avif')
 const livingSpaceImage = aboutUsImagePath('Living Space.jpg')
-const obsidianResidenceImage = aboutUsImagePath('The Obsidian Residence.avif')
+const obsidianResidenceImage = aboutUsImagePath('jason-wang.jpg')
 const velourExecutiveSuitesImage = aboutUsImagePath('Velour Executive Suites.avif')
 const maisonAreliaSuiteImage = aboutUsImagePath('Maison Arelia Suite.avif')
 const terraceGardenImage = aboutUsImagePath('The Terrace Garden.avif')
@@ -47,9 +47,18 @@ const studioStats = [
   { value: '320+', label: 'Projects delivered' },
   { value: '14', label: 'Years of expertise' },
   { value: '98%', label: 'Client satisfaction' },
-]
+] as const
 
-const designCards = [
+type DesignCard = {
+  tag: string
+  title: string
+  location: string
+  description: string
+  image: string
+  features?: string[]
+}
+
+const designCards: DesignCard[] = [
   {
     tag: 'Residential',
     title: 'The Obsidian Residence',
@@ -93,7 +102,7 @@ const designCards = [
     image: noirAtelierFlagshipImage,
     features: ['Drama Lighting', 'Custom Display', 'Black Mirror Surfaces'],
   },
-]
+] as const
 
 const processSteps = [
   {
@@ -144,28 +153,7 @@ const processSteps = [
     description: 'Rigorous inspection of material finishing.',
     image: qualityAuditImage,
   },
-]
-
-const testimonials = [
-  {
-    name: 'Anjali K.',
-    initial: 'A',
-    text:
-      'Arelia Space transformed our home beyond expectations. Their attention to detail and design expertise made the entire process seamless. Highly recommend.',
-  },
-  {
-    name: 'Hari Kumar S.',
-    initial: 'H',
-    text:
-      'We are thrilled with our new office space. Arelia combined functionality with style in a way that truly reflects our brand’s luxury identity.',
-  },
-  {
-    name: 'Meera L.',
-    initial: 'M',
-    text:
-      'Exceptional service and impeccable design. Arelia turned our abstract ideas into a space that is both visually elegant and profoundly practical.',
-  },
-]
+] as const
 
 const marqueeWords = [
   'Residential',
@@ -178,7 +166,7 @@ const marqueeWords = [
   'Luxury',
   'Spatial Design',
   'Arelia',
-]
+] as const
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 36 },
@@ -213,17 +201,16 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
       setTimeout(() => {
         setCurrentPair((prev) => (prev + 1) % heroPairs.length)
         setFadeOut(false)
-      }, 900) // Adjusted timeout to align with smoother 0.9s animation
+      }, 900)
     }, 4500)
 
     return () => window.clearInterval(pairInterval)
   }, [])
 
-  // Sequential step highlighting animation
   useEffect(() => {
     const stepInterval = window.setInterval(() => {
       setActiveStep((prev) => (prev + 1) % processSteps.length)
-    }, 2400) // Change active step every 2.4 seconds
+    }, 2400)
 
     return () => window.clearInterval(stepInterval)
   }, [])
@@ -284,52 +271,43 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 1.1, ease: 'easeOut', delay: 0.2 }}
           >
-            {/* Subtle glow backdrop */}
             <div className="about-hero__glow-backdrop" />
-            
-            {/* Light reflection streak */}
             <div className="about-hero__light-streak" />
 
-            {/* Primary image - background layer */}
             <motion.div
               className="about-hero__image about-hero__image--primary"
               animate={{ opacity: fadeOut ? 0 : 1 }}
               transition={{
                 duration: 0.9,
-                ease: 'easeInOut'
+                ease: 'easeInOut',
               }}
             >
               <motion.img
                 src={heroPairs[currentPair].primary.image}
                 alt={heroPairs[currentPair].primary.label}
-                animate={{ 
-                  scale: fadeOut ? 1 : 1.03,
-                }}
+                animate={{ scale: fadeOut ? 1 : 1.03 }}
                 transition={{
                   duration: 0.9,
-                  ease: 'easeOut'
+                  ease: 'easeOut',
                 }}
               />
             </motion.div>
 
-            {/* Secondary image - foreground layer */}
             <motion.div
               className="about-hero__image about-hero__image--secondary"
               animate={{ opacity: fadeOut ? 0 : 1 }}
               transition={{
                 duration: 0.9,
-                ease: 'easeInOut'
+                ease: 'easeInOut',
               }}
             >
               <motion.img
                 src={heroPairs[currentPair].secondary.image}
                 alt={heroPairs[currentPair].secondary.label}
-                animate={{ 
-                  scale: fadeOut ? 1 : 1.03,
-                }}
+                animate={{ scale: fadeOut ? 1 : 1.03 }}
                 transition={{
                   duration: 0.9,
-                  ease: 'easeOut'
+                  ease: 'easeOut',
                 }}
               />
             </motion.div>
@@ -345,7 +323,6 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
         </motion.div>
       </section>
 
-      {/* Marquee, Philosophy, Process, Testimonials, & CTA Sections Remain Unchanged */}
       <section className="about-marquee">
         <div className="about-marquee__track">
           {marqueeTrack.map((word, index) => (
@@ -534,60 +511,6 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
                 <div className="about-process__chip">{step.number}</div>
                 <h3>{step.title}</h3>
                 <p>{step.description}</p>
-              </motion.article>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="about-section about-section--testimonials">
-        <div className="about-shell">
-          <motion.div
-            className="about-section__head"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={fadeUp}
-          >
-            <p className="about-page__eyebrow">Testimonials</p>
-            <h2 className="about-section__title">
-              Clients&apos; <span>Words</span>
-            </h2>
-          </motion.div>
-
-          <motion.div
-            className="about-testimonials"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={stagger}
-          >
-            {testimonials.map((testimonial, index) => (
-              <motion.article
-                key={testimonial.name}
-                className="about-testimonial"
-                variants={fadeUp}
-                whileHover={{ y: -8, borderColor: 'rgba(202, 162, 58, 0.35)' }}
-                transition={{ duration: 0.35, ease: 'easeOut' }}
-              >
-                <motion.span
-                  className="about-testimonial__quote"
-                  animate={{ opacity: [0.2, 0.5, 0.2] }}
-                  transition={{
-                    duration: 3.6,
-                    repeat: Number.POSITIVE_INFINITY,
-                    ease: 'easeInOut',
-                    delay: index * 0.3,
-                  }}
-                >
-                  &quot;
-                </motion.span>
-                <div className="about-testimonial__stars">*****</div>
-                <p>&quot; {testimonial.text} &quot;</p>
-                <footer>
-                  <span>{testimonial.initial}</span>
-                  <small>- {testimonial.name}</small>
-                </footer>
               </motion.article>
             ))}
           </motion.div>

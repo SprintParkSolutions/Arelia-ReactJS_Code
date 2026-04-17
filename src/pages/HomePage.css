@@ -233,23 +233,24 @@
   color: rgba(255, 249, 236, 0.5);
   text-align: left;
   cursor: pointer;
+  position: relative;
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   transition:
-    opacity 0.35s ease,
-    color 0.35s ease,
-    transform 0.35s ease,
-    border-color 0.35s ease,
-    background 0.35s ease,
-    box-shadow 0.35s ease,
-    filter 0.35s ease;
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    color 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    background 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .why-choose-luxe__nav-item:hover,
 .why-choose-luxe__nav-item:focus-visible {
   color: rgba(255, 249, 236, 0.78);
   border-color: rgba(212, 175, 55, 0.12);
-  transform: translateX(0.2rem) scale(1.01);
+  transform: translateX(0.18rem) scale(1.008);
 }
 
 .why-choose-luxe__nav:hover .why-choose-luxe__nav-item:not(:hover):not(.is-active) {
@@ -286,7 +287,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 12px 30px rgba(0, 0, 0, 0.18),
     0 0 24px rgba(212, 175, 55, 0.08);
-  transform: translateX(0.55rem) scale(1.015);
+  transform: translateX(0.46rem) scale(1.012);
 }
 
 .why-choose-luxe__nav-number {
@@ -376,9 +377,9 @@
     rotateY(calc((var(--pointer-x) - 50%) * 0.06deg))
     scale(1.01);
   transition:
-    transform 0.28s ease,
-    box-shadow 0.35s ease,
-    border-color 0.35s ease;
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.55s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .why-choose-luxe__card:hover {
@@ -388,6 +389,14 @@
     inset 0 -24px 40px rgba(0, 0, 0, 0.18),
     0 36px 90px rgba(0, 0, 0, 0.3),
     0 0 30px rgba(242, 198, 95, 0.1);
+}
+
+.why-choose-luxe.is-auto-cycling .why-choose-luxe__nav-item.is-active {
+  animation: why-choose-luxe-step-breathe 1.8s cubic-bezier(0.42, 0, 0.22, 1) infinite;
+}
+
+.why-choose-luxe.is-auto-cycling .why-choose-luxe__card {
+  animation: why-choose-luxe-card-breathe 1.8s cubic-bezier(0.42, 0, 0.22, 1) infinite;
 }
 
 .why-choose-luxe__image-layer,
@@ -1430,10 +1439,10 @@
   transform-style: preserve-3d;
   opacity: 0.86;
   transition:
-    transform 0.35s ease,
-    opacity 0.35s ease,
-    border-color 0.35s ease,
-    box-shadow 0.35s ease;
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .client-testimonials__card::before {
@@ -1449,12 +1458,12 @@
 
 .client-testimonials__card:hover {
   opacity: 1;
-  transform: translateY(-0.75rem) scale(1.09);
-  border-color: rgba(242, 198, 95, 0.26);
+  transform: translateY(-0.45rem) scale(1.028);
+  border-color: rgba(242, 198, 95, 0.3);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.1),
     0 42px 110px rgba(0, 0, 0, 0.32),
-    0 0 34px rgba(242, 198, 95, 0.14);
+    0 0 42px rgba(242, 198, 95, 0.18);
   z-index: 4;
 }
 
@@ -1498,23 +1507,57 @@
   height: 100%;
   padding: 1.25rem 1.35rem;
   align-items: start;
+  align-items: center;
 }
 
-.client-testimonials__image {
+.client-testimonials__avatar-shell {
   width: 4.8rem;
   aspect-ratio: 1;
-  border-radius: 1.3rem;
-  background-position: center;
-  background-size: cover;
+  display: grid;
+  place-items: center;
+  border-radius: 1.5rem;
   border: 1px solid rgba(242, 198, 95, 0.18);
+  background:
+    linear-gradient(145deg, rgba(255, 250, 237, 0.08), rgba(242, 198, 95, 0.08)),
+    radial-gradient(circle at 30% 30%, rgba(255, 243, 208, 0.14), transparent 58%);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 12px 26px rgba(0, 0, 0, 0.2);
-  transition: transform 0.35s ease;
+    0 12px 26px rgba(0, 0, 0, 0.2),
+    0 0 22px rgba(242, 198, 95, 0.08);
+  transition:
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.client-testimonials__card:hover .client-testimonials__image {
-  transform: scale(1.1);
+.client-testimonials__avatar {
+  width: 3.5rem;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 248, 228, 0.22), rgba(196, 145, 46, 0.1) 62%, rgba(10, 10, 10, 0.16) 100%),
+    linear-gradient(180deg, rgba(22, 22, 22, 0.9), rgba(8, 8, 8, 0.96));
+  color: #fff7e4;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 0 0 1px rgba(242, 198, 95, 0.16),
+    0 0 18px rgba(242, 198, 95, 0.12);
+}
+
+.client-testimonials__card:hover .client-testimonials__avatar-shell {
+  transform: scale(1.05);
+  border-color: rgba(242, 198, 95, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 14px 30px rgba(0, 0, 0, 0.22),
+    0 0 30px rgba(242, 198, 95, 0.16);
 }
 
 .client-testimonials__copy {
@@ -1523,10 +1566,20 @@
 
 .client-testimonials__stars {
   display: flex;
-  gap: 0.22rem;
+  align-items: center;
+  gap: 0.38rem;
   color: #f2c65f;
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
+  font-size: 1.45rem;
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 0 10px rgba(242, 198, 95, 0.42),
+    0 0 24px rgba(242, 198, 95, 0.16);
+}
+
+.client-testimonials__star {
+  display: inline-flex;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(242, 198, 95, 0.26));
 }
 
 .client-testimonials__quote {
@@ -1545,14 +1598,7 @@
   margin: 0;
   color: #fff9ec;
   font-weight: 600;
-}
-
-.client-testimonials__role {
-  margin: 0.28rem 0 0;
-  color: rgba(255, 249, 236, 0.62);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 0.72rem;
+  letter-spacing: 0.04em;
 }
 
 @keyframes client-testimonials-marquee-left {
@@ -1580,6 +1626,41 @@
   }
   50% {
     transform: translate3d(0, -0.9rem, 0);
+  }
+}
+
+@keyframes why-choose-luxe-step-breathe {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 12px 30px rgba(0, 0, 0, 0.18),
+      0 0 24px rgba(212, 175, 55, 0.08);
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      0 16px 34px rgba(0, 0, 0, 0.22),
+      0 0 36px rgba(212, 175, 55, 0.16);
+  }
+}
+
+@keyframes why-choose-luxe-card-breathe {
+  0%,
+  100% {
+    border-color: rgba(212, 175, 55, 0.15);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      inset 0 -24px 40px rgba(0, 0, 0, 0.18),
+      0 28px 80px rgba(0, 0, 0, 0.24);
+  }
+  50% {
+    border-color: rgba(242, 198, 95, 0.22);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06),
+      inset 0 -24px 40px rgba(0, 0, 0, 0.18),
+      0 36px 92px rgba(0, 0, 0, 0.28),
+      0 0 34px rgba(242, 198, 95, 0.12);
   }
 }
 
