@@ -160,7 +160,7 @@ const servicesData: ServiceItem[] = [
     caption:
       "Boutique offices and guest-facing interiors are designed to express confidence with restraint. The result is a space that feels polished, intuitive, and memorable from first arrival.",
     images: [
-      serviceImagePath("commercial", "services-commercial-01.avif"),
+      serviceImagePath("commercial", "services-commercial-01.jpg"),
       serviceImagePath("commercial", "services-commercial-02.jpg"),
       serviceImagePath("commercial", "services-commercial-03.jpg"),
       serviceImagePath("commercial", "services-commercial-04.jpg"),
