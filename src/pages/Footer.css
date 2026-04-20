@@ -268,8 +268,8 @@
 .site-footer__copy {
   margin: 0;
   color: rgba(255, 250, 242, 0.92);
-  line-height: 1.8;
-  font-size: 0.95rem;
+  line-height: 1.75;
+  font-size: var(--type-body);
   letter-spacing: 0.3px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
@@ -278,10 +278,10 @@
 .site-footer__title {
   margin: 0 0 1.2rem;
   color: rgba(255, 250, 242, 0.95);
-  font-size: 0.95rem;
+  font-family: var(--font-serif);
+  font-size: var(--type-h4);
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   background: linear-gradient(
     135deg,
     rgba(255, 250, 242, 0.95) 0%,
@@ -302,7 +302,7 @@
 .site-footer__link {
   color: rgba(255, 250, 242, 0.85);
   line-height: 1.7;
-  font-size: 0.9rem;
+  font-size: var(--type-small);
   letter-spacing: 0.2px;
   transition: color 0.4s ease;
   text-decoration: none;
@@ -346,7 +346,7 @@
 .site-footer__bottom p {
   margin: 0;
   color: rgba(255, 250, 242, 0.75);
-  font-size: 0.85rem;
+  font-size: var(--type-small);
   letter-spacing: 0.1px;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
@@ -359,7 +359,7 @@
 
 .site-footer__bottom-link {
   color: rgba(255, 250, 242, 0.75);
-  font-size: 0.85rem;
+  font-size: var(--type-small);
   letter-spacing: 0.1px;
   cursor: pointer;
   transition: color 0.4s ease;
@@ -405,17 +405,17 @@
   }
 
   .site-footer__copy {
-    font-size: 0.87rem;
+    font-size: 1rem;
     line-height: 1.7;
   }
 
   .site-footer__title {
-    font-size: 0.8rem;
+    font-size: 1.25rem;
     margin-bottom: 0.9rem;
   }
 
   .site-footer__link {
-    font-size: 0.8rem;
+    font-size: 0.9375rem;
   }
 
   .site-footer__bottom {
@@ -426,7 +426,7 @@
   }
 
   .site-footer__bottom p {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
   }
 
   .site-footer__bottom-links {
@@ -477,12 +477,12 @@
   }
 
   .site-footer__copy {
-    font-size: 0.8rem;
+    font-size: 0.9375rem;
     line-height: 1.6;
   }
 
   .site-footer__title {
-    font-size: 0.75rem;
+    font-size: 1.25rem;
     margin-bottom: 0.7rem;
   }
 
@@ -491,7 +491,7 @@
   }
 
   .site-footer__link {
-    font-size: 0.75rem;
+    font-size: 0.875rem;
   }
 
   .site-footer__bottom {
@@ -499,7 +499,7 @@
   }
 
   .site-footer__bottom p {
-    font-size: 0.7rem;
+    font-size: 0.875rem;
   }
 
   .site-footer__bottom-links {
