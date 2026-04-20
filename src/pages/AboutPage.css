@@ -84,11 +84,11 @@
 .about-section__title {
   margin: 0;
   color: #f8f3ea;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: clamp(2.4rem, 5vw, 4.8rem);
-  font-weight: 400;
-  line-height: 1;
-  letter-spacing: -0.03em;
+  font-family: var(--font-serif);
+  font-size: var(--type-h2);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-heading);
 }
 
 .about-section__title span {
@@ -100,8 +100,8 @@
   max-width: 21rem;
   margin: 0;
   color: rgba(255, 255, 255, 0.68);
-  font-size: 0.97rem;
-  line-height: 1.9;
+  font-size: var(--type-body);
+  line-height: 1.75;
 }
 
 .about-section__intro--center {
@@ -216,10 +216,11 @@
   gap: 0.03em;
   margin: 0;
   color: #f8f3ea;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: clamp(3.7rem, 7.8vw, 6.9rem);
-  font-weight: 400;
-  line-height: 0.9;
+  font-family: var(--font-serif);
+  font-size: var(--type-h1);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-heading);
 }
 
 .about-hero__title span {
@@ -231,7 +232,7 @@
   max-width: 31rem;
   margin: 1.8rem 0 0;
   color: rgba(255, 255, 255, 0.8);
-  font-size: 1.08rem;
+  font-size: var(--type-body);
   line-height: 1.75;
 }
 
@@ -239,8 +240,8 @@
   max-width: 30rem;
   margin: 1rem 0 0;
   color: rgba(255, 255, 255, 0.54);
-  font-size: 0.98rem;
-  line-height: 1.72;
+  font-size: var(--type-body);
+  line-height: 1.7;
 }
 
 .about-hero__actions {
@@ -265,7 +266,7 @@
 .about-hero__stat p {
   margin: 0;
   color: #d2ab45;
-  font-family: 'Times New Roman', Times, serif;
+  font-family: var(--font-serif);
   font-size: 1.9rem;
   font-style: italic;
   line-height: 1;
@@ -597,9 +598,11 @@
 .about-design__header h3 {
   margin: 0;
   color: #faf4ea;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 2rem;
-  font-weight: 400;
+  font-family: var(--font-serif);
+  font-size: var(--type-h3);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: 0.018em;
 }
 
 .about-design__header p {
@@ -620,8 +623,8 @@
   display: block;
   margin-top: 0.85rem;
   color: rgba(255, 255, 255, 0.58);
-  font-size: 0.9rem;
-  line-height: 1.8;
+  font-size: var(--type-body);
+  line-height: 1.75;
 }
 
 .about-design__chips {
@@ -766,9 +769,10 @@
 .about-process__step h3 {
   margin: 0;
   color: #f6efe4;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: 1.8rem;
-  font-weight: 400;
+  font-family: var(--font-serif);
+  font-size: var(--type-h3);
+  font-weight: 600;
+  line-height: 1.25;
   transition: color 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -781,7 +785,7 @@
   max-width: 12rem;
   margin: 0.75rem 0 0;
   color: rgba(255, 255, 255, 0.46);
-  font-size: 0.88rem;
+  font-size: var(--type-small);
   line-height: 1.7;
   transition: color 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -841,7 +845,7 @@
 .about-testimonial__quote {
   display: inline-block;
   color: rgba(212, 175, 55, 0.3);
-  font-family: 'Times New Roman', Times, serif;
+  font-family: var(--font-serif);
   font-size: 2.5rem;
   line-height: 1;
   margin-bottom: 0.5rem;
@@ -850,7 +854,7 @@
 .about-testimonial__text {
   margin: 0;
   color: rgba(255, 255, 255, 0.86);
-  font-size: 0.95rem;
+  font-size: var(--type-body);
   font-style: italic;
   line-height: 1.8;
   flex-grow: 1;
@@ -926,7 +930,7 @@
 .about-testimonial__name {
   margin: 0;
   color: #f6efe4;
-  font-size: 0.95rem;
+  font-size: var(--type-small);
   font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: none;
@@ -1116,7 +1120,7 @@
   }
 
   .about-hero__title {
-    font-size: clamp(3rem, 16vw, 4.7rem);
+    font-size: var(--type-h1);
   }
 
   .about-hero__lead,
@@ -1126,7 +1130,7 @@
   .about-design__caption,
   .about-process__step p,
   .about-testimonial p {
-    font-size: 0.94rem;
+    font-size: 1rem;
   }
 
   .about-hero__stats,
@@ -1227,7 +1231,7 @@
   }
 
   .about-hero__title {
-    font-size: clamp(2.2rem, 14vw, 3.5rem);
+    font-size: var(--type-h1);
   }
 
   .about-hero__visual {

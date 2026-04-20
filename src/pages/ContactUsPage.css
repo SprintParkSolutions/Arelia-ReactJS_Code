@@ -124,7 +124,7 @@
   margin: 0 0 1.5rem;
   color: rgba(213, 160, 84, 0.95);
   letter-spacing: 0.42em;
-  font-size: 0.85rem;
+  font-size: var(--type-small);
   font-weight: 700;
   text-transform: uppercase;
   text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
@@ -134,11 +134,12 @@
 
 .contact-page__hero-title {
   margin: 0 0 1.8rem;
-  font-size: clamp(3.2rem, 8vw, 7.2rem);
-  line-height: 0.95;
-  font-weight: 800;
+  font-family: var(--font-serif);
+  font-size: var(--type-h1);
+  line-height: 1.1;
+  font-weight: 700;
   color: #fffef9;
-  letter-spacing: -0.8px;
+  letter-spacing: var(--tracking-heading);
   text-shadow:
     0 12px 40px rgba(0, 0, 0, 0.5),
     0 0 40px rgba(213, 160, 84, 0.15);
@@ -162,8 +163,8 @@
   margin: 0 auto;
   max-width: 700px;
   color: rgba(255, 250, 242, 0.92);
-  font-size: clamp(0.95rem, 2vw, 1.2rem);
-  line-height: 1.85;
+  font-size: var(--type-body);
+  line-height: 1.75;
   text-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
   font-weight: 400;
   letter-spacing: 0.3px;
@@ -249,18 +250,31 @@
 .contact-page__label {
   margin: 0 0 0.7rem;
   color: #b68442;
-  font-size: 0.82rem;
+  font-size: var(--type-small);
   letter-spacing: 0.24em;
   font-weight: 700;
   text-transform: uppercase;
 }
 
-.contact-page__details h2,
+.contact-page__details h2 {
+  margin: 0;
+  color: #fff9f2;
+  font-family: var(--font-serif);
+  font-size: var(--type-h4);
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: 0.016em;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+}
+
 .contact-page__map-title {
   margin: 0;
   color: #fff9f2;
-  font-size: clamp(1.9rem, 3vw, 2.55rem);
-  line-height: 1.24;
+  font-family: var(--font-serif);
+  font-size: var(--type-h2);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-heading);
   text-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
 }
 
@@ -292,7 +306,7 @@
   border-radius: 1.1rem;
   padding: 1.1rem 1.15rem;
   color: #fff9f2;
-  font-size: 1rem;
+  font-size: var(--type-body);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition:
@@ -327,7 +341,7 @@
   min-height: 1rem;
   margin: 0.45rem 0 0;
   color: #ff9b9b;
-  font-size: 0.78rem;
+  font-size: var(--type-small);
   font-weight: 600;
 }
 
@@ -341,7 +355,7 @@
   color: #24180b;
   padding: 1rem 1.8rem;
   font-weight: 800;
-  font-size: 0.95rem;
+  font-size: var(--type-small);
   letter-spacing: 0.16em;
   cursor: pointer;
   box-shadow:
@@ -420,14 +434,10 @@
   z-index: 1;
 }
 
-.contact-page__map-title {
-  font-size: clamp(2rem, 3vw, 2.9rem);
-}
-
 .contact-page__map-description {
   margin: 1rem 0 1rem;
   color: rgba(226, 227, 230, 0.72);
-  font-size: 1rem;
+  font-size: var(--type-body);
   line-height: 1.75;
 }
 
@@ -443,7 +453,7 @@
   background: rgba(255, 255, 255, 0.04);
   color: rgba(241, 234, 226, 0.82);
   padding: 0.48rem 0.9rem;
-  font-size: 0.8rem;
+  font-size: var(--type-small);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -482,7 +492,7 @@
   border: 1px solid rgba(214, 165, 104, 0.28);
   background: rgba(255, 255, 255, 0.03);
   color: #f1d4aa;
-  font-size: 0.82rem;
+  font-size: var(--type-small);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -568,7 +578,7 @@
 .contact-page__map-address-label {
   margin: 0 0 0.25rem;
   color: #f3d5aa;
-  font-size: 0.76rem;
+  font-size: var(--type-small);
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -577,8 +587,8 @@
 .contact-page__map-address-text {
   margin: 0;
   color: rgba(242, 239, 235, 0.88);
-  font-size: 0.92rem;
-  line-height: 1.5;
+  font-size: var(--type-small);
+  line-height: 1.6;
 }
 
 @keyframes contact-page-zoom-hero {
@@ -740,11 +750,11 @@
   }
 
   .contact-page__hero-title {
-    font-size: clamp(2.7rem, 12vw, 4rem);
+    font-size: var(--type-h1);
   }
 
   .contact-page__hero-text {
-    font-size: 1rem;
+    font-size: var(--type-body);
     line-height: 1.7;
   }
 
@@ -758,7 +768,7 @@
   }
 
   .contact-page__map-description {
-    font-size: 0.94rem;
+    font-size: var(--type-small);
   }
 
   .contact-page__map-address-card {

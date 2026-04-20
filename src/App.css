@@ -66,20 +66,20 @@ body {
 
 .page__title {
   margin: 0;
-  font-family: var(--font-serif, "Baskerville", "Palatino Linotype", "Book Antiqua", Georgia, serif);
-  font-size: clamp(2.8rem, 6.5vw, 5.8rem);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
+  font-family: var(--font-serif);
+  font-size: var(--type-h1);
+  font-weight: 700;
+  letter-spacing: var(--tracking-heading);
+  line-height: 1.1;
   text-wrap: balance;
   color: #f8f6f2;
   text-shadow: 0 10px 35px rgba(0, 0, 0, 0.55);
 }
 
 .page--hero .page__title {
-  font-size: clamp(2.8rem, 6.2vw, 5.8rem);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
+  font-size: var(--type-h1);
+  line-height: 1.1;
+  letter-spacing: var(--tracking-heading);
   text-wrap: balance;
 }
 
@@ -87,16 +87,16 @@ body {
 .page__description {
   width: min(100%, 42rem);
   margin: 1.5rem auto 0;
-  font-size: 1rem;
-  line-height: 1.8;
-  color: rgba(216, 209, 198, 0.95);
+  font-size: var(--type-body);
+  line-height: 1.75;
+  color: var(--text-soft);
   font-weight: 400;
 }
 
 .page__secondary {
   width: min(100%, 34rem);
   margin: 1rem auto 0;
-  font-size: 0.95rem;
+  font-size: var(--type-small);
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.62);
 }

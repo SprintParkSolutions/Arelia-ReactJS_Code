@@ -78,7 +78,7 @@
 .servicesHeroEyebrow {
   margin: 0 0 1.25rem;
   color: #e1bd93;
-  font-size: 0.75rem;
+  font-size: var(--type-small);
   letter-spacing: 0.42em;
   text-transform: uppercase;
 }
@@ -87,9 +87,11 @@
   margin: 0;
   max-width: 60rem;
   color: #f8f6f2;
-  font-family: var(--font-serif), serif;
-  font-size: clamp(2.75rem, 6vw, 5.6rem);
-  line-height: 0.95;
+  font-family: var(--font-serif);
+  font-size: var(--type-h1);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-heading);
   text-align: center;
   text-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
 }
@@ -98,8 +100,8 @@
   margin: 1.5rem auto 0;
   max-width: 42rem;
   color: #e5ddd2;
-  font-size: clamp(0.98rem, 1.8vw, 1.1rem);
-  line-height: 1.9;
+  font-size: var(--type-body);
+  line-height: 1.75;
   text-align: center;
 }
 
@@ -442,7 +444,7 @@
 .note {
   margin: 0;
   color: rgba(248, 246, 242, 0.72);
-  font-size: 0.72rem;
+  font-size: var(--type-small);
   letter-spacing: 0.34em;
   text-transform: uppercase;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
@@ -451,11 +453,11 @@
 .title {
   margin: 1.1rem 0 0;
   color: #f8f6f2;
-  font-family: var(--font-serif), serif;
-  font-size: clamp(2.2rem, 3.8vw, 3.45rem);
+  font-family: var(--font-serif);
+  font-size: var(--type-h3);
   font-weight: 600;
-  line-height: 0.96;
-  letter-spacing: -0.045em;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-heading);
   text-wrap: balance;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
@@ -464,9 +466,9 @@
   margin: 1.35rem 0 0;
   max-width: 28rem;
   color: rgba(248, 246, 242, 0.9);
-  font-size: 1rem;
+  font-size: var(--type-body);
   font-weight: 300;
-  line-height: 1.85;
+  line-height: 1.75;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
@@ -489,7 +491,7 @@
     radial-gradient(120% 120% at 50% 0%, rgba(31, 26, 12, 0.98) 0%, rgba(9, 10, 13, 0.96) 72%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0));
   color: #f4e6d5;
-  font-size: 0.72rem;
+  font-size: var(--type-small);
   letter-spacing: 0.28em;
   text-transform: uppercase;
   box-shadow:
@@ -627,7 +629,7 @@
   max-width: 4.5rem;
   color: #050505;
   text-align: center;
-  font-size: 0.68rem;
+  font-size: 0.875rem;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.18em;
