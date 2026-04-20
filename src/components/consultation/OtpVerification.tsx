@@ -17,12 +17,11 @@ export function OtpVerification({
 }: OtpVerificationProps) {
   const [otp, setOtp] = useState('')
   const [timeLeft, setTimeLeft] = useState(60)
-  const [isTimeExpired, setIsTimeExpired] = useState(false)
   const [error, setError] = useState('')
+  const isTimeExpired = timeLeft <= 0
 
   useEffect(() => {
-    if (timeLeft <= 0) {
-      setIsTimeExpired(true)
+    if (isTimeExpired) {
       return
     }
 
@@ -31,7 +30,7 @@ export function OtpVerification({
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [timeLeft])
+  }, [isTimeExpired])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 6)
@@ -58,7 +57,6 @@ export function OtpVerification({
   const handleResend = () => {
     setOtp('')
     setTimeLeft(60)
-    setIsTimeExpired(false)
     setError('')
     onResend()
   }
