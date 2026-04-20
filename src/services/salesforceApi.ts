@@ -29,11 +29,8 @@ export async function registerLead(
       }
     );
 
-    console.log("LEAD STATUS:", response.status);
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.log("LEAD ERROR:", errorData);
       return {
         success: false,
         message: errorData.message || "Failed to register lead",
@@ -41,7 +38,6 @@ export async function registerLead(
     }
 
     const data = await response.json();
-    console.log("LEAD RESPONSE:", data);
 
     return {
       success: data.success === true,
@@ -78,11 +74,8 @@ export async function sendOtp(
       }
     );
 
-    console.log("OTP STATUS:", response.status);
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.log("OTP ERROR:", errorData);
       return {
         success: false,
         message: errorData.message || "Failed to send OTP",
@@ -90,7 +83,6 @@ export async function sendOtp(
     }
 
     const data = await response.json();
-    console.log("OTP RESPONSE:", data);
 
     return {
       success: response.status === 200,
