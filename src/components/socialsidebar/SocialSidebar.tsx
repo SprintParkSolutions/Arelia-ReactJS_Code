@@ -16,7 +16,7 @@ const socialLinks = [
   },
   {
     name: "LinkedIn",
-    href: "https://www.linkedin.com/in/arelia-space-363053394/ ",
+    href: "https://www.linkedin.com/company/areliaspace/",
     bgColor: "#0077B5",
     iconColor: "#ffffff",
     icon: (
@@ -40,7 +40,7 @@ const socialLinks = [
   },
   {
     name: "Facebook",
-    href: "https://facebook.com",
+    href: "https://www.facebook.com/profile.php?id=61584344340267",
     bgColor: "#0077B5", // Exact dark brownish-black from ref
     iconColor: "#E6D19E", // Exact pale gold icon color from ref
     icon: (
