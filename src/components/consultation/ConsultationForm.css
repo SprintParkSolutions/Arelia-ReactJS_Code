@@ -195,7 +195,7 @@
 
 .consultation-form__loading-text {
   color: rgba(232, 226, 216, 0.9);
-  font-size: 0.95rem;
+  font-size: var(--type-small);
   font-weight: 500;
   letter-spacing: 0.05em;
   margin: 0;
@@ -219,7 +219,7 @@
 .consultation-form__eyebrow {
   margin: 0 0 0.85rem;
   color: #d4a373;
-  font-size: 0.78rem;
+  font-size: var(--type-small);
   font-weight: 700;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -228,15 +228,18 @@
 .consultation-form__title {
   margin: 0;
   color: #f8f6f2;
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 1;
+  font-family: var(--font-serif);
+  font-size: var(--type-h2);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-heading);
 }
 
 .consultation-form__description {
   margin: 1rem 0 0;
   color: rgba(232, 226, 216, 0.82);
-  font-size: 1rem;
-  line-height: 1.8;
+  font-size: var(--type-body);
+  line-height: 1.75;
 }
 
 .consultation-form__grid {
@@ -257,7 +260,7 @@
 .consultation-form__label {
   margin: 0 0 0.5rem;
   color: rgba(248, 246, 242, 0.82);
-  font-size: 0.82rem;
+  font-size: var(--type-small);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -270,7 +273,7 @@
   border-radius: 1.15rem;
   background: rgba(255, 255, 255, 0.06);
   color: #fff9f2;
-  font-size: 1rem;
+  font-size: var(--type-body);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   transition:
@@ -298,7 +301,7 @@
 .consultation-form__hint {
   min-height: 1rem;
   margin-top: 0.45rem;
-  font-size: 0.78rem;
+  font-size: var(--type-small);
   font-weight: 600;
 }
 
@@ -326,7 +329,7 @@
   color: #24180b;
   padding: 1rem 2rem;
   font-weight: 800;
-  font-size: 0.82rem;
+  font-size: var(--type-small);
   letter-spacing: 0.18em;
   text-transform: uppercase;
   cursor: pointer;
@@ -353,7 +356,7 @@
 .consultation-form__status {
   margin: 0;
   color: rgba(232, 226, 216, 0.72);
-  font-size: 0.9rem;
+  font-size: var(--type-small);
   line-height: 1.6;
 }
 
