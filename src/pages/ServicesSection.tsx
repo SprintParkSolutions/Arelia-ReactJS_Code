@@ -129,7 +129,7 @@ const serviceImagePath = (category: string, fileName: string) =>
   `${BASE_IMG_PATH}/${category}/${fileName}`;
 const SERVICE_HERO_VIDEO = serviceImagePath(
   "LandingPage",
-  "Service Video.mp4",
+  "Home_Video.mp4",
 );
 
 const FALLBACK_SERVICE_IMAGE = serviceImagePath(
