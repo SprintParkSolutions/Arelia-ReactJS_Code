@@ -258,10 +258,10 @@ function SectionHeading({
       <p className="mb-4 text-xs uppercase tracking-[0.35em] text-[#d4a373]">
         {eyebrow}
       </p>
-      <h2 className="mb-5 text-3xl leading-tight text-[#f8f6f2] sm:text-4xl lg:text-5xl [font-family:var(--font-serif)]">
+      <h2 className="type-h2 mb-5 text-[#f8f6f2]">
         {title}
       </h2>
-      <p className="text-sm leading-7 text-[#d8d1c6] sm:text-base">
+      <p className="type-body text-[#d8d1c6]">
         {description}
       </p>
     </div>
@@ -338,13 +338,13 @@ function ServicesCatalogueIntro() {
       <div className="mx-auto max-w-7xl">
         <FadeIn className="mx-auto max-w-3xl text-center">
           <div className="inline-flex flex-col items-center justify-center">
-            <p className="bg-[linear-gradient(180deg,#f3d2a4_0%,#d4a373_38%,#9f6b2f_100%)] bg-clip-text text-xs font-medium uppercase tracking-[0.22em] text-transparent [text-shadow:0_4px_15px_rgba(212,175,55,0.2)] sm:text-sm">
+            <p className="type-label bg-[linear-gradient(180deg,#f3d2a4_0%,#d4a373_38%,#9f6b2f_100%)] bg-clip-text text-transparent [text-shadow:0_4px_15px_rgba(212,175,55,0.2)]">
               Service Catalogue
             </p>
-            <h2 className="mt-6 text-4xl sm:text-5xl lg:text-6xl font-semibold text-[#f8f6f2] [font-family:var(--font-serif)] leading-tight">
+            <h2 className="type-h2 mt-6 text-[#f8f6f2]">
               Our Offerings
             </h2>
-            <p className="mt-4 text-sm sm:text-base text-white/60 tracking-wide [font-family:var(--font-serif)]">
+            <p className="type-body mt-4 text-white/60">
               Curated spaces designed with intention and grace
             </p>
           </div>
@@ -972,10 +972,10 @@ function ServicesProcessSection() {
 
                     {/* Content */}
                     <div className="relative z-1">
-                      <h3 className="text-xl sm:text-2xl font-semibold text-[#f8f6f2] [font-family:var(--font-serif)] mb-3 tracking-tight">
+                      <h3 className="type-h3 mb-3 text-[#f8f6f2]">
                         {step.title}
                       </h3>
-                      <p className="text-sm sm:text-base leading-7 text-[#d8d1c6]">
+                      <p className="type-body text-[#d8d1c6]">
                         {step.description}
                       </p>
                     </div>
@@ -1001,14 +1001,14 @@ function ServicesConsultationSection({
         <FadeIn>
           <div className="overflow-hidden rounded-[2rem] border border-[#d4a373]/25 bg-[linear-gradient(135deg,rgba(212,163,115,0.16),rgba(13,17,22,0.96)_40%,rgba(13,17,22,1)_100%)] px-8 py-10 sm:px-10 sm:py-12 lg:flex lg:items-center lg:justify-between lg:px-14">
             <div className="max-w-2xl">
-              <p className="text-xs uppercase tracking-[0.35em] text-[#f0c48d]">
+              <p className="type-label text-[#f0c48d]">
                 Tailored Consultation
               </p>
-              <h2 className="mt-4 text-3xl leading-tight text-[#f8f6f2] sm:text-4xl lg:text-5xl [font-family:var(--font-serif)]">
+              <h2 className="type-h2 mt-4 text-[#f8f6f2]">
                 Tell us which space you are shaping, and we&apos;ll guide the right
                 service scope around it.
               </h2>
-              <p className="mt-5 text-base leading-8 text-[#e4ddd3]">
+              <p className="type-body mt-5 text-[#e4ddd3]">
                 Whether it starts with one room or a full property, the design
                 direction is always tailored to the life of the space.
               </p>
