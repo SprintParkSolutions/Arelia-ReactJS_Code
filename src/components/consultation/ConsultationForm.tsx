@@ -69,6 +69,7 @@ export function ConsultationForm({
   onSuccess,
   title = 'Tell us about your project',
   description = 'Share a few essentials and our team can shape the next conversation around your space.',
+  submitLabel = 'Get Started',
 }: ConsultationFormProps) {
   const [values, setValues] = useState<ConsultationFormValues>(initialValues)
   const [errors, setErrors] = useState<ConsultationFormErrors>({})
@@ -232,8 +233,8 @@ export function ConsultationForm({
         <form onSubmit={handleSubmit} noValidate>
           <div className="consultation-form__intro">
             <p className="consultation-form__eyebrow">Consultation Request</p>
-            <h2 className="consultation-form__title">{title}</h2>
-            <p className="consultation-form__description">{description}</p>
+            {title ? <h2 className="consultation-form__title">{title}</h2> : null}
+            {description ? <p className="consultation-form__description">{description}</p> : null}
           </div>
 
           <div className="consultation-form__grid">
@@ -309,7 +310,7 @@ export function ConsultationForm({
               {isLoading ? (
                 'Processing...'
               ) : (
-                'Get Started'
+                submitLabel
               )}
             </button>
             {statusMessage && step === 'form' && (
