@@ -118,12 +118,10 @@ export function ConsultationForm({
     setStatusMessage('Sending OTP to your email...')
 
     try {
-      // Generate OTP
       const otp = generateOTP()
       setGeneratedOtp(otp)
       setFormDataForVerification(values)
 
-      // Send OTP to email
       const otpResult = await sendOtp(values.email, otp)
 
       if (!otpResult.success) {
@@ -134,17 +132,18 @@ export function ConsultationForm({
         return
       }
 
-      // Move to verification step
-      setStep('verification')
-      setStatusMessage('')
     } catch (error) {
       console.error('Form submission error:', error)
       setStatusMessage('An unexpected error occurred. Please try again.')
       setGeneratedOtp('')
       setFormDataForVerification(null)
+      return
     } finally {
       setIsLoading(false)
     }
+
+    setStep('verification')
+    setStatusMessage('')
   }
 
   const handleOtpVerify = async (otp: string) => {
@@ -156,7 +155,6 @@ export function ConsultationForm({
     setStatusMessage('Verifying and creating your record...')
 
     try {
-      // Now create the lead after OTP verification
       const leadResult = await registerLead(
         formDataForVerification.firstName,
         formDataForVerification.lastName,
@@ -171,11 +169,9 @@ export function ConsultationForm({
         return
       }
 
-      // Success - move to success screen
       setStep('success')
       setStatusMessage('')
-      
-      // Reset form after showing success screen
+
       setTimeout(() => {
         setValues(initialValues)
         setErrors({})
@@ -206,7 +202,6 @@ export function ConsultationForm({
 
       if (!otpResult.success) {
         setStatusMessage(otpResult.message || 'Failed to resend OTP. Please try again.')
-        setIsLoading(false)
         return
       }
 

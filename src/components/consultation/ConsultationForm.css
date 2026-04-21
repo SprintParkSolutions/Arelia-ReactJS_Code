@@ -19,7 +19,7 @@
 
 .consultation-modal__shell {
   position: relative;
-  width: min(100%, 54rem);
+  width: min(100%, 42rem);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 2rem;
   background:
@@ -101,7 +101,7 @@
 }
 
 .consultation-form--modal {
-  padding: 2.4rem;
+  padding: 1.7rem;
 }
 
 .consultation-form--page {
@@ -248,6 +248,36 @@
   gap: 1.15rem;
 }
 
+.consultation-form--modal .consultation-form__intro {
+  max-width: 32rem;
+  margin-bottom: 0.55rem;
+}
+
+.consultation-form--modal .consultation-form__title {
+  font-size: clamp(1.9rem, 3.2vw, 2.8rem);
+  line-height: 1.08;
+}
+
+.consultation-form--modal .consultation-form__description {
+  max-width: 27rem;
+  margin-top: 0.65rem;
+  margin-bottom: 1.2rem;
+  font-size: 0.96rem;
+  line-height: 1.58;
+}
+
+.consultation-form--modal .consultation-form__grid {
+  gap: 1rem;
+}
+
+.consultation-form--modal .consultation-form__field input {
+  min-height: 3.45rem;
+}
+
+.consultation-form--modal .consultation-form__footer {
+  margin-top: 1.15rem;
+}
+
 .consultation-form__field {
   display: flex;
   flex-direction: column;
@@ -285,6 +315,16 @@
 
 .consultation-form__field input::placeholder {
   color: rgba(255, 248, 238, 0.56);
+}
+
+.consultation-form__field input:-webkit-autofill,
+.consultation-form__field input:-webkit-autofill:hover,
+.consultation-form__field input:-webkit-autofill:focus,
+.consultation-form__field input:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff9f2;
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.06) inset;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: #fff9f2;
 }
 
 .consultation-form__field input:focus {
@@ -406,6 +446,10 @@
     padding-top: 4rem;
   }
 
+  .consultation-form--modal .consultation-form__intro {
+    margin-bottom: 0.25rem;
+  }
+
   .consultation-modal__close {
     top: 0.8rem;
     right: 0.8rem;
@@ -436,6 +480,10 @@
     margin-top: 0.7rem;
     font-size: 0.96rem;
     line-height: 1.6;
+  }
+
+  .consultation-form--modal .consultation-form__description {
+    margin-bottom: 1rem;
   }
 
   .consultation-form__grid {
