@@ -5,9 +5,22 @@ import "./navigationMenu.css";
 
 const navItems = ["Home", "About Us", "Services", "Contact Us"];
 const logoSrc = "/images/Logos/Arelia.png";
-const phoneNumber = "+91 9652380588";
 const phoneHref = "tel:+919652380588";
 const brandTitle = "ARELIA";
+
+function PhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="h-[18px] w-[18px]">
+      <path
+        d="M6.94 5.78a1.6 1.6 0 0 1 1.63-1.03l2.08.25a1.6 1.6 0 0 1 1.36 1.21l.38 1.67a1.6 1.6 0 0 1-.46 1.51l-1.05 1.03a13.1 13.1 0 0 0 2.73 2.73l1.03-1.05a1.6 1.6 0 0 1 1.51-.46l1.67.38a1.6 1.6 0 0 1 1.21 1.36l.25 2.08a1.6 1.6 0 0 1-1.03 1.63l-1.28.52a3.2 3.2 0 0 1-2.95-.28 20.14 20.14 0 0 1-9.01-9.01 3.2 3.2 0 0 1-.28-2.95l.52-1.28Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 const getNavItemPath = (item: string) => {
   if (item === "Home") return "/";
@@ -138,35 +151,13 @@ export default function NavigationMenu({
 
   const navTextClass =
     "text-[11px] lg:text-[12px] xl:text-[13px] tracking-[0.16em] lg:tracking-[0.18em] xl:tracking-[0.2em] uppercase font-sans font-medium";
+  const navItemBaseClass =
+    "relative px-5 lg:px-6 xl:px-7 py-3 cursor-pointer rounded-full group flex items-center justify-center shrink-0 overflow-hidden";
 
   return (
     <>
       {!isMobile && (
-        <div className="fixed top-5 lg:top-6 left-1/2 -translate-x-1/2 z-50 flex items-start gap-3 lg:gap-4 w-[min(98vw,calc(84rem+12rem))]">
-          <motion.div
-            initial={{ opacity: 0, filter: "blur(12px)", scale: 0.94 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-            transition={{
-              opacity: { duration: 1.2, ease: "easeOut" },
-              filter: { duration: 1.2, ease: "easeOut" },
-              scale: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
-            }}
-            className="h-[108px] w-[132px] lg:h-[118px] lg:w-[148px] xl:h-[130px] xl:w-[168px] shrink-0 flex flex-col items-center justify-center cursor-pointer"
-            onClick={handleHomeClick}
-          >
-            <img
-              src={logoSrc}
-              alt="Arelia logo"
-              className="max-h-[72%] max-w-full object-contain select-none drop-shadow-[0_12px_24px_rgba(0,0,0,0.42)]"
-              draggable={false}
-            />
-            <div className="mt-2 w-[92%] text-center">
-              <div className="w-full text-[1rem] lg:text-[1.12rem] xl:text-[1.28rem] leading-none font-serif font-bold tracking-[0.12em] text-[#d9b85f] uppercase drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]">
-                {brandTitle}
-              </div>
-            </div>
-          </motion.div>
-
+        <div className="fixed top-0 left-0 right-0 z-50 px-0">
           <motion.nav
             initial={{ opacity: 0, y: -10, scaleX: 0.22 }}
             animate={{
@@ -176,10 +167,10 @@ export default function NavigationMenu({
             }}
             transition={{ duration: 1.4, ease: [0.77, 0, 0.175, 1] }}
             style={{ originX: 0.5 }}
-            className="flex-1 min-w-0 max-w-7xl h-[78px] lg:h-[82px] min-h-[78px] lg:min-h-[82px] max-h-[78px] lg:max-h-[82px] rounded-[28px] border border-white/10 bg-[#070707]/70 backdrop-blur-[28px] flex items-center shadow-[0_25px_50px_-12px_rgba(0,0,0,0.65),_0_0_24px_rgba(212,175,55,0.04)] overflow-hidden px-6 lg:px-9"
+            className="h-[90px] lg:h-[94px] w-full border-b border-white/10 bg-[linear-gradient(180deg,rgba(26,26,26,0.94),rgba(18,18,18,0.88))] backdrop-blur-[28px] flex items-center shadow-[0_18px_40px_-18px_rgba(0,0,0,0.6)] overflow-hidden px-5 lg:px-8 xl:px-10"
           >
             {/* Asymmetric Architectural Pattern Animation */}
-            <div className="absolute inset-0 z-[-1] overflow-hidden rounded-2xl pointer-events-none opacity-60">
+            <div className="absolute inset-0 z-[-1] overflow-hidden pointer-events-none opacity-70">
               <motion.div
                 className="absolute inset-[-100%] w-[300%] h-[300%]"
                 style={{
@@ -192,36 +183,84 @@ export default function NavigationMenu({
                 animate={{ x: ["0%", "-10%"], y: ["0%", "-10%"] }}
                 transition={{ duration: 15, ease: "linear", repeat: Infinity }}
               />
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_#070707_100%)]" />
+              <motion.div
+                className="absolute inset-y-0 left-[-20%] w-[40%]"
+                style={{
+                  background:
+                    "linear-gradient(90deg, transparent, rgba(212,175,55,0.12), rgba(255,255,255,0.08), rgba(212,175,55,0.14), transparent)",
+                  filter: "blur(22px)",
+                }}
+                animate={{ x: ["0%", "320%"] }}
+                transition={{ duration: 9, ease: "linear", repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute inset-y-0 right-[-24%] w-[36%]"
+                style={{
+                  background:
+                    "radial-gradient(circle at center, rgba(212,175,55,0.16) 0%, rgba(212,175,55,0.05) 36%, transparent 72%)",
+                  filter: "blur(26px)",
+                }}
+                animate={{ x: ["0%", "-210%"], opacity: [0.45, 0.7, 0.45] }}
+                transition={{ duration: 10, ease: "easeInOut", repeat: Infinity }}
+              />
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,255,255,0.04)_0%,_rgba(12,12,12,0.72)_72%,_rgba(12,12,12,0.95)_100%)]" />
             </div>
 
             {/* Centered Links & Right-Aligned Button */}
-            <div className="grid w-full h-full grid-cols-[minmax(0,1fr)_auto] items-center gap-5 lg:gap-8 relative z-0">
+            <div className="grid w-full h-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 lg:gap-6 xl:gap-8 relative z-0">
+              <motion.div
+                initial={{ opacity: 0, filter: "blur(12px)", scale: 0.94 }}
+                animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+                transition={{
+                  opacity: { duration: 1.2, ease: "easeOut" },
+                  filter: { duration: 1.2, ease: "easeOut" },
+                  scale: { duration: 1.2, ease: [0.16, 1, 0.3, 1] },
+                }}
+                className="h-full w-[152px] lg:w-[170px] xl:w-[184px] shrink-0 flex items-center cursor-pointer"
+                onClick={handleHomeClick}
+              >
+                <div className="flex items-center gap-3 lg:gap-4">
+                  <img
+                    src={logoSrc}
+                    alt="Arelia logo"
+                    className="h-[64px] lg:h-[72px] xl:h-[76px] w-auto object-contain select-none drop-shadow-[0_12px_24px_rgba(0,0,0,0.42)]"
+                    draggable={false}
+                  />
+                  <div className="text-left">
+                    <div className="w-full text-[1rem] lg:text-[1.08rem] xl:text-[1.16rem] leading-none font-serif font-bold tracking-[0.16em] text-[#d9b85f] uppercase drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]">
+                      {brandTitle}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
               <LayoutGroup>
                 <motion.div
-                  className="flex items-center justify-start min-w-0 w-full h-full"
+                  className="flex items-center justify-center min-w-0 w-full h-full"
                   variants={staggerContainer}
                   initial="hidden"
                   animate={showItems ? "visible" : "hidden"}
                 >
                   {/* Navigation Links */}
-                  <ul className={`flex items-center justify-start min-w-0 gap-1 lg:gap-2 xl:gap-3 m-0 p-0 ${navTextClass}`}>
+                  <div className="relative flex h-[58px] items-center px-1">
+                    <ul className={`relative z-10 flex items-center justify-center min-w-0 gap-1 lg:gap-1.5 xl:gap-2 m-0 p-0 ${navTextClass}`}>
                     {navItems.map((item) => (
                       <motion.li
                         key={item}
                         variants={navItemWrapper}
-                        className="relative px-3 lg:px-4 xl:px-5 py-3 cursor-pointer rounded-2xl group flex items-center justify-center shrink-0"
+                        className={navItemBaseClass}
                         onClick={() => handleNavClick(item)}
                       >
+                        <div className="absolute inset-0 rounded-full transition-colors duration-300 group-hover:bg-white/[0.035]" />
                         {isFullyExpanded && pathname === getNavItemPath(item) && (
                           <motion.div
                             layoutId="nav-highlight"
-                            className="absolute inset-0 rounded-xl z-[-1]"
+                            className="absolute inset-0 rounded-full z-0"
                             style={{
-                              background: "linear-gradient(145deg, rgba(212,175,55,0.15) 0%, rgba(139,115,36,0.05) 100%)",
-                              boxShadow: "inset 0px 1px 1px rgba(255,255,255,0.2), inset 0px -1px 3px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3)",
-                              border: "1px solid rgba(212,175,55,0.3)",
-                              backdropFilter: "blur(8px)"
+                              background: "linear-gradient(145deg, rgba(212,175,55,0.22) 0%, rgba(139,115,36,0.1) 52%, rgba(255,255,255,0.04) 100%)",
+                              boxShadow: "inset 0px 1px 1px rgba(255,255,255,0.2), inset 0px -1px 3px rgba(0,0,0,0.35), 0 8px 18px rgba(0,0,0,0.24)",
+                              border: "1px solid rgba(212,175,55,0.34)",
+                              backdropFilter: "blur(8px)",
                             }}
                             initial={{ opacity: 0, scale: 0.4 }}
                             animate={{ opacity: 1, scale: 1 }}
@@ -231,7 +270,7 @@ export default function NavigationMenu({
 
                         <motion.div
                           variants={lineVariant}
-                          className="absolute bottom-1 left-4 right-4 h-[1px] bg-white shadow-[0_0_10px_2px_rgba(255,255,255,0.6)] origin-center rounded-full z-0 pointer-events-none"
+                          className="absolute bottom-1.5 left-5 right-5 h-[1px] bg-white/80 shadow-[0_0_10px_2px_rgba(255,255,255,0.35)] origin-center rounded-full z-0 pointer-events-none"
                         />
 
                         <motion.span
@@ -246,7 +285,8 @@ export default function NavigationMenu({
                         </motion.span>
                       </motion.li>
                     ))}
-                  </ul>
+                    </ul>
+                  </div>
                 </motion.div>
               </LayoutGroup>
 
@@ -254,7 +294,7 @@ export default function NavigationMenu({
                 variants={buttonRevealItem}
                 initial="hidden"
                 animate={showItems ? "visible" : "hidden"}
-                className="flex items-center justify-end shrink-0 gap-3 lg:gap-4"
+                className="flex items-center justify-end shrink-0 gap-2.5 lg:gap-3"
               >
                 <button
                   type="button"
@@ -279,7 +319,8 @@ export default function NavigationMenu({
                 </button>
                 <a
                   href={phoneHref}
-                  className={`relative px-5 lg:px-6 xl:px-7 py-3.5 rounded-full overflow-hidden group transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] text-[#D4AF37] whitespace-nowrap border border-[#D4AF37]/35 bg-[radial-gradient(120%_100%_at_50%_0%,rgba(28,23,12,0.78)_0%,rgba(10,10,10,0.7)_70%)] shadow-[inset_0_1px_2px_rgba(212,175,55,0.16),0_4px_15px_rgba(0,0,0,0.3)] hover:text-white ${navTextClass}`}
+                  aria-label="Call Arelia"
+                  className="relative h-[52px] w-[52px] rounded-full overflow-hidden group transition-all duration-300 hover:scale-[1.04] active:scale-[0.98] text-[#D4AF37] border border-[#D4AF37]/35 bg-[radial-gradient(120%_100%_at_50%_0%,rgba(28,23,12,0.68)_0%,rgba(10,10,10,0.28)_70%)] backdrop-blur-[18px] shadow-[inset_0_1px_2px_rgba(212,175,55,0.16),0_4px_15px_rgba(0,0,0,0.24)] hover:text-white"
                 >
                   <motion.div
                     className="absolute top-0 bottom-0 w-[40%] z-0 pointer-events-none"
@@ -288,7 +329,9 @@ export default function NavigationMenu({
                     transition={{ duration: 2.8, ease: "easeInOut", repeat: Infinity, repeatDelay: 3.5 }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#D4AF37]/0 to-[#D4AF37]/12 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-full z-0 pointer-events-none" />
-                  <span className="relative z-10">{phoneNumber}</span>
+                  <span className="relative z-10 flex h-full w-full items-center justify-center">
+                    <PhoneIcon />
+                  </span>
                 </a>
               </motion.div>
             </div>
@@ -301,7 +344,7 @@ export default function NavigationMenu({
         <>
           {/* Mobile Header with Logo & Hamburger */}
           <motion.div 
-            className="fixed top-5 left-1/2 -translate-x-1/2 z-50 w-[96%] max-w-6xl h-[72px] rounded-2xl border-t border-white/10 border-b border-black/50 bg-[#070707]/95 backdrop-blur-2xl flex items-center justify-between shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] px-2"
+            className="fixed top-0 left-0 right-0 z-50 h-[72px] border-b border-white/10 bg-[linear-gradient(180deg,rgba(26,26,26,0.94),rgba(20,20,20,0.84))] backdrop-blur-[24px] flex items-center justify-between shadow-[0_18px_40px_-18px_rgba(0,0,0,0.65)] px-3"
           >
             {/* Logo */}
             <motion.div
@@ -360,7 +403,7 @@ export default function NavigationMenu({
               animate="visible"
               exit="exit"
               variants={mobileMenuVariant}
-              className="fixed inset-x-3 bottom-3 top-[96px] z-40 bg-[#070707]/98 backdrop-blur-xl rounded-3xl"
+              className="fixed inset-x-0 bottom-0 top-[72px] z-40 bg-[linear-gradient(180deg,rgba(20,20,20,0.94),rgba(12,12,12,0.88))] backdrop-blur-[28px] border-t border-white/10"
             >
               <div className="flex flex-col h-full p-5 sm:p-6 gap-4 overflow-y-auto">
                 {/* Navigation Links */}
@@ -374,21 +417,34 @@ export default function NavigationMenu({
                     <motion.li
                       key={item}
                       variants={mobileMenuItemVariant}
-                      className="relative px-6 py-4 cursor-pointer rounded-xl group flex items-center"
+                      className="relative px-6 py-4 cursor-pointer rounded-2xl group flex items-center overflow-hidden"
                       onClick={() => handleNavClick(item)}
-                      style={{
-                        background: pathname === getNavItemPath(item) 
-                          ? "linear-gradient(145deg, rgba(212,175,55,0.15) 0%, rgba(139,115,36,0.05) 100%)"
-                          : "transparent",
-                        border: pathname === getNavItemPath(item) 
-                          ? "1px solid rgba(212,175,55,0.3)"
-                          : "1px solid transparent",
-                      }}
                     >
-                      <span 
-                        className={`text-sm md:text-base tracking-[0.2em] uppercase font-sans font-medium transition-colors duration-300 ${
+                      <div
+                        className={`absolute inset-0 rounded-full transition-all duration-300 ${
                           pathname === getNavItemPath(item)
-                            ? "text-[#D4AF37]"
+                            ? "border border-[#D4AF37]/35 bg-[linear-gradient(145deg,rgba(212,175,55,0.17)_0%,rgba(139,115,36,0.08)_42%,rgba(255,255,255,0.05)_100%)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),inset_0_-1px_3px_rgba(0,0,0,0.35),0_10px_18px_rgba(0,0,0,0.26)]"
+                            : "border border-transparent bg-transparent group-hover:bg-white/[0.04]"
+                        }`}
+                      />
+                      <motion.div
+                        className="absolute top-0 bottom-0 w-[38%] z-0 pointer-events-none"
+                        style={{
+                          background:
+                            "linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)",
+                          transform: "skewX(-24deg)",
+                        }}
+                        animate={{ left: ["-55%", "155%"] }}
+                        transition={{ duration: 2.8, ease: "easeInOut", repeat: Infinity, repeatDelay: 3.6 }}
+                      />
+                      <motion.div
+                        variants={lineVariant}
+                        className="absolute bottom-2 left-6 right-6 h-[1px] bg-white shadow-[0_0_10px_2px_rgba(255,255,255,0.45)] origin-center rounded-full z-0 pointer-events-none"
+                      />
+                      <span 
+                        className={`relative z-10 text-sm md:text-base tracking-[0.2em] uppercase font-sans font-medium transition-colors duration-300 ${
+                          pathname === getNavItemPath(item)
+                            ? "text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.45)]"
                             : "text-gray-300 group-hover:text-white"
                         }`}
                       >
@@ -428,7 +484,8 @@ export default function NavigationMenu({
                 <motion.a
                   variants={mobileMenuItemVariant}
                   href={phoneHref}
-                  className="relative w-full px-6 py-4 rounded-xl overflow-hidden text-center text-sm md:text-base tracking-[0.18em] uppercase font-sans font-medium text-[#D4AF37] border border-[#D4AF37]/25 bg-white/[0.02] transition-colors duration-300 hover:text-white hover:border-[#D4AF37]/45"
+                  aria-label="Call Arelia"
+                  className="relative mx-auto flex h-[58px] w-[58px] items-center justify-center rounded-full overflow-hidden text-[#D4AF37] border border-[#D4AF37]/30 bg-[radial-gradient(120%_100%_at_50%_0%,rgba(28,23,12,0.7)_0%,rgba(255,255,255,0.03)_100%)] transition-colors duration-300 hover:text-white hover:border-[#D4AF37]/45"
                 >
                   <motion.div
                     className="absolute top-0 bottom-0 w-[40%] z-0 pointer-events-none"
@@ -436,7 +493,9 @@ export default function NavigationMenu({
                     animate={{ left: ["-55%", "155%"] }}
                     transition={{ duration: 2.8, ease: "easeInOut", repeat: Infinity, repeatDelay: 3.5 }}
                   />
-                  <span className="relative z-10">{phoneNumber}</span>
+                  <span className="relative z-10">
+                    <PhoneIcon />
+                  </span>
                 </motion.a>
               </div>
             </motion.div>
