@@ -1,0 +1,766 @@
+.servicesHero {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.servicesHeroStage {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.servicesHeroMedia {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.servicesHeroVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.servicesHeroContent {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(4.75rem, 8vh, 6.5rem) clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.servicesHeroCopyWrap {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.servicesHeroCopy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 56rem;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.servicesHeroDivider {
+  width: min(100%, 34rem);
+  height: 1px;
+  margin-bottom: 2rem;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.18),
+    transparent
+  );
+}
+
+.servicesHeroEyebrow {
+  margin: 0 0 1.25rem;
+  color: #e1bd93;
+  font-size: var(--type-small);
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+}
+
+.servicesHeroHeading {
+  margin: 0;
+  max-width: 60rem;
+  color: #f8f6f2;
+  font-family: var(--font-serif);
+  font-size: var(--type-h1);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: var(--tracking-heading);
+  text-align: center;
+  text-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
+}
+
+.servicesHeroDescription {
+  margin: 1.5rem auto 0;
+  max-width: 42rem;
+  color: #e5ddd2;
+  font-size: var(--type-body);
+  line-height: 1.75;
+  text-align: center;
+}
+
+.servicesHeroActions {
+  margin-top: 2.25rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.servicesHeroButton {
+  position: relative;
+  overflow: hidden;
+  min-height: 3.55rem;
+  padding: 0 1.75rem;
+  border-radius: 999px;
+  letter-spacing: 0.22em;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 16px 40px rgba(0, 0, 0, 0.24);
+  transition:
+    transform 260ms ease,
+    border-color 260ms ease,
+    background-color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.servicesHeroButton::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+.servicesHeroButton:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 22px 50px rgba(0, 0, 0, 0.3);
+}
+
+.servicesHeroButtonPrimary {
+  border: 1px solid rgba(212, 163, 115, 0.58);
+  background:
+    linear-gradient(135deg, rgba(212, 163, 115, 0.26), rgba(168, 114, 56, 0.16)),
+    rgba(13, 14, 18, 0.42);
+  color: #f8f6f2;
+}
+
+.servicesHeroButtonPrimary::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 48%),
+    radial-gradient(circle at top, rgba(255, 220, 177, 0.16), transparent 62%);
+}
+
+.servicesHeroButtonPrimary:hover {
+  border-color: rgba(240, 196, 141, 0.82);
+}
+
+.servicesHeroButtonSecondary {
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)),
+    rgba(10, 11, 15, 0.32);
+  color: #f8f6f2;
+}
+
+.servicesHeroButtonSecondary::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12), transparent 42%),
+    linear-gradient(120deg, rgba(212, 163, 115, 0.08), transparent 55%);
+}
+
+.servicesHeroButtonSecondary:hover {
+  border-color: rgba(212, 163, 115, 0.42);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05)),
+    rgba(10, 11, 15, 0.4);
+}
+
+.rows {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.row {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(26rem, 36vw, 31rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at top right, rgba(212, 163, 115, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(8, 12, 18, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 28px 90px rgba(0, 0, 0, 0.28);
+  padding: 1rem;
+}
+
+.marqueeFrame {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: calc(clamp(26rem, 36vw, 31rem) - 2rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.55rem;
+  background:
+    radial-gradient(circle at center, rgba(212, 163, 115, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(9, 13, 19, 0.12));
+}
+
+.marqueeFrame::before,
+.marqueeFrame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.marqueeFrame::before {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(7, 10, 14, 0.72), transparent 11%, transparent 89%, rgba(7, 10, 14, 0.72)),
+    linear-gradient(180deg, rgba(7, 10, 14, 0.18), transparent 24%, transparent 76%, rgba(7, 10, 14, 0.22));
+}
+
+.marqueeFrame::after {
+  z-index: 2;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.02), transparent 34%, rgba(212, 163, 115, 0.04)),
+    radial-gradient(circle at center, rgba(0, 0, 0, 0.08), transparent 58%);
+}
+
+.marqueeTrack {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  width: max-content;
+  padding: 1rem;
+  will-change: transform;
+}
+
+.rowPaused .marqueeTrack {
+  animation-play-state: paused;
+}
+
+.rowExpanded .marqueeFrame {
+  z-index: 20;
+}
+
+.marqueeGroup {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  min-width: max-content;
+  padding-right: 1rem;
+}
+
+.marqueeLeft {
+  animation: marquee-left var(--marquee-duration, 28s) linear infinite;
+}
+
+.marqueeRight {
+  animation: marquee-right var(--marquee-duration, 28s) linear infinite;
+}
+
+.imageCard {
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 clamp(14rem, 20vw, 19rem);
+  align-self: stretch;
+  min-height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 16px 40px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transform: translateZ(0);
+}
+
+.imageMedia {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-origin: center center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.imageCard:nth-child(3n + 2) {
+  flex-basis: clamp(16rem, 23vw, 22rem);
+}
+
+.imageCard:nth-child(3n + 3) {
+  flex-basis: clamp(12.5rem, 17vw, 16.5rem);
+}
+
+.imageCardActive {
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.imageCardActive .imageMedia {
+  opacity: 0;
+}
+
+.image,
+.expandedImage {
+  object-fit: cover;
+}
+
+.image {
+  transform: scale(1);
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  backface-visibility: hidden;
+}
+
+.imageCard:hover .image {
+  transform: scale(1.05);
+}
+
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 10, 14, 0.04), rgba(8, 10, 14, 0.12) 48%, rgba(8, 10, 14, 0.36)),
+    linear-gradient(140deg, rgba(212, 163, 115, 0.04), transparent 38%, rgba(255, 255, 255, 0.04));
+  pointer-events: none;
+}
+
+.cardShell {
+  position: absolute;
+  top: 50%;
+  left: clamp(1.35rem, 5%, 4rem);
+  z-index: 10;
+  width: min(35%, 31rem);
+  isolation: isolate;
+  contain: paint style;
+  transform: translate3d(0, -50%, 0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.rowReverse .cardShell {
+  left: auto;
+  right: clamp(1.35rem, 5%, 4rem);
+}
+
+.rowExpanded .cardShell {
+  pointer-events: none;
+}
+
+.textPane {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: auto;
+  display: flex;
+  min-height: clamp(20rem, 26vw, 23rem);
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.75rem;
+  clip-path: inset(0 round 1.75rem);
+  background-clip: padding-box;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: linear-gradient(#fff 0 0);
+  background:
+    linear-gradient(180deg, rgba(22, 24, 28, 0.72), rgba(8, 11, 15, 0.68)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 56%);
+  backdrop-filter: blur(16px) saturate(145%);
+  -webkit-backdrop-filter: blur(16px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  contain: paint style;
+  transform: translate3d(0, 0, 0);
+  will-change: transform, backdrop-filter;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  padding: clamp(1.85rem, 3.2vw, 2.65rem);
+  color: #f8f6f2;
+}
+
+.textPane::before,
+.textPane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.textPane::before {
+  background:
+    linear-gradient(180deg, rgba(7, 9, 12, 0.24), rgba(7, 9, 12, 0.18)),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.13), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(212, 163, 115, 0.1), transparent 26%);
+}
+
+.textPane::after {
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.textGlow {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 42%),
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.12));
+  pointer-events: none;
+}
+
+.textContent,
+.textFooter {
+  position: relative;
+  z-index: 1;
+}
+
+.note {
+  margin: 0;
+  color: rgba(248, 246, 242, 0.72);
+  font-size: var(--type-small);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.title {
+  margin: 1.1rem 0 0;
+  color: #f8f6f2;
+  font-family: var(--font-serif);
+  font-size: var(--type-h3);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: var(--tracking-heading);
+  text-wrap: balance;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.caption {
+  margin: 1.35rem 0 0;
+  max-width: 28rem;
+  color: rgba(248, 246, 242, 0.9);
+  font-size: var(--type-body);
+  font-weight: 300;
+  line-height: 1.75;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.textFooter {
+  margin-top: 2rem;
+}
+
+.button {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  gap: 0.7rem;
+  padding-inline: 1.25rem 0.35rem;
+  border: 1px solid rgba(212, 163, 115, 0.24);
+  border-radius: 999px;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(31, 26, 12, 0.98) 0%, rgba(9, 10, 13, 0.96) 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0));
+  color: #f4e6d5;
+  font-size: var(--type-small);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.08),
+    0 12px 24px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 260ms ease,
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(212, 163, 115, 0.12), rgba(212, 163, 115, 0));
+  pointer-events: none;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 163, 115, 0.38);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 16px 30px rgba(0, 0, 0, 0.28);
+}
+
+.buttonLabel,
+.buttonIcon {
+  position: relative;
+  z-index: 1;
+}
+
+.buttonIcon {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid rgba(212, 163, 115, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(212, 163, 115, 0.18), rgba(212, 163, 115, 0.06));
+  transition: transform 260ms ease;
+}
+
+.buttonIconArrow {
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1;
+  transition: transform 260ms ease;
+}
+
+.button:hover .buttonIcon {
+  transform: translateX(2px);
+}
+
+.button:hover .buttonIconArrow {
+  transform: translate3d(1px, -1px, 0);
+}
+
+.expandedImageCard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 28px 80px rgba(0, 0, 0, 0.34);
+  pointer-events: auto;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-origin: center center;
+}
+
+.expandedImageMedia {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.expandedImageCardClosing {
+  z-index: 50;
+  pointer-events: none;
+}
+
+.expandedBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background:
+    linear-gradient(180deg, rgba(3, 5, 8, 0.2), rgba(3, 5, 8, 0.46)),
+    rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.expandedImageOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 10, 14, 0.04), rgba(8, 10, 14, 0.1) 48%, rgba(8, 10, 14, 0.22)),
+    linear-gradient(140deg, transparent 34%, rgba(212, 163, 115, 0.05));
+  pointer-events: none;
+}
+
+.expandedImage {
+  object-fit: cover;
+}
+
+.cursorBadge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 999px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.42), transparent 34%),
+    linear-gradient(135deg, #f7dd62, #f4d03f 48%, #d4a373);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 18px 42px rgba(244, 208, 63, 0.28),
+    0 8px 18px rgba(0, 0, 0, 0.24);
+  will-change: transform, opacity;
+  transform-origin: center;
+}
+
+.cursorBadgeLabel {
+  max-width: 4.5rem;
+  color: #050505;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@keyframes hero-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes marquee-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes marquee-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1023px) {
+  .servicesHeroStage {
+    min-height: 100vh;
+  }
+
+  .servicesHeroContent {
+    padding: 5.75rem 1.25rem;
+  }
+
+  .servicesHeroDivider {
+    margin-bottom: 1.5rem;
+  }
+
+  .servicesHeroActions {
+    gap: 0.85rem;
+  }
+
+  .servicesHeroButton {
+    width: 100%;
+    max-width: 20rem;
+  }
+
+  .rows {
+    gap: 1.25rem;
+  }
+
+  .row {
+    min-height: auto;
+  }
+
+  .cardShell {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: 100%;
+    transform: none;
+    margin-bottom: 1rem;
+  }
+
+  .rowReverse .cardShell {
+    right: auto;
+  }
+
+  .rowExpanded .cardShell {
+    pointer-events: none;
+  }
+
+  .textPane {
+    min-height: auto;
+  }
+
+  .marqueeFrame {
+    min-height: 18rem;
+  }
+
+  .imageCard {
+    flex-basis: clamp(11rem, 48vw, 14rem);
+  }
+
+  .imageCard:nth-child(3n + 2) {
+    flex-basis: clamp(12.5rem, 56vw, 16rem);
+  }
+
+  .imageCard:nth-child(3n + 3) {
+    flex-basis: clamp(10.5rem, 42vw, 13rem);
+  }
+
+  .expandedImageCard {
+    top: 0;
+    left: 0;
+  }
+}
+
+/* Sticky Stacked Cards Animation Support */
+.servicesProcessSection {
+  perspective: 1000px;
+}
+
+.servicesProcessSection > div {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
