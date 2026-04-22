@@ -172,7 +172,7 @@ const whyChooseFeatures: readonly FeatureItem[] = [
 function HomeHeroSection() {
   return (
     <section className="home-page__hero">
-      <VideoBackground src="/videos/Arelia_Home2.mp4" isHome isSection />
+      <VideoBackground src="/videos/Arelia_Space.mp4" isHome isSection />
       <div className="home-page__content">
         <h1 className="home-page__title">
           <span className="home-page__line">Execute your dream</span>
