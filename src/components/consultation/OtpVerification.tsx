@@ -7,6 +7,7 @@ type OtpVerificationProps = {
   onVerify: (otp: string) => void
   onResend: () => void
   isVerifying: boolean
+  errorMessage?: string
 }
 
 export function OtpVerification({
@@ -14,6 +15,7 @@ export function OtpVerification({
   onVerify,
   onResend,
   isVerifying,
+  errorMessage = '',
 }: OtpVerificationProps) {
   const [otp, setOtp] = useState('')
   const [timeLeft, setTimeLeft] = useState(60)
@@ -91,7 +93,7 @@ export function OtpVerification({
             inputMode="numeric"
             autoFocus
           />
-          {error && <span className="otp-verification__error">{error}</span>}
+          {(error || errorMessage) && <span className="otp-verification__error">{error || errorMessage}</span>}
         </label>
 
         <div className="otp-verification__timer">
