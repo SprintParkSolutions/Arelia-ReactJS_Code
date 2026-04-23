@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   AnimatePresence,
   motion,
-  useInView,
   useMotionValue,
   useSpring,
   useTransform,
@@ -22,6 +21,7 @@ const styles = {
   rowReverse: "rowReverse",
   rowPaused: "rowPaused",
   rowExpanded: "rowExpanded",
+  cardShield: "cardShield",
   marqueeFrame: "marqueeFrame",
   marqueeTrack: "marqueeTrack",
   marqueeGroup: "marqueeGroup",
@@ -103,7 +103,7 @@ type SectionHeadingProps = {
   align?: "left" | "center";
   description: string;
   eyebrow: string;
-  title: string;
+  title: ReactNode;
 };
 
 const serviceProcess = [
@@ -127,11 +127,10 @@ const serviceProcess = [
 const BASE_IMG_PATH = `${import.meta.env.BASE_URL}images/Service%20Page`;
 const serviceImagePath = (category: string, fileName: string) =>
   `${BASE_IMG_PATH}/${category}/${fileName}`;
-const SERVICE_HERO_VIDEO = serviceImagePath(
+const SERVICES_CONSULTATION_BACKGROUND = serviceImagePath(
   "LandingPage",
-  "Home_Video.mp4",
+  "services%20hero.webp",
 );
-
 const FALLBACK_SERVICE_IMAGE = serviceImagePath(
   "residential",
   "services-residential-01.jpg",
@@ -203,14 +202,10 @@ const imageTransition = {
 };
 
 function FadeIn({ children, className, delay = 0, y = 32 }: FadeInProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const isInView = useInView(ref, { once: true, amount: 0.25 });
-
   return (
     <motion.div
-      ref={ref}
       initial={{ opacity: 0, y }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}
       className={className}
     >
@@ -254,101 +249,81 @@ function SectionHeading({
   const alignment = align === "center" ? "text-center mx-auto" : "text-left";
 
   return (
-    <div className={`max-w-2xl ${alignment}`}>
-      <p className="mb-4 text-xs uppercase tracking-[0.35em] text-[#d4a373]">
-        {eyebrow}
-      </p>
-      <h2 className="type-h2 mb-5 text-[#f8f6f2]">
-        {title}
-      </h2>
-      <p className="type-body text-[#d8d1c6]">
+    <div className={`servicesProcessHeading ${alignment}`}>
+      <p className="servicesHeroEyebrow">{eyebrow}</p>
+      <h2 className="servicesHeroHeading servicesProcessHeadingTitle">{title}</h2>
+      <p className="servicesHeroDescription servicesProcessHeadingDescription">
         {description}
       </p>
     </div>
   );
 }
 
-function ServicesHero({ onOpenConsultation }: { onOpenConsultation: () => void }) {
+function ServicesHero() {
   return (
-    <section className="servicesHero relative overflow-hidden">
-      <div className="servicesHeroStage">
-        <div className="servicesHeroMedia">
-          <video
-            className="servicesHeroVideo"
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-          >
-            <source src={SERVICE_HERO_VIDEO} type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,6,8,0.22),rgba(8,8,10,0.16)_42%,rgba(8,8,10,0.42)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,163,115,0.16),transparent_24%),radial-gradient(circle_at_bottom,rgba(0,0,0,0.2),transparent_38%)]" />
+    <section className="servicesHero" aria-labelledby="services-hero-title">
+      <div className="servicesHeroAura servicesHeroAura--left" aria-hidden="true" />
+      <div className="servicesHeroAura servicesHeroAura--right" aria-hidden="true" />
+      <div className="servicesHeroMarquee" aria-hidden="true">
+        <div className="servicesHeroMarqueeRow servicesHeroMarqueeRow--top">
+          <div className="servicesHeroMarqueeTrack servicesHeroMarqueeTrack--rtl">
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+          </div>
         </div>
-
-        <div className="servicesHeroContent">
-          <FadeIn className="servicesHeroCopyWrap">
-            <div className="servicesHeroCopy">
-              <div className="servicesHeroDivider" />
-
-              <p className="servicesHeroEyebrow">Services</p>
-
-              <h1 className="servicesHeroHeading">
-                Spaces that breathe softly,
-                <br />
-                and linger beautifully.
-              </h1>
-
-              <p className="servicesHeroDescription">
-                Residential, commercial, kitchens, and custom furniture shaped
-                with quiet precision and enduring grace.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6">
-                {/* Secondary Button - Glassmorphic */}
-                <a
-                  href="#services"
-                  className="opacity-0 px-8 py-3.5 rounded-full uppercase text-xs sm:text-sm tracking-[0.15em] font-medium bg-white/5 backdrop-blur-md border border-white/20 text-white transition-all duration-300 hover:bg-white/10 hover:border-white/40 hover:scale-105 inline-flex items-center justify-center"
-                  style={{ animation: 'hero-fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards' }}
-                >
-                  View Signature Services
-                </a>
-
-                {/* Primary Button - Gold Gradient */}
-                <button
-                  onClick={onOpenConsultation}
-                  className="opacity-0 px-8 py-3.5 rounded-full uppercase text-xs sm:text-sm tracking-[0.15em] font-semibold bg-gradient-to-r from-[#D4AF37] to-[#AA8222] text-[#050505] shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_rgba(212,175,55,0.5)] inline-flex items-center justify-center"
-                  style={{ animation: 'hero-fade-in-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards' }}
-                >
-                  Book A Consultation
-                </button>
-              </div>
-            </div>
-          </FadeIn>
+        <div className="servicesHeroMarqueeRow servicesHeroMarqueeRow--middle">
+          <div className="servicesHeroMarqueeTrack servicesHeroMarqueeTrack--ltr">
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+          </div>
+        </div>
+        <div className="servicesHeroMarqueeRow servicesHeroMarqueeRow--bottom">
+          <div className="servicesHeroMarqueeTrack servicesHeroMarqueeTrack--rtl">
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+            <span className="servicesHeroMarqueeText">
+              ARCHITECTURE &bull; INTERIORS &bull; DESIGN &bull; ELEGANCE &bull; CURATED
+            </span>
+          </div>
         </div>
       </div>
-    </section>
-  );
-}
 
-function ServicesCatalogueIntro() {
-  return (
-    <section className="px-6 pb-3 pt-8 sm:px-8 sm:pt-10 lg:px-10 lg:pt-12">
-      <div className="mx-auto max-w-7xl">
-        <FadeIn className="mx-auto max-w-3xl text-center">
-          <div className="inline-flex flex-col items-center justify-center">
-            <p className="type-label bg-[linear-gradient(180deg,#f3d2a4_0%,#d4a373_38%,#9f6b2f_100%)] bg-clip-text text-transparent [text-shadow:0_4px_15px_rgba(212,175,55,0.2)]">
-              Service Catalogue
-            </p>
-            <h2 className="type-h2 mt-6 text-[#f8f6f2]">
-              Our Offerings
-            </h2>
-            <p className="type-body mt-4 text-white/60">
-              Curated spaces designed with intention and grace
-            </p>
-          </div>
-        </FadeIn>
+      <div className="servicesHeroShell">
+        <p className="servicesHeroEyebrow">Service Catalogue</p>
+        <h1 id="services-hero-title" className="servicesHeroHeading">
+          <span className="servicesHeroHeadingPrimary">Our</span>{" "}
+          <span className="servicesHeroHeadingAccent">Offerings</span>
+        </h1>
+        <p className="servicesHeroDescription">
+          Curated spaces designed with intention and grace
+        </p>
       </div>
     </section>
   );
@@ -552,7 +527,6 @@ function SignatureServicesSection() {
 
   const openLightbox = (imageIndex: number) => {
     setLightboxIndex(imageIndex);
-    setExpandedImage(null);
     resetExpandedPan();
     resetFollowerCursor();
   };
@@ -797,6 +771,13 @@ function SignatureServicesSection() {
                     )}
                   </div>
 
+                  <div
+                    className={styles.cardShield}
+                    onMouseEnter={() => handleCardMouseEnter(index)}
+                    onMouseLeave={() => handleCardMouseLeave(index)}
+                    aria-hidden="true"
+                  />
+
                   <motion.div
                     className={styles.cardShell}
                     animate={{ opacity: isExpanded ? 0 : 1 }}
@@ -815,10 +796,38 @@ function SignatureServicesSection() {
                       </div>
 
                       <div className={styles.textFooter}>
-                        <a
-                          href="#contact"
+                        <button
+                          type="button"
                           aria-label={`View ${service.title} projects`}
                           className={styles.button}
+                          onClick={(event) => {
+                            const imageId = `service-image-${index}-0-0`;
+                            const imageSrc = servicesData[index].images[0];
+                            const imageAlt = `${service.title} visual 1`;
+                            const frameElement = frameRefs.current[index];
+
+                            event.stopPropagation();
+                            event.preventDefault();
+
+                            if (!frameElement) {
+                              return;
+                            }
+
+                            const coverRect = getCoverRect(frameElement);
+
+                            setExpandedImage({
+                              alt: imageAlt,
+                              coverRect,
+                              id: imageId,
+                              phase: "open",
+                              rect: coverRect,
+                              rowIndex: index,
+                              src: imageSrc,
+                            });
+                            setLightboxIndex(0);
+                            resetExpandedPan();
+                            resetFollowerCursor();
+                          }}
                         >
                           <span className={styles.buttonLabel}>View Gallery</span>
                           <span className={styles.buttonIcon} aria-hidden="true">
@@ -826,7 +835,7 @@ function SignatureServicesSection() {
                               &#8599;
                             </span>
                           </span>
-                        </a>
+                        </button>
                       </div>
                     </div>
                   </motion.div>
@@ -918,70 +927,66 @@ function SignatureServicesSection() {
 
 function ServicesProcessSection() {
   return (
-    <section className="relative px-6 py-20 sm:px-8 lg:px-10 lg:py-24 overflow-hidden">
-      {/* Background Gradient Mesh */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(212,175,55,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_50%,rgba(212,175,55,0.08)_0%,transparent_50%)]" />
+    <section className="servicesProcessSection">
+      <div className="servicesProcessBackdrop" aria-hidden="true">
+        <div className="servicesProcessGlow servicesProcessGlow--left" />
+        <div className="servicesProcessGlow servicesProcessGlow--right" />
+        <div className="servicesProcessMesh" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl">
-        <FadeIn>
+      <div className="servicesProcessShell">
+        <FadeIn className="servicesProcessHeadingWrap">
           <SectionHeading
             eyebrow="Process"
-            title="The service experience stays clear, tailored, and highly detailed from first brief to final layer."
+            title={
+              <>
+                <span className="servicesHeroHeadingPrimary">
+                  A Clear, Tailored
+                </span>{" "}
+                <span className="servicesHeroHeadingAccent">Process</span>
+              </>
+            }
             description="We work with a calm, considered process so the design feels luxurious not only in the result, but in the way it comes together."
             align="center"
           />
         </FadeIn>
 
-        {/* Horizontal Timeline */}
-        <div className="relative mx-auto max-w-6xl mt-20">
-          {/* Horizontal Connecting Line - Desktop Only */}
-          <div className="hidden md:block absolute left-0 right-0 top-8 h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37]/30 to-transparent" />
-          
-          {/* Vertical Timeline Line - Mobile Only */}
-          <div className="md:hidden absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-white/5 via-[#D4AF37]/20 to-white/5" />
-
-          {/* Timeline Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 relative">
+        <div className="servicesProcessTimeline">
+          <div className="servicesProcessRail" aria-hidden="true" />
+          <div className="servicesProcessGrid">
             {serviceProcess.map((step, index) => (
-              <motion.div
+              <motion.article
                 key={step.title}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: index * 0.12 }}
-                className={`group relative ${
-                  index % 2 === 0 ? "md:-translate-y-12" : "md:translate-y-12"
+                initial={{ opacity: 0, y: 56, scale: 0.96 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.35 }}
+                transition={{
+                  duration: 0.78,
+                  ease: [0.22, 1, 0.36, 1],
+                  delay: index * 0.12,
+                }}
+                whileHover={{ y: -10 }}
+                className={`servicesProcessStep ${
+                  index % 2 === 0
+                    ? "servicesProcessStep--rise"
+                    : "servicesProcessStep--fall"
                 }`}
               >
-                {/* Numbered Badge - Positioned on line */}
-                <div className="absolute -left-9 top-6 md:left-1/2 md:-translate-x-1/2 md:top-0 md:-translate-y-1/2 z-10">
-                  <div className="h-12 w-12 md:h-14 md:w-14 rounded-full border-2 border-[#D4AF37] bg-[#0a0a0a] shadow-[0_0_20px_rgba(212,175,55,0.4)] flex items-center justify-center">
-                    <span className="text-xs md:text-sm font-bold tracking-[0.1em] text-[#D4AF37] uppercase">
-                      0{index + 1}
-                    </span>
-                  </div>
-                </div>
+                <span className="servicesProcessConnector" aria-hidden="true" />
+                <span className="servicesProcessBadge">
+                  <span className="servicesProcessBadgeInner">0{index + 1}</span>
+                </span>
 
-                {/* Card Content */}
-                <div className="pl-12 md:pl-0">
-                  <article className="relative rounded-2xl border border-white/10 bg-[#0a0a0a]/40 p-7 sm:p-8 backdrop-blur-md transition-all duration-500 group-hover:border-[#D4AF37]/60 group-hover:bg-[#0a0a0a]/60 group-hover:shadow-[inset_0_0_30px_rgba(212,175,55,0.1),0_0_30px_rgba(212,175,55,0.2)]">
-                    {/* Shimmer Effect on Hover */}
-                    <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-r from-transparent via-[#D4AF37]/5 to-transparent" />
-
-                    {/* Content */}
-                    <div className="relative z-1">
-                      <h3 className="type-h3 mb-3 text-[#f8f6f2]">
-                        {step.title}
-                      </h3>
-                      <p className="type-body text-[#d8d1c6]">
-                        {step.description}
-                      </p>
-                    </div>
-                  </article>
+                <div className="servicesProcessCard">
+                  <div
+                    className="servicesProcessCardSheen"
+                    aria-hidden="true"
+                  />
+                  <p className="servicesProcessStage">Stage 0{index + 1}</p>
+                  <h3 className="servicesProcessCardTitle">{step.title}</h3>
+                  <p className="servicesProcessCardText">{step.description}</p>
                 </div>
-              </motion.div>
+              </motion.article>
             ))}
           </div>
         </div>
@@ -999,7 +1004,12 @@ function ServicesConsultationSection({
     <section id="contact" className="px-6 py-20 sm:px-8 lg:px-10 lg:py-24">
       <div className="mx-auto max-w-7xl">
         <FadeIn>
-          <div className="overflow-hidden rounded-[2rem] border border-[#d4a373]/25 bg-[linear-gradient(135deg,rgba(212,163,115,0.16),rgba(13,17,22,0.96)_40%,rgba(13,17,22,1)_100%)] px-8 py-10 sm:px-10 sm:py-12 lg:flex lg:items-center lg:justify-between lg:px-14">
+          <div
+            className="servicesConsultationCard overflow-hidden rounded-[2rem] border border-[#d4a373]/25 px-8 py-10 sm:px-10 sm:py-12 lg:flex lg:items-center lg:justify-between lg:px-14"
+            style={{
+              "--services-consultation-bg": `url("${SERVICES_CONSULTATION_BACKGROUND}")`,
+            } as CSSProperties}
+          >
             <div className="max-w-2xl">
               <p className="type-label text-[#f0c48d]">
                 Tailored Consultation
@@ -1036,8 +1046,7 @@ export default function ServicesSection({
         <div className="absolute right-[-6rem] top-[18rem] h-[28rem] w-[28rem] bg-[radial-gradient(circle,rgba(212,163,115,0.1),transparent_60%)]" />
       </div>
 
-      <ServicesHero onOpenConsultation={onOpenConsultation} />
-      <ServicesCatalogueIntro />
+      <ServicesHero />
       <SignatureServicesSection />
       <ServicesProcessSection />
       <ServicesConsultationSection onOpenConsultation={onOpenConsultation} />
