@@ -152,29 +152,53 @@
 .servicesProcessHeading {
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
+  gap: 0.85rem;
   width: 100%;
-  max-width: 52rem;
+  max-width: 62rem;
+}
+
+.servicesProcessHeadingEyebrow {
+  margin: 0;
+  color: #d4a373;
+  font-family: var(--font-sans);
+  font-size: clamp(0.74rem, 0.85vw, 0.88rem);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
 }
 
 .servicesProcessHeadingTitle {
-  max-width: 24rem;
+  margin: 0;
+  max-width: 40rem;
   margin-inline: auto;
-  font-size: clamp(2.5rem, 5.2vw, 4.15rem);
-  line-height: 1.06;
-  letter-spacing: 0.015em;
+  font-family: var(--font-serif);
+  font-size: clamp(1.55rem, 2.3vw, 2.35rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: 0.012em;
+  text-align: center;
+  text-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+  text-wrap: balance;
 }
 
-.servicesProcessHeadingTitle .servicesHeroHeadingPrimary {
+.servicesProcessHeadingPrimary {
   color: #f8f6f2;
 }
 
-.servicesProcessHeadingTitle .servicesHeroHeadingAccent {
+.servicesProcessHeadingAccent {
   color: #d9b46f;
 }
 
 .servicesProcessHeadingDescription {
+  margin: 0;
   max-width: 34rem;
+  margin-inline: auto;
+  color: rgba(248, 246, 242, 0.72);
+  font-family: var(--font-sans);
+  font-size: clamp(0.96rem, 1.1vw, 1.05rem);
+  font-weight: 400;
+  line-height: 1.8;
+  text-align: center;
 }
 
 .servicesHeroShell {
@@ -568,15 +592,21 @@
 }
 
 .title {
-  margin: 1.1rem 0 0;
+  margin: 0.8rem 0 0;
   color: #f8f6f2;
   font-family: var(--font-serif);
-  font-size: var(--type-h3);
-  font-weight: 600;
-  line-height: 1.2;
-  letter-spacing: var(--tracking-heading);
+
+  /* Reduce size */
+  font-size: clamp(1.6rem, 2.2vw, 2.2rem); 
+
+  font-weight: 500; /* slightly lighter = more refined */
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+
   text-wrap: balance;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+
+  /* Softer shadow (less dramatic) */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .caption {
@@ -1013,7 +1043,7 @@
 }
 
 .servicesProcessHeadingWrap {
-  max-width: 40rem;
+  max-width: 62rem;
   margin: 0 auto;
 }
 
@@ -1262,6 +1292,20 @@
 }
 
 @media (max-width: 1023px) {
+  .servicesProcessHeading {
+    max-width: 100%;
+  }
+
+  .servicesProcessHeadingWrap {
+    max-width: 46rem;
+  }
+
+  .servicesProcessHeadingTitle {
+    max-width: 100%;
+    font-size: clamp(1.45rem, 3.8vw, 2rem);
+    line-height: 1.2;
+  }
+
   .servicesProcessSection {
     padding: 4.75rem 1.25rem 5.25rem;
   }
@@ -1329,5 +1373,19 @@
 
   .servicesProcessCardText {
     max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesProcessHeadingTitle {
+    font-size: clamp(1.3rem, 5.8vw, 1.7rem);
+    line-height: 1.24;
+    letter-spacing: 0.01em;
+  }
+
+  .servicesProcessHeadingDescription {
+    max-width: 30rem;
+    font-size: 0.95rem;
+    line-height: 1.75;
   }
 }

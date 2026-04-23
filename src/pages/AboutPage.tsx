@@ -64,7 +64,7 @@ const designCards: DesignCard[] = [
     title: 'The Obsidian Residence',
     location: 'New Delhi - 2024',
     description:
-      'A 4,200 sq ft urban sanctuary fusing raw concrete with curated warmth, where every surface becomes a conversation between texture and light.',
+      'Where Comfort Becomes an Art Form.A serene retreat where soft textures meet structured elegance, every corner whispers calm, every detail breathes purpose and belonging.',
     image: obsidianResidenceImage,
     features: ['Textured Plaster Walls', 'Custom Millwork', 'Bespoke Lighting'],
   },
@@ -73,7 +73,7 @@ const designCards: DesignCard[] = [
     title: 'Velour Executive Suites',
     location: 'Mumbai - 2024',
     description:
-      'A workspace sculpted in warm walnut and smoked stone for authority without coldness.',
+      'Where Ambition Finds Its Space." A workspace carved with precision and confidence , where authority meets warmth and every environment is built to inspire productivity.',
     image: velourExecutiveSuitesImage,
   },
   {
@@ -81,7 +81,7 @@ const designCards: DesignCard[] = [
     title: 'Maison Arelia Suite',
     location: 'Hyderabad - 2023',
     description:
-      'Five-star hospitality rooted in regional craft and softened by intimate contrast.',
+      'Where Every Guest Feels at Home." A five-star experience rooted in warmth and elegance , where thoughtful design turns every visit into a memory worth returning to. ',
     image: maisonAreliaSuiteImage,
   },
   {
@@ -89,7 +89,7 @@ const designCards: DesignCard[] = [
     title: 'The Terrace Garden',
     location: 'Bangalore - 2024',
     description:
-      'An elevated outdoor living room layered with native botanicals, terrazzo, and ambient lighting.',
+      'Where Nature Meets Design." An open-air sanctuary layered with lush botanicals, natural stone, and soft ambient light , where the outdoors feels as curated as any room. ',
     image: terraceGardenImage,
     features: ['Native Planting', 'Terrazzo Floors', 'Ambient Lighting'],
   },
@@ -98,7 +98,7 @@ const designCards: DesignCard[] = [
     title: 'Noir Atelier Flagship',
     location: 'Pune - 2023',
     description:
-      'A luxury retail stage where product becomes architecture under a curated dramatic glow.',
+      'Where Products Find Their Stage." A dramatic space where every product commands attention , bold, curated, and designed to leave a lasting impression on every visitor.',
     image: noirAtelierFlagshipImage,
     features: ['Drama Lighting', 'Custom Display', 'Black Mirror Surfaces'],
   },
@@ -108,49 +108,49 @@ const processSteps = [
   {
     number: '01',
     title: 'Registration',
-    description: 'Initial formal onboarding into the Arelia ecosystem.',
+    description: 'Enquiry & Verification Your journey begins here.',
     image: registrationImage,
   },
   {
     number: '02',
     title: 'Lead Creation',
-    description: 'Systematic logging of project parameters and vision.',
+    description: 'Vision Mapping We capture your vision, goals, and preferences.',
     image: leadGenerationImage,
   },
   {
     number: '03',
     title: 'Site Visit',
-    description: 'Physical audit of the architectural canvas.',
+    description: 'Space Reading Our expert supervisor visits your space.',  
     image: siteVisitImage,
   },
   {
     number: '04',
     title: 'Feasibility',
-    description: 'Technical validation of design possibilities.',
+    description: 'Design Blueprint We translate site realities into creative possibilities.',
     image: feasibilityImage,
   },
   {
     number: '05',
     title: 'Proposal',
-    description: 'Conceptual presentation and creative pitch.',
+    description: 'Budget & Proposal A transparent, detailed project proposal is crafted.',
     image: proposalImage,
   },
   {
     number: '06',
     title: 'Approval',
-    description: 'Finalising the blueprint of collaboration.',
+    description: 'Vendor Selection We invite, evaluate, and negotiate with trusted vendors.',
     image: approvalImage,
   },
   {
     number: '07',
     title: 'Execution',
-    description: 'The transformation phase begins on-site.',
+    description: 'Space Transformation The vision comes to life , with dedicated supervision.',
     image: executionImage,
   },
   {
     number: '08',
     title: 'Quality Audit',
-    description: 'Rigorous inspection of material finishing.',
+    description: ' Quality Handover A rigorous final inspection ensures every detail meets Arelia standards before we hand over your perfect space.',
     image: qualityAuditImage,
   },
 ] as const
@@ -230,22 +230,17 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
             variants={stagger}
           >
             <motion.p className="about-page__eyebrow" variants={fadeUp}>
-              Studio Story
+             WHO WE ARE
             </motion.p>
             <motion.h1 className="about-hero__title" variants={fadeUp}>
-              About
-              <span>Arelia</span>
+              Design That Fits 
+              <span>How People Live Today.</span>
             </motion.h1>
             <motion.p className="about-hero__lead" variants={fadeUp}>
-              At Arelia Space, we don&apos;t merely design rooms, we curate atmospheric
-              experiences. Founded on the principles of architectural rigor and editorial
-              elegance, our platform bridges the gap between high-concept art and living
-              functionality.
-            </motion.p>
-            <motion.p className="about-hero__subcopy" variants={fadeUp}>
-              Our philosophy, &quot;The Texture of Light,&quot; is a dedication to how materials
-              interact with natural and artificial ambiance to create mood, depth, and
-              prestige.
+              At Arelia, great design begins long before the first sketch.
+               It starts with understanding  how people move through a space,
+                where light settles in the morning, and which corner naturally becomes the place everyone gathers. 
+                We are a premium interior design company delivering thoughtful, innovative, and end-to-end design experiences across residential, commercial, and hospitality spaces.
             </motion.p>
             <motion.div className="about-hero__actions" variants={fadeUp}>
               <button type="button" className="about-button about-button--primary" onClick={onOpenConsultation}>
@@ -343,9 +338,9 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
               viewport={{ once: true, amount: 0.25 }}
               variants={fadeUp}
             >
-              <p className="about-page__eyebrow">Our Design Work</p>
+              <p className="about-page__eyebrow">OUR FINEST WORK</p>
               <h2 className="about-section__title">
-                Signature <span>Spaces</span>
+                Crafted With Purpose. Finished With Pride.
               </h2>
             </motion.div>
             <motion.p
@@ -355,8 +350,8 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
               viewport={{ once: true, amount: 0.25 }}
               variants={fadeUp}
             >
-              Each project is a bespoke narrative, shaped by the client&apos;s soul, refined by
-              our editorial sensibility, and built to endure.
+              Every project is a living story, shaped by your vision,
+               refined by our craft, and built to be experienced for a lifetime.
             </motion.p>
           </div>
 
@@ -375,7 +370,7 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
                   whileHover={{ scale: 1.04 }}
                   transition={{ duration: 0.8, ease: 'easeOut' }}
                 />
-              </div>
+              </div>  
               <div className="about-design__body">
                 <span className="about-design__tag">{designCards[0].tag}</span>
                 <div className="about-design__header">
