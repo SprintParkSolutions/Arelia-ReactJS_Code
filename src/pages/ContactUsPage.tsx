@@ -41,8 +41,8 @@ export function ContactUsPage() {
               <div className="contact-page__hero-copy">
                 <p className="contact-page__tag">YOUR JOURNEY STARTS HERE</p>
                 <h1 className="contact-page__hero-title">
-                  Your Dream Space is One Conversation  <span>Away</span>
-
+                 Get In Touch
+                
                 
                 </h1>
 
