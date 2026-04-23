@@ -1018,14 +1018,14 @@ function ServicesConsultationSection({
               </p>
               <h2 className="type-h2 mt-4 text-[#f8f6f2]">
                 Your Perfect Interior is Just One Conversation Away
-              </h2>
+              </h2> 
               <p className="type-body mt-5 text-[#e4ddd3]">
                 Whether it's a single room or a complete property our interior design experts will craft a personalized plan built entirely around your space, your style, and your budget. 
               </p>
             </div>
 
             <div className="mt-8 lg:mt-0 lg:pl-8">
-              <LuxuryButton label="BOOK A FREE CONSULTATION" onClick={onOpenConsultation} />
+              <LuxuryButton label="BOOK CONSULTATION" onClick={onOpenConsultation} />
             </div>
           </div>
         </FadeIn>

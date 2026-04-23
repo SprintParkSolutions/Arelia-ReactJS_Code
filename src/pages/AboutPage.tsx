@@ -532,7 +532,7 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
             </p>
             <div className="about-cta__actions">
               <button type="button" className="about-button about-button--primary" onClick={onOpenConsultation}>
-                Book a Consultation
+                Book Consultation
               </button>
               <a href="/services" className="about-button about-button--secondary">
                 View Our Portfolio
