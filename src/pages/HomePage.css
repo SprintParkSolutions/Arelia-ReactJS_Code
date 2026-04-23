@@ -1099,31 +1099,35 @@
 .stats__lane {
   position: relative;
   overflow: hidden;
-  padding: 2rem 1.2rem 1.4rem;
-  border-top: 1px solid rgba(255, 215, 0, 0.16);
-  border-bottom: 1px solid rgba(255, 215, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 12.5rem;
+  padding: 2rem 1.5rem 1.7rem;
+  border: 1px solid rgba(255, 215, 0, 0.08);
+  border-radius: 1.5rem;
   background:
     linear-gradient(180deg, rgba(16, 16, 16, 0.26), rgba(16, 16, 16, 0)),
     rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(12px);
-}
-
-.stats__line {
-  width: 5rem;
-  height: 1px;
-  margin-bottom: 1.25rem;
-  background: linear-gradient(90deg, rgba(255, 215, 0, 0.95), rgba(255, 215, 0, 0));
+  text-align: center;
 }
 
 .stats__digits {
   display: flex;
-  align-items: flex-end;
-  gap: 0.1rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.14rem;
+  width: 100%;
 }
 
 .stats__digit-slot {
   position: relative;
-  width: min(8vw, 3.3rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(8vw, 3.6rem);
   height: clamp(3.4rem, 8vw, 4.6rem);
   overflow: hidden;
 }
@@ -1146,33 +1150,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(8vw, 3.3rem);
+  width: min(8vw, 3.6rem);
   height: clamp(3.4rem, 8vw, 4.6rem);
   color: #ffd56a;
-  font-family: var(--font-serif);
-  font-size: clamp(2.5rem, 5vw, 4.3rem);
+  font-family: var(--font-sans);
+  font-size: clamp(2.6rem, 5vw, 4.15rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
   line-height: 1;
   text-shadow: 0 0 20px rgba(255, 215, 0, 0.14);
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .stats__digit-static {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(8vw, 3.3rem);
+  width: min(8vw, 3.6rem);
   height: clamp(3.4rem, 8vw, 4.6rem);
   color: #ffd56a;
-  font-family: var(--font-serif);
-  font-size: clamp(2.5rem, 5vw, 4.3rem);
+  font-family: var(--font-sans);
+  font-size: clamp(2.6rem, 5vw, 4.15rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
   line-height: 1;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .stats__label {
   margin: 1rem 0 0;
+  max-width: 100%;
   color: rgba(245, 239, 223, 0.66);
   font-size: var(--type-small);
+  font-family: var(--font-sans);
+  font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
+  text-align: center;
 }
 
 .stats__streak {
