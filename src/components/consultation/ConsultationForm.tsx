@@ -77,6 +77,7 @@ export function ConsultationForm({
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep] = useState<'form' | 'verification' | 'success'>('form')
   const [generatedOtp, setGeneratedOtp] = useState('')
+  const [otpErrorMessage, setOtpErrorMessage] = useState('')
   const [formDataForVerification, setFormDataForVerification] = useState<ConsultationFormValues | null>(null)
 
   const cardClassName = useMemo(
@@ -120,6 +121,7 @@ export function ConsultationForm({
     try {
       const otp = generateOTP()
       setGeneratedOtp(otp)
+      setOtpErrorMessage('')
       setFormDataForVerification(values)
 
       const otpResult = await sendOtp(values.email, otp)
@@ -136,6 +138,7 @@ export function ConsultationForm({
       console.error('Form submission error:', error)
       setStatusMessage('An unexpected error occurred. Please try again.')
       setGeneratedOtp('')
+      setOtpErrorMessage('')
       setFormDataForVerification(null)
       return
     } finally {
@@ -147,11 +150,17 @@ export function ConsultationForm({
   }
 
   const handleOtpVerify = async (otp: string) => {
-    if (!formDataForVerification || generatedOtp !== otp) {
+    if (!formDataForVerification) {
+      return
+    }
+
+    if (generatedOtp !== otp) {
+      setOtpErrorMessage('Please enter the correct OTP.')
       return
     }
 
     setIsLoading(true)
+    setOtpErrorMessage('')
     setStatusMessage('Verifying and creating your record...')
 
     try {
@@ -177,6 +186,7 @@ export function ConsultationForm({
         setErrors({})
         setStep('form')
         setGeneratedOtp('')
+        setOtpErrorMessage('')
         setFormDataForVerification(null)
         onSuccess?.()
       }, 5000)
@@ -197,6 +207,7 @@ export function ConsultationForm({
     try {
       const otp = generateOTP()
       setGeneratedOtp(otp)
+      setOtpErrorMessage('')
 
       const otpResult = await sendOtp(formDataForVerification.email, otp)
 
@@ -322,6 +333,7 @@ export function ConsultationForm({
             onVerify={handleOtpVerify}
             onResend={handleOtpResend}
             isVerifying={isLoading}
+            errorMessage={otpErrorMessage}
           />
           <p className="consultation-form__status" role="status">
             {statusMessage}
