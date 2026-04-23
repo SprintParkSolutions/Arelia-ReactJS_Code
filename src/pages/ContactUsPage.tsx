@@ -39,14 +39,17 @@ export function ContactUsPage() {
           <div className="contact-page__hero-content contact-page__section-inner">
             <div className="contact-page__hero-grid">
               <div className="contact-page__hero-copy">
-                <p className="contact-page__tag">INQUIRY &amp; COLLABORATION</p>
+                <p className="contact-page__tag">YOUR JOURNEY STARTS HERE</p>
                 <h1 className="contact-page__hero-title">
-                  Get In <span>Touch</span>
+                  Your Dream Space is One Conversation  <span>Away</span>
+
+                
                 </h1>
+
                 <p className="contact-page__hero-text">
-                  We&apos;d love to hear from you. Whether you have a question, need a
-                  consultation, or want to collaborate, our team is ready to shape the
-                  right next step with you.
+
+                  Reach out today and let Arelia's design experts guide you through a seamless
+                  , transparent, and inspiring interior design journey  from first enquiry to final handover.
                 </p>
               </div>
 
@@ -55,7 +58,7 @@ export function ContactUsPage() {
                   mode="page"
                   title=""
                   description=""
-                  submitLabel="Submit Enquiry"
+                  submitLabel="CONNECT WITH US"
                 />
               </div>
             </div>
@@ -76,11 +79,10 @@ export function ContactUsPage() {
               <div className="contact-page__panel-ambient contact-page__panel-ambient--one" />
               <div className="contact-page__panel-ambient contact-page__panel-ambient--two" />
               <div className="contact-page__panel-sheen" />
-              <p className="contact-page__label">DIRECT CONNECT</p>
-              <h2 className="contact-page__map-title">Contact The Studio</h2>
+              <p className="contact-page__label">FIND US HERE</p>
+              <h2 className="contact-page__map-title">Our Studio Doors Are Always Open</h2>
               <p className="contact-page__map-description">
-                Reach out directly for consultations, project walkthroughs, and premium
-                interior planning conversations.
+              Visit us at our Kondapur studio for a personal interior design consultation  where great design conversations and inspired spaces begin 
               </p>
 
               <div className="contact-page__detail-stack">
