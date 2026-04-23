@@ -41,6 +41,13 @@ const navTextVariants: Variants = {
   }),
 };
 
+const navHighlightTransition = {
+  type: "spring" as const,
+  stiffness: 380,
+  damping: 34,
+  mass: 0.8,
+};
+
 function PhoneIcon() {
   return (
     <svg
@@ -127,6 +134,17 @@ export default function NavigationMenu({
           onClick={() => handleNavClick(item)}
           aria-current={isActive ? "page" : undefined}
         >
+          {isActive ? (
+            <motion.div
+              layoutId="nav-highlight"
+              className="navigationMenu__activeHighlight"
+              transition={navHighlightTransition}
+              aria-hidden="true"
+            >
+              <span className="navigationMenu__activeHighlightAccent" />
+            </motion.div>
+          ) : null}
+
           <span className="navigationMenu__linkReveal">
             <span className="navigationMenu__linkTextMask">
               <motion.span
@@ -135,8 +153,19 @@ export default function NavigationMenu({
                 initial="hidden"
                 animate="visible"
                 variants={navTextVariants}
+                style={{ fontWeight: 500 }}
               >
-                {item}
+                <motion.span
+                  animate={{
+                    color: isActive
+                      ? "#f8f6f2"
+                      : "rgba(248, 246, 242, 0.52)",
+                  }}
+                  transition={{ duration: 0.22, ease: "easeOut" }}
+                  className="navigationMenu__linkTextLabel"
+                >
+                  {item}
+                </motion.span>
               </motion.span>
             </span>
             <motion.span

@@ -108,19 +108,19 @@ type SectionHeadingProps = {
 
 const serviceProcess = [
   {
-    title: "Discover",
+    title: "Understand",
     description:
-      "We begin with lifestyle, operational, and aesthetic clarity so the scope feels tailored from the outset.",
+      "We begin by listening  capturing your vision, requirements, and lifestyle so every design decision is built entirely around you from the very start.",
   },
   {
     title: "Design",
     description:
-      "Layouts, finishes, joinery, and furniture decisions are refined into one cohesive luxury narrative.",
+      "Your ideas take shape through detailed 3D visualizations, premium material selections, and thoughtful layouts  crafted to perfectly balance beauty and functionality.",
   },
   {
     title: "Deliver",
     description:
-      "Selections and implementation are coordinated with care so the finished space feels calm and complete.",
+      "With dedicated site supervision, live project tracking, and daily updates  we execute every detail with precision and hand over your dream space with pride.",
   },
 ];
 
@@ -141,10 +141,10 @@ const expandedRadius = 32;
 
 const servicesData: ServiceItem[] = [
   {
-    note: "01 / Signature Living",
-    title: "Residential Services",
+    note: "01 / LIVING BY DESIGN",
+    title: "Residential Interiors",
     caption:
-      "We shape homes around ritual, proportion, and atmosphere. Every room is tailored to feel deeply personal while remaining quietly luxurious.",
+      "We shape modern home interiors around the way you truly live  every corner of your residential interior design thoughtfully crafted for comfort, elegance and lasting beauty.",
     images: [
       serviceImagePath("residential", "services-residential-01.jpg"),
       serviceImagePath("residential", "services-residential-02.jpg"),
@@ -154,10 +154,10 @@ const servicesData: ServiceItem[] = [
     ],
   },
   {
-    note: "02 / Branded Environments",
+    note: "02 / BUILT FOR BUSINESS",
     title: "Commercial Spaces",
     caption:
-      "Boutique offices and guest-facing interiors are designed to express confidence with restraint. The result is a space that feels polished, intuitive, and memorable from first arrival.",
+      "From dynamic office interior design to branded retail store interiors  we design commercial spaces that express confidence, inspire productivity and leave a lasting impression from the very first visit.",
     images: [
       serviceImagePath("commercial", "services-commercial-01.jpg"),
       serviceImagePath("commercial", "services-commercial-02.jpg"),
@@ -167,10 +167,10 @@ const servicesData: ServiceItem[] = [
     ],
   },
   {
-    note: "03 / Bespoke Craft",
-    title: "Custom Furniture",
+    note: "03 / CRAFTED FOR GUESTS",
+    title: "Hospital Interiors",
     caption:
-      "Bespoke furniture introduces a final layer of identity that off-the-shelf pieces rarely achieve. We refine silhouettes, finishes, and proportions so each piece belongs naturally to the room.",
+      "Hotels, resorts, restaurants and lounges crafted through thoughtful hospitality interior design  creating unforgettable guest experiences that feel warm, refined and beautifully considered.",
     images: [
       serviceImagePath("custom-furniture", "services-custom-furniture-01.jpg"),
       serviceImagePath("custom-furniture", "services-custom-furniture-02.jpg"),
@@ -180,10 +180,10 @@ const servicesData: ServiceItem[] = [
     ],
   },
   {
-    note: "04 / Culinary Joinery",
-    title: "Modular Kitchens",
+    note: "04 /  BEYOND FOUR WALLS",
+    title: "Full Home & Turnkey Design",
     caption:
-      "Our kitchens balance elegant detailing with seamless daily use. Smart storage, resolved joinery, and premium materials turn utility into an experience of ease.",
+      "A complete end-to-end interior design service  from 3D interior design visualization and premium material selection to dedicated site supervision and final project handover, every room perfectly brought to life. ",
     images: [
       serviceImagePath("kitchen", "services-kitchen-01.jpg"),
       serviceImagePath("kitchen", "services-kitchen-02.jpg"),
@@ -250,9 +250,9 @@ function SectionHeading({
 
   return (
     <div className={`servicesProcessHeading ${alignment}`}>
-      <p className="servicesHeroEyebrow">{eyebrow}</p>
-      <h2 className="servicesHeroHeading servicesProcessHeadingTitle">{title}</h2>
-      <p className="servicesHeroDescription servicesProcessHeadingDescription">
+      <p className="servicesProcessHeadingEyebrow">{eyebrow}</p>
+      <h2 className="servicesProcessHeadingTitle">{title}</h2>
+      <p className="servicesProcessHeadingDescription">
         {description}
       </p>
     </div>
@@ -322,7 +322,7 @@ function ServicesHero() {
           <span className="servicesHeroHeadingAccent">Offerings</span>
         </h1>
         <p className="servicesHeroDescription">
-          Curated spaces designed with intention and grace
+          Every Space Crafted with Purpose, Precision and Pride.
         </p>
       </div>
     </section>
@@ -940,13 +940,15 @@ function ServicesProcessSection() {
             eyebrow="Process"
             title={
               <>
-                <span className="servicesHeroHeadingPrimary">
-                  A Clear, Tailored
+                <span className="servicesProcessHeadingPrimary">
+                  A Clear Process,
                 </span>{" "}
-                <span className="servicesHeroHeadingAccent">Process</span>
+                <span className="servicesProcessHeadingAccent">
+                  From Vision to Handover.
+                </span>
               </>
             }
-            description="We work with a calm, considered process so the design feels luxurious not only in the result, but in the way it comes together."
+            description="We follow a smart, structured process so every design decision feels confident, every step feels clear, and every result feels exactly right."
             align="center"
           />
         </FadeIn>
@@ -1012,20 +1014,18 @@ function ServicesConsultationSection({
           >
             <div className="max-w-2xl">
               <p className="type-label text-[#f0c48d]">
-                Tailored Consultation
+                 START YOUR JOURNEY
               </p>
               <h2 className="type-h2 mt-4 text-[#f8f6f2]">
-                Tell us which space you are shaping, and we&apos;ll guide the right
-                service scope around it.
+                Your Perfect Interior is Just One Conversation Away
               </h2>
               <p className="type-body mt-5 text-[#e4ddd3]">
-                Whether it starts with one room or a full property, the design
-                direction is always tailored to the life of the space.
+                Whether it's a single room or a complete property our interior design experts will craft a personalized plan built entirely around your space, your style, and your budget. 
               </p>
             </div>
 
             <div className="mt-8 lg:mt-0 lg:pl-8">
-              <LuxuryButton label="Start A Consultation" onClick={onOpenConsultation} />
+              <LuxuryButton label="BOOK A FREE CONSULTATION" onClick={onOpenConsultation} />
             </div>
           </div>
         </FadeIn>

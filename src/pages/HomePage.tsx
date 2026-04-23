@@ -40,12 +40,12 @@ type HomePageProps = {
 
 const QUOTE_BACKGROUND_LAYER = homePageImagePath('quote-background.jpg')
 const QUOTE_FOREGROUND_LAYER = homePageImagePath('quote-foreground.jpg')
-const QUOTE_TEXT = 'Luxury is not a stage of living, but a state of architecture.'
+const QUOTE_TEXT = 'Every Space Has a Story ,We Help You Tell It Beautifully.'
 const CONTACT_IMAGE = homePageImagePath('contact-cta-background.jpg')
 
 const stats = [
   { label: 'Years Experience', value: '05+' },
-  { label: 'Projects Completed', value: '350+' },
+  { label: 'Projects Delivered ', value: '350+' },
   { label: 'Satisfaction Rate', value: '100%' },
 ] as const
 
@@ -184,9 +184,9 @@ function HomeHeroSection() {
       <VideoBackground src="/videos/Arelia_Space.mp4" isHome isSection />
       <div className="home-page__content">
         <h1 className="home-page__title">
-          <span className="home-page__line">Execute your dream</span>
-          <span className="home-page__line">space with</span>
-          <span className="home-page__brand">Arelia</span>
+          <span className="home-page__line">We Don't Just Design Spaces </span>
+          <span className="home-page__line">We Design</span>
+          <span className="home-page__brand"> How You Live.</span>
         </h1>
       </div>
     </section>
@@ -303,9 +303,9 @@ function WhyChooseSection() {
       <div className="why-choose-luxe__inner">
         <header className="why-choose-luxe__header why-choose-luxe__reveal">
           <p className="why-choose-luxe__eyebrow">Why Choose Arelia</p>
-          <h2 className="why-choose-luxe__headline">A calmer, richer way to experience an interior project.</h2>
+          <h2 className="why-choose-luxe__headline">Because Your Space Deserves More Than Just Design</h2>
           <p className="why-choose-luxe__subtitle">
-            A refined command layer built to make planning, visibility, and execution feel beautifully effortless.
+           Arelia is a smart online interior design platform delivering innovative, transparent, and end-to-end interior design services for residential, commercial, and hospitality spaces  powered by Salesforce, driven by excellence. 
           </p>
         </header>
 
@@ -729,7 +729,7 @@ function SignatureShowcaseSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
         >
-          Arelia Standard
+          OUR STANDARDS
         </motion.p>
 
         <motion.h2
@@ -739,7 +739,7 @@ function SignatureShowcaseSection() {
           viewport={{ once: true }}
           transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         >
-          Experience Arelia
+          Where Excellence is Not an Option , It's a Standard.
         </motion.h2>
 
         <motion.p
@@ -749,7 +749,7 @@ function SignatureShowcaseSection() {
           viewport={{ once: true }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          Explore our key features at a glance
+          At Arelia, every project is built on innovative interior design, transparent workflow, and unwavering commitment , from first enquiry to final handover. 
         </motion.p>
 
         <motion.div
@@ -829,7 +829,7 @@ function QuoteSectionSection() {
       <div ref={foregroundRef} className="quote-section__layer quote-section__layer--foreground" style={{ backgroundImage: `url(${QUOTE_FOREGROUND_LAYER})` }} />
       <div className="quote-section__content">
         <div className="quote-section__quote-box">
-          <p className="quote-section__eyebrow">Spatial Philosophy</p>
+          <p className="quote-section__eyebrow">THE ARELIA WAY</p>
           <blockquote className="quote-section__quote">
             {words.map((word, index) => (
               <span
@@ -914,13 +914,12 @@ function StatsSection() {
   return (
     <section ref={sectionRef} className="stats luxury-section">
       <div className="stats__header">
-        <p className="stats__eyebrow">Measured Excellence</p>
-        <h2>Numbers That Speak</h2>
+        <p className="stats__eyebrow"> ARELIA IN NUMBERS</p>
+        <h2>Every Number Tells a Story of Trust, Quality and Excellence.</h2>
       </div>
       <div className="stats__row">
         {stats.map((stat) => (
           <article key={stat.label} className="stats__lane" data-magnetic>
-            <div className="stats__line" />
             <AnimatedNumber value={stat.value} isActive={isActive} />
             <p className="stats__label">{stat.label}</p>
             <span className="stats__streak" aria-hidden="true" />
@@ -987,10 +986,10 @@ function ClientTestimonialsSection() {
       <div className="client-testimonials__center-glow" aria-hidden="true" />
 
       <div className="client-testimonials__header client-testimonials__reveal">
-        <p className="client-testimonials__eyebrow">Client Stories</p>
-        <h2>Real spaces. Real trust. Real confidence in the process.</h2>
+        <p className="client-testimonials__eyebrow">VOICES THAT INSPIRE</p>
+        <h2>Real People. Real Spaces. Real Stories.</h2>
         <p className="client-testimonials__subtitle">
-          A seamless stream of client stories that keeps credibility in motion, just like the rest of the experience.
+          From modern home interiors to commercial office designs and luxury hospitality spaces , here's what our clients say about their Arelia interior design experience. 
         </p>
       </div>
 
@@ -1045,14 +1044,14 @@ function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => v
       <div className="contact-cta__overlay" />
       <div className="contact-cta__vignette" />
       <div className="contact-cta__content">
-        <p className="contact-cta__eyebrow contact-cta__reveal">Begin The Conversation</p>
-        <h2 className="contact-cta__reveal">Ready to get started, or want to know more?</h2>
+        <p className="contact-cta__eyebrow contact-cta__reveal">YOUR JOURNEY STARTS HERE</p>
+        <h2 className="contact-cta__reveal">Ready to Transform Your Space, or Want to Explore More?</h2>
         <p className="contact-cta__copy contact-cta__reveal">
-          Let&apos;s shape a project experience that feels cinematic from first impression to final reveal.
+          Let's create a personalized interior design consultation experience that feels thoughtful, elegant, and uniquely yours , from first conversation to final handover. 
         </p>
         <button type="button" onClick={onOpenConsultation} className="contact-cta__button contact-cta__reveal" data-magnetic>
           <span className="contact-cta__button-fill" />
-          <span className="contact-cta__button-label">Book Consultation</span>
+          <span className="contact-cta__button-label">START YOUR PROJECT</span>
         </button>
       </div>
     </section>
