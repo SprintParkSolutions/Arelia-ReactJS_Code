@@ -61,7 +61,7 @@ export function Footer() {
         <div className="site-footer__grid">
           <div className="site-footer__brand">
             <img
-              src="/images/Logos/Arelia_Logo.png"
+              src="/images/Logos/Arelia_Logo.webp"
               alt="Arelia"
               className="site-footer__logo"
             />
