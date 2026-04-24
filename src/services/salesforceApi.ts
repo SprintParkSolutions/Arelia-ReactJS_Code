@@ -1,5 +1,31 @@
 // Salesforce API Service
-const BASE_URL = "https://sprintpark--dev4.sandbox.my.site.com";
+const rawSiteUrl = import.meta.env.VITE_SALESFORCE_SITE_URL?.trim() || ''
+const rawSitePath = import.meta.env.VITE_SALESFORCE_SITE_PATH?.trim() || '/Arelia'
+
+const BASE_URL = rawSiteUrl.replace(/\/+$/, '')
+const SITE_PATH = rawSitePath
+  ? `/${rawSitePath.replace(/^\/+|\/+$/g, '')}`
+  : ''
+
+const REGISTRATION_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/registration`
+
+async function parseResponse(response: Response) {
+  const text = await response.text()
+
+  if (!text) {
+    return {}
+  }
+
+  try {
+    return JSON.parse(text)
+  } catch {
+    return { message: text }
+  }
+}
+
+function getMissingConfigMessage() {
+  return 'Salesforce site URL is not configured. Set VITE_SALESFORCE_SITE_URL in your .env.local file.'
+}
 
 /**
  * Registers a lead in Salesforce
@@ -11,9 +37,16 @@ export async function registerLead(
   phone: string,
   company: string
 ): Promise<{ success: boolean; message?: string }> {
+  if (!BASE_URL) {
+    return {
+      success: false,
+      message: getMissingConfigMessage(),
+    }
+  }
+
   try {
     const response = await fetch(
-      `${BASE_URL}/Arelia/services/apexrest/registration/lead`,
+      `${REGISTRATION_BASE_URL}/lead`,
       {
         method: "POST",
         headers: {
@@ -30,14 +63,14 @@ export async function registerLead(
     );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await parseResponse(response);
       return {
         success: false,
         message: errorData.message || "Failed to register lead",
       };
     }
 
-    const data = await response.json();
+    const data = await parseResponse(response);
 
     return {
       success: data.success === true,
@@ -47,7 +80,10 @@ export async function registerLead(
     console.error("Error registering lead:", error);
     return {
       success: false,
-      message: "An error occurred while registering. Please try again.",
+      message:
+        error instanceof TypeError
+          ? 'Could not reach Salesforce. Check the org URL, site path, CORS, and guest user API access.'
+          : "An error occurred while registering. Please try again.",
     };
   }
 }
@@ -59,9 +95,16 @@ export async function sendOtp(
   email: string,
   otp: string
 ): Promise<{ success: boolean; message?: string }> {
+  if (!BASE_URL) {
+    return {
+      success: false,
+      message: getMissingConfigMessage(),
+    }
+  }
+
   try {
     const response = await fetch(
-      `${BASE_URL}/Arelia/services/apexrest/registration/otp`,
+      `${REGISTRATION_BASE_URL}/otp`,
       {
         method: "POST",
         headers: {
@@ -75,14 +118,14 @@ export async function sendOtp(
     );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      const errorData = await parseResponse(response);
       return {
         success: false,
         message: errorData.message || "Failed to send OTP",
       };
     }
 
-    const data = await response.json();
+    const data = await parseResponse(response);
 
     return {
       success: response.status === 200,
@@ -92,7 +135,10 @@ export async function sendOtp(
     console.error("Error sending OTP:", error);
     return {
       success: false,
-      message: "An error occurred while sending OTP. Please try again.",
+      message:
+        error instanceof TypeError
+          ? 'Could not reach Salesforce. Check the org URL, site path, CORS, and guest user API access.'
+          : "An error occurred while sending OTP. Please try again.",
     };
   }
 }

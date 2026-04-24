@@ -69,6 +69,7 @@ export function ConsultationForm({
   onSuccess,
   title = 'Tell us about your project',
   description = 'Share a few essentials and our team can shape the next conversation around your space.',
+  submitLabel = 'Get Started',
 }: ConsultationFormProps) {
   const [values, setValues] = useState<ConsultationFormValues>(initialValues)
   const [errors, setErrors] = useState<ConsultationFormErrors>({})
@@ -76,6 +77,7 @@ export function ConsultationForm({
   const [isLoading, setIsLoading] = useState(false)
   const [step, setStep] = useState<'form' | 'verification' | 'success'>('form')
   const [generatedOtp, setGeneratedOtp] = useState('')
+  const [otpErrorMessage, setOtpErrorMessage] = useState('')
   const [formDataForVerification, setFormDataForVerification] = useState<ConsultationFormValues | null>(null)
 
   const cardClassName = useMemo(
@@ -117,12 +119,11 @@ export function ConsultationForm({
     setStatusMessage('Sending OTP to your email...')
 
     try {
-      // Generate OTP
       const otp = generateOTP()
       setGeneratedOtp(otp)
+      setOtpErrorMessage('')
       setFormDataForVerification(values)
 
-      // Send OTP to email
       const otpResult = await sendOtp(values.email, otp)
 
       if (!otpResult.success) {
@@ -133,29 +134,36 @@ export function ConsultationForm({
         return
       }
 
-      // Move to verification step
-      setStep('verification')
-      setStatusMessage('')
     } catch (error) {
       console.error('Form submission error:', error)
       setStatusMessage('An unexpected error occurred. Please try again.')
       setGeneratedOtp('')
+      setOtpErrorMessage('')
       setFormDataForVerification(null)
+      return
     } finally {
       setIsLoading(false)
     }
+
+    setStep('verification')
+    setStatusMessage('')
   }
 
   const handleOtpVerify = async (otp: string) => {
-    if (!formDataForVerification || generatedOtp !== otp) {
+    if (!formDataForVerification) {
+      return
+    }
+
+    if (generatedOtp !== otp) {
+      setOtpErrorMessage('Please enter the correct OTP.')
       return
     }
 
     setIsLoading(true)
+    setOtpErrorMessage('')
     setStatusMessage('Verifying and creating your record...')
 
     try {
-      // Now create the lead after OTP verification
       const leadResult = await registerLead(
         formDataForVerification.firstName,
         formDataForVerification.lastName,
@@ -170,16 +178,15 @@ export function ConsultationForm({
         return
       }
 
-      // Success - move to success screen
       setStep('success')
       setStatusMessage('')
-      
-      // Reset form after showing success screen
+
       setTimeout(() => {
         setValues(initialValues)
         setErrors({})
         setStep('form')
         setGeneratedOtp('')
+        setOtpErrorMessage('')
         setFormDataForVerification(null)
         onSuccess?.()
       }, 5000)
@@ -200,12 +207,12 @@ export function ConsultationForm({
     try {
       const otp = generateOTP()
       setGeneratedOtp(otp)
+      setOtpErrorMessage('')
 
       const otpResult = await sendOtp(formDataForVerification.email, otp)
 
       if (!otpResult.success) {
         setStatusMessage(otpResult.message || 'Failed to resend OTP. Please try again.')
-        setIsLoading(false)
         return
       }
 
@@ -232,8 +239,8 @@ export function ConsultationForm({
         <form onSubmit={handleSubmit} noValidate>
           <div className="consultation-form__intro">
             <p className="consultation-form__eyebrow">Consultation Request</p>
-            <h2 className="consultation-form__title">{title}</h2>
-            <p className="consultation-form__description">{description}</p>
+            {title ? <h2 className="consultation-form__title">{title}</h2> : null}
+            {description ? <p className="consultation-form__description">{description}</p> : null}
           </div>
 
           <div className="consultation-form__grid">
@@ -309,7 +316,7 @@ export function ConsultationForm({
               {isLoading ? (
                 'Processing...'
               ) : (
-                'Get Started'
+                submitLabel
               )}
             </button>
             {statusMessage && step === 'form' && (
@@ -326,6 +333,7 @@ export function ConsultationForm({
             onVerify={handleOtpVerify}
             onResend={handleOtpResend}
             isVerifying={isLoading}
+            errorMessage={otpErrorMessage}
           />
           <p className="consultation-form__status" role="status">
             {statusMessage}

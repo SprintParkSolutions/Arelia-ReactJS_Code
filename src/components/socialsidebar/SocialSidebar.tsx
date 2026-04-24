@@ -2,10 +2,16 @@ import { useState, useEffect } from "react";
 import { LayoutGroup, motion, type Variants } from "framer-motion";
 import "./SocialSidebar.css";
 
+const whatsappNumber = "917207845556";
+const whatsappMessage = encodeURIComponent(
+  "Hi Arelia, I want to book a consultation"
+);
+const whatsappChatLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
+
 const socialLinks = [
  {
     name: "WhatsApp",
-    href: "https://whatsapp.com",
+    href: whatsappChatLink,
     bgColor: "#25D366", // Exact WhatsApp Green from ref
     iconColor: "#ffffff",
     icon: (

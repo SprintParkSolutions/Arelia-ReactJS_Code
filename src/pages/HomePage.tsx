@@ -1,5 +1,11 @@
 import type { CSSProperties, ReactElement, SVGProps } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  motion,
+  AnimatePresence,
+  useInView,
+  type Variants,
+} from 'framer-motion'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { VideoBackground } from '../components/videoBackground/VideoBackground'
@@ -10,7 +16,7 @@ gsap.registerPlugin(ScrollTrigger)
 const HOME_PAGE_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page`
 
 const homePageImagePath = (fileName: string) =>
-  `${HOME_PAGE_IMAGES_PATH}/${fileName}`
+  `${HOME_PAGE_IMAGES_PATH}/${encodeURIComponent(fileName)}`
 
 type FeatureItem = {
   id: string
@@ -32,15 +38,14 @@ type HomePageProps = {
   onOpenConsultation: () => void
 }
 
-const SHOWCASE_IMAGE = homePageImagePath('showcase-main.jpg')
 const QUOTE_BACKGROUND_LAYER = homePageImagePath('quote-background.jpg')
 const QUOTE_FOREGROUND_LAYER = homePageImagePath('quote-foreground.jpg')
-const QUOTE_TEXT = 'Luxury is not a stage of living, but a state of architecture.'
+const QUOTE_TEXT = 'Every Space Has a Story ,We Help You Tell It Beautifully.'
 const CONTACT_IMAGE = homePageImagePath('contact-cta-background.jpg')
 
 const stats = [
   { label: 'Years Experience', value: '05+' },
-  { label: 'Projects Completed', value: '350+' },
+  { label: 'Projects Delivered ', value: '350+' },
   { label: 'Satisfaction Rate', value: '100%' },
 ] as const
 
@@ -169,20 +174,28 @@ const whyChooseFeatures: readonly FeatureItem[] = [
   },
 ] as const
 
+// ============================================================
+// HOME HERO
+// ============================================================
+
 function HomeHeroSection() {
   return (
     <section className="home-page__hero">
-      <VideoBackground src="/videos/Arelia_Home1.mp4" isHome isSection />
+      <VideoBackground src="/videos/Arelia_Space.mp4" isHome isSection />
       <div className="home-page__content">
         <h1 className="home-page__title">
-          <span className="home-page__line">Execute your dream</span>
-          <span className="home-page__line">space with</span>
-          <span className="home-page__brand">Arelia</span>
+          <span className="home-page__line">We Don't Just Design Spaces </span>
+          <span className="home-page__line">We Design</span>
+          <span className="home-page__brand"> How You Live.</span>
         </h1>
       </div>
     </section>
   )
 }
+
+// ============================================================
+// WHY CHOOSE SECTION
+// ============================================================
 
 function WhyChooseSection() {
   const sectionRef = useRef<HTMLElement | null>(null)
@@ -290,9 +303,9 @@ function WhyChooseSection() {
       <div className="why-choose-luxe__inner">
         <header className="why-choose-luxe__header why-choose-luxe__reveal">
           <p className="why-choose-luxe__eyebrow">Why Choose Arelia</p>
-          <h2 className="why-choose-luxe__headline">A calmer, richer way to experience an interior project.</h2>
+          <h2 className="why-choose-luxe__headline">Because Your Space Deserves More Than Just Design</h2>
           <p className="why-choose-luxe__subtitle">
-            A refined command layer built to make planning, visibility, and execution feel beautifully effortless.
+           Arelia is a smart online interior design platform delivering innovative, transparent, and end-to-end interior design services for residential, commercial, and hospitality spaces  powered by Salesforce, driven by excellence. 
           </p>
         </header>
 
@@ -386,103 +399,411 @@ function WhyChooseSection() {
   )
 }
 
-function SignatureShowcaseSection() {
-  const sectionRef = useRef<HTMLElement | null>(null)
-  const imageRef = useRef<HTMLDivElement | null>(null)
-  const introTextRef = useRef<HTMLDivElement | null>(null)
-  const feature1Ref = useRef<HTMLDivElement | null>(null)
-  const feature2Ref = useRef<HTMLDivElement | null>(null)
+// ============================================================
+// SIGNATURE SHOWCASE — 4 cards with Framer Motion
+// ============================================================
 
-  useEffect(() => {
-    if (!sectionRef.current || !imageRef.current) return
-    const animationContext = gsap.context(() => {
-      // Image entrance
-      gsap.fromTo(imageRef.current, 
-        { autoAlpha: 0, scale: 0.92 },
-        { autoAlpha: 1, scale: 1, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true } }
-      )
-      
-      // Intro text reveal on scroll
-      if (introTextRef.current) {
-        gsap.fromTo(introTextRef.current, 
-          { autoAlpha: 0, y: 30 },
-          { autoAlpha: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: introTextRef.current, start: 'top 85%', once: true } }
-        )
-      }
-      
-      // Features stagger entrance
-      gsap.fromTo([feature1Ref.current, feature2Ref.current],
-        { autoAlpha: 0, y: 30 },
-        { autoAlpha: 1, y: 0, duration: 0.8, ease: 'power3.out', stagger: 0.15, scrollTrigger: { trigger: sectionRef.current, start: 'top 70%', once: true } }
-      )
-      
-      // Image parallax on scroll (subtle)
-      gsap.to(imageRef.current, {
-        y: -20,
-        ease: 'none',
-        scrollTrigger: { trigger: sectionRef.current, start: 'top center', end: 'bottom center', scrub: 1 }
-      })
-    }, sectionRef)
-    return () => animationContext.revert()
-  }, [])
+type ShowcaseCardData = {
+  id: string
+  number: string
+  title: string
+  description: string
+  image: string
+  floatDuration: number
+  Icon: (props: SVGProps<SVGSVGElement>) => ReactElement
+}
+
+const SHOWCASE_CARDS: readonly ShowcaseCardData[] = [
+  {
+    id: 'tracking',
+    number: '01',
+    title: 'Live Project Tracking',
+    description: 'Monitor every milestone and vendor in real time.',
+    image: homePageImagePath('Live Tracking.jpg'),
+    floatDuration: 5.4,
+    Icon: (props) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" {...props}>
+        <circle cx="12" cy="12" r="3" />
+        <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+        <path d="M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
+      </svg>
+    ),
+  },
+  {
+    id: 'mobile',
+    number: '02',
+    title: 'Live Mobile Updates',
+    description: 'Instant updates and approvals, right on your phone.',
+    image: homePageImagePath('Live Upadte.jpg'),
+    floatDuration: 6.0,
+    Icon: (props) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" {...props}>
+        <rect x="7" y="2" width="10" height="20" rx="3" />
+        <path d="M10 6h4M9.5 10.5h5M9.5 13.5h3" />
+        <circle cx="12" cy="17.5" r="1" fill="currentColor" />
+      </svg>
+    ),
+  },
+  {
+    id: 'coordination',
+    number: '03',
+    title: 'End-to-End Coordination',
+    description: 'Every vendor, approval and detail — handled for you.',
+    image: homePageImagePath('End to end coordination.jpg'),
+    floatDuration: 5.7,
+    Icon: (props) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" {...props}>
+        <circle cx="5" cy="12" r="2" />
+        <circle cx="19" cy="6" r="2" />
+        <circle cx="19" cy="18" r="2" />
+        <path d="M7 11.2L17 7M7 12.8L17 17" />
+      </svg>
+    ),
+  },
+  {
+    id: 'visualization',
+    number: '04',
+    title: '3D Design Visualization',
+    description: 'See your space before a single wall is built.',
+    image: homePageImagePath('3D design.jpg'),
+    floatDuration: 6.3,
+    Icon: (props) => (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" {...props}>
+        <path d="M12 2L2 7l10 5 10-5-10-5z" />
+        <path d="M2 17l10 5 10-5" />
+        <path d="M2 12l10 5 10-5" />
+      </svg>
+    ),
+  },
+] as const
+
+const CYCLE_INTERVAL = 2600
+
+// ── Typewriter title ──────────────────────────────────────────────────────────
+function TypewriterTitle({ text }: { text: string }) {
+  return (
+    <h3 className="ssc-card__title" aria-label={text}>
+      {text.split('').map((char, i) => (
+        <motion.span
+          key={i}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 + i * 0.032, duration: 0.18, ease: 'easeOut' }}
+          style={{ display: char === ' ' ? 'inline' : 'inline-block' }}
+        >
+          {char === ' ' ? '\u00A0' : char}
+        </motion.span>
+      ))}
+    </h3>
+  )
+}
+
+// ── Cycle progress bar ────────────────────────────────────────────────────────
+function CycleBar() {
+  return (
+    <motion.span
+      className="ssc-card__cycle-bar"
+      initial={{ scaleX: 0 }}
+      animate={{ scaleX: 1 }}
+      transition={{ duration: CYCLE_INTERVAL / 1000, ease: 'linear' }}
+      style={{ transformOrigin: 'left' }}
+    />
+  )
+}
+
+// ── Framer Motion card variants ───────────────────────────────────────────────
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 48, scale: 0.96 },
+  visible: (custom: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      delay: custom * 0.14,
+      duration: 0.75,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
+  }),
+}
+
+type CardProps = {
+  card: ShowcaseCardData
+  index: number
+  isActive: boolean
+  isAnyHovered: boolean
+  onMouseEnter: () => void
+  onMouseLeave: () => void
+}
+
+function ShowcaseCard({ card, index, isActive, isAnyHovered, onMouseEnter, onMouseLeave }: CardProps) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: '-80px' })
+
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const [glowPos, setGlowPos] = useState({ x: 50, y: 50 })
+  const [isLocalHover, setIsLocalHover] = useState(false)
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const cx = rect.left + rect.width / 2
+    const cy = rect.top + rect.height / 2
+    const dx = (e.clientX - cx) / (rect.width / 2)
+    const dy = (e.clientY - cy) / (rect.height / 2)
+    setTilt({ x: dy * -7, y: dx * 7 })
+    setGlowPos({
+      x: ((e.clientX - rect.left) / rect.width) * 100,
+      y: ((e.clientY - rect.top) / rect.height) * 100,
+    })
+  }
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0 })
+    setIsLocalHover(false)
+    onMouseLeave()
+  }
+
+  // Staircase vertical rhythm: card 0 = 0, 1 = -28, 2 = -16, 3 = -8
+  const elevationMap = [0, -28, -16, -8]
+  const baseY = elevationMap[index] ?? 0
+
+  const animateY = isLocalHover ? baseY - 16 : isActive ? baseY - 12 : baseY
+  const animateScale = isLocalHover ? 1.06 : isActive ? 1.035 : 1
+  const animateOpacity = !isActive && isAnyHovered ? 0.55 : 1
 
   return (
-    <section ref={sectionRef} className="signature-showcase luxury-section">
-      <div className="signature-showcase__background" />
-      
-      <div className="signature-showcase__container">
-        {/* Main Content Grid */}
-        <div className="signature-showcase__content">
-          {/* Image Section - Left Side */}
-          <div ref={imageRef} className="signature-showcase__image-container">
-            <div className="signature-showcase__image-frame">
-              <div className="signature-showcase__image-glow" />
-              <div className="signature-showcase__image-media" style={{ backgroundImage: `url(${SHOWCASE_IMAGE})` }} />
-              <div className="signature-showcase__image-overlay" />
-              <div className="signature-showcase__image-edge" />
-              <div className="signature-showcase__image-shine" />
-            </div>
-          </div>
+    <motion.div
+      ref={ref}
+      className={`ssc-card${isActive ? ' ssc-card--active' : ''}${isLocalHover ? ' ssc-card--hovered' : ''}`}
+      variants={cardVariants}
+      custom={index}
+      initial="hidden"
+      animate={inView ? 'visible' : 'hidden'}
+      style={{ y: animateY }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={() => {
+        setIsLocalHover(true)
+        onMouseEnter()
+      }}
+      onMouseLeave={handleMouseLeave}
+    >
+      <motion.div
+        className="ssc-card__inner"
+        animate={{
+          scale: animateScale,
+          opacity: animateOpacity,
+          rotateX: isLocalHover ? tilt.x : 0,
+          rotateY: isLocalHover ? tilt.y : 0,
+        }}
+        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+        style={{ transformStyle: 'preserve-3d', height: '100%' }}
+      >
+        {/* Independent float loop */}
+        <motion.div
+          className="ssc-card__float-layer"
+          animate={{ y: [0, -9, 0] }}
+          transition={{
+            duration: card.floatDuration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: index * 0.4,
+          }}
+          style={{ height: '100%' }}
+        >
+          {/* Background image */}
+          <motion.div
+            className="ssc-card__image"
+            animate={{ scale: isActive || isLocalHover ? 1.1 : 1 }}
+            transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
+            style={{ backgroundImage: `url(${card.image})` }}
+          />
 
-          {/* Right-Side Content Area - Sticky Text Flow */}
-          <div className="signature-showcase__right-content">
-            {/* Intro Section - Top */}
-            <div ref={introTextRef} className="signature-showcase__intro-text">
-              <p className="signature-showcase__eyebrow">Arelia Standard</p>
-              <h2 className="signature-showcase__title">The precision of craft, the poetry of space.</h2>
-              <p className="signature-showcase__subtitle">Every project is orchestrated with cinematic attention to detail.</p>
-            </div>
+          {/* Glass overlay */}
+          <div className="ssc-card__glass" />
 
-            {/* Features Section - Bottom Flow */}
-            <div className="signature-showcase__features">
-              {/* Feature 01 */}
-              <div ref={feature1Ref} className="signature-showcase__feature">
-                <div className="signature-showcase__feature-marker">01</div>
-                <div className="signature-showcase__feature-header">
-                  <h3 className="signature-showcase__feature-title">Refined Coordination</h3>
-                  <div className="signature-showcase__feature-divider" />
-                </div>
-                <p className="signature-showcase__feature-text">Every vendor, decision, and milestone is orchestrated with the same care as the final aesthetic. Coordination that feels seamless.</p>
-                <div className="signature-showcase__feature-accent" />
-              </div>
+          {/* Cursor radial glow */}
+          <div
+            className="ssc-card__cursor-glow"
+            style={{
+              background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(212,175,55,0.22) 0%, transparent 68%)`,
+              opacity: isLocalHover ? 1 : 0,
+            }}
+          />
 
-              {/* Feature 02 */}
-              <div ref={feature2Ref} className="signature-showcase__feature">
-                <div className="signature-showcase__feature-marker">02</div>
-                <div className="signature-showcase__feature-header">
-                  <h3 className="signature-showcase__feature-title">Measured Luxury</h3>
-                  <div className="signature-showcase__feature-divider" />
-                </div>
-                <p className="signature-showcase__feature-text">Budgets stay visible, approvals stay elegant, and every touchpoint feels polished instead of rushed. Transparency with sophistication.</p>
-                <div className="signature-showcase__feature-accent" />
-              </div>
-            </div>
-          </div>
-        </div>
+          {/* Active outer ring */}
+          <motion.div
+            className="ssc-card__active-ring"
+            animate={{ opacity: isActive ? 1 : 0 }}
+            transition={{ duration: 0.5 }}
+          />
+
+          {/* Shimmer sweep on hover */}
+          <motion.div
+            className="ssc-card__shimmer"
+            initial={{ x: '-120%' }}
+            animate={isLocalHover ? { x: '320%' } : { x: '-120%' }}
+            transition={
+              isLocalHover
+                ? { duration: 0.9, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }
+                : { duration: 0 }
+            }
+          />
+
+          {/* Bottom gold glow */}
+          <motion.div
+            className="ssc-card__foot-glow"
+            animate={{ opacity: isActive ? 1 : 0.42, scaleX: isActive ? 1.2 : 0.85 }}
+            transition={{ duration: 0.55 }}
+          />
+
+          {/* Content overlay — active only */}
+          <AnimatePresence mode="wait">
+            {isActive && (
+              <motion.div
+                key={card.id}
+                className="ssc-card__content"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.div
+                  className="ssc-card__icon-wrap"
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1, type: 'spring', stiffness: 400, damping: 22 }}
+                >
+                  <card.Icon />
+                </motion.div>
+
+                <TypewriterTitle text={card.title} />
+
+                <motion.p
+                  className="ssc-card__desc"
+                  initial={{ opacity: 0, y: 14 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.38, duration: 0.4, ease: 'easeOut' }}
+                >
+                  {card.description}
+                </motion.p>
+
+                <CycleBar key={`bar-${card.id}`} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Number watermark */}
+          <motion.span
+            className="ssc-card__number"
+            animate={{ opacity: isActive ? 0.22 : 0.08 }}
+            transition={{ duration: 0.45 }}
+            aria-hidden="true"
+          >
+            {card.number}
+          </motion.span>
+        </motion.div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+function SignatureShowcaseSection() {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isAnyHovered, setIsAnyHovered] = useState(false)
+
+  useEffect(() => {
+    if (isAnyHovered) return
+    const id = window.setInterval(() => {
+      setActiveIndex((i) => (i + 1) % SHOWCASE_CARDS.length)
+    }, CYCLE_INTERVAL)
+    return () => window.clearInterval(id)
+  }, [isAnyHovered])
+
+  return (
+    <section className="ssc-section">
+      {/* Header */}
+      <header className="ssc-header">
+        <motion.p
+          className="ssc-eyebrow"
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          OUR STANDARDS
+        </motion.p>
+
+        <motion.h2
+          className="ssc-headline"
+          initial={{ opacity: 0, y: 18 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
+        >
+          Where Excellence is Not an Option , It's a Standard.
+        </motion.h2>
+
+        <motion.p
+          className="ssc-subtitle"
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+        >
+          At Arelia, every project is built on innovative interior design, transparent workflow, and unwavering commitment , from first enquiry to final handover. 
+        </motion.p>
+
+        <motion.div
+          className="ssc-divider"
+          initial={{ opacity: 0, scaleX: 0.4 }}
+          whileInView={{ opacity: 1, scaleX: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3, duration: 0.7 }}
+        >
+          <span className="ssc-divider__line" />
+          <span className="ssc-divider__diamond" />
+          <span className="ssc-divider__line" />
+        </motion.div>
+      </header>
+
+      {/* Cards */}
+      <div className="ssc-grid">
+        {SHOWCASE_CARDS.map((card, idx) => (
+          <ShowcaseCard
+            key={card.id}
+            card={card}
+            index={idx}
+            isActive={idx === activeIndex}
+            isAnyHovered={isAnyHovered}
+            onMouseEnter={() => {
+              setIsAnyHovered(true)
+              setActiveIndex(idx)
+            }}
+            onMouseLeave={() => setIsAnyHovered(false)}
+          />
+        ))}
+      </div>
+
+      {/* Dot indicators */}
+      <div className="ssc-dots" role="tablist" aria-label="Feature navigation">
+        {SHOWCASE_CARDS.map((card, idx) => (
+          <button
+            key={card.id}
+            type="button"
+            role="tab"
+            aria-selected={idx === activeIndex}
+            aria-label={card.title}
+            className={`ssc-dot${idx === activeIndex ? ' ssc-dot--active' : ''}`}
+            onClick={() => setActiveIndex(idx)}
+          />
+        ))}
       </div>
     </section>
   )
 }
+
+// ============================================================
+// QUOTE SECTION
+// ============================================================
 
 function QuoteSectionSection() {
   const sectionRef = useRef<HTMLElement | null>(null)
@@ -508,7 +829,7 @@ function QuoteSectionSection() {
       <div ref={foregroundRef} className="quote-section__layer quote-section__layer--foreground" style={{ backgroundImage: `url(${QUOTE_FOREGROUND_LAYER})` }} />
       <div className="quote-section__content">
         <div className="quote-section__quote-box">
-          <p className="quote-section__eyebrow">Spatial Philosophy</p>
+          <p className="quote-section__eyebrow">THE ARELIA WAY</p>
           <blockquote className="quote-section__quote">
             {words.map((word, index) => (
               <span
@@ -527,6 +848,10 @@ function QuoteSectionSection() {
     </section>
   )
 }
+
+// ============================================================
+// STATS SECTION
+// ============================================================
 
 type AnimatedNumberProps = {
   value: string
@@ -589,13 +914,12 @@ function StatsSection() {
   return (
     <section ref={sectionRef} className="stats luxury-section">
       <div className="stats__header">
-        <p className="stats__eyebrow">Measured Excellence</p>
-        <h2>Numbers That Speak</h2>
+        <p className="stats__eyebrow"> ARELIA IN NUMBERS</p>
+        <h2>Every Number Tells a Story of Trust, Quality and Excellence.</h2>
       </div>
       <div className="stats__row">
         {stats.map((stat) => (
           <article key={stat.label} className="stats__lane" data-magnetic>
-            <div className="stats__line" />
             <AnimatedNumber value={stat.value} isActive={isActive} />
             <p className="stats__label">{stat.label}</p>
             <span className="stats__streak" aria-hidden="true" />
@@ -605,6 +929,10 @@ function StatsSection() {
     </section>
   )
 }
+
+// ============================================================
+// CLIENT TESTIMONIALS
+// ============================================================
 
 function LocalTestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
@@ -658,10 +986,10 @@ function ClientTestimonialsSection() {
       <div className="client-testimonials__center-glow" aria-hidden="true" />
 
       <div className="client-testimonials__header client-testimonials__reveal">
-        <p className="client-testimonials__eyebrow">Client Stories</p>
-        <h2>Real spaces. Real trust. Real confidence in the process.</h2>
+        <p className="client-testimonials__eyebrow">VOICES THAT INSPIRE</p>
+        <h2>Real People. Real Spaces. Real Stories.</h2>
         <p className="client-testimonials__subtitle">
-          A seamless stream of client stories that keeps credibility in motion, just like the rest of the experience.
+          From modern home interiors to commercial office designs and luxury hospitality spaces , here's what our clients say about their Arelia interior design experience. 
         </p>
       </div>
 
@@ -677,6 +1005,10 @@ function ClientTestimonialsSection() {
     </section>
   )
 }
+
+// ============================================================
+// CONTACT CTA
+// ============================================================
 
 function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => void }) {
   const sectionRef = useRef<HTMLElement | null>(null)
@@ -712,19 +1044,23 @@ function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => v
       <div className="contact-cta__overlay" />
       <div className="contact-cta__vignette" />
       <div className="contact-cta__content">
-        <p className="contact-cta__eyebrow contact-cta__reveal">Begin The Conversation</p>
-        <h2 className="contact-cta__reveal">Ready to get started, or want to know more?</h2>
+        <p className="contact-cta__eyebrow contact-cta__reveal">YOUR JOURNEY STARTS HERE</p>
+        <h2 className="contact-cta__reveal">Ready to Transform Your Space, or Want to Explore More?</h2>
         <p className="contact-cta__copy contact-cta__reveal">
-          Let&apos;s shape a project experience that feels cinematic from first impression to final reveal.
+          Let's create a personalized interior design consultation experience that feels thoughtful, elegant, and uniquely yours , from first conversation to final handover. 
         </p>
         <button type="button" onClick={onOpenConsultation} className="contact-cta__button contact-cta__reveal" data-magnetic>
           <span className="contact-cta__button-fill" />
-          <span className="contact-cta__button-label">Book Consultation</span>
+          <span className="contact-cta__button-label">START YOUR PROJECT</span>
         </button>
       </div>
     </section>
   )
 }
+
+// ============================================================
+// PAGE ROOT
+// ============================================================
 
 export function HomePage({ onOpenConsultation }: HomePageProps) {
   return (
@@ -740,4 +1076,4 @@ export function HomePage({ onOpenConsultation }: HomePageProps) {
       </div>
     </main>
   )
-}
+} 
