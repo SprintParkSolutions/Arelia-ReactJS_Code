@@ -5,7 +5,8 @@ type LoaderProps = {
   onComplete: () => void
 }
 
-const LOADER_DURATION_MS = 2800
+const LOADER_DURATION_MS = 900
+const LOADER_EXIT_DELAY_MS = 250
 
 function easeInOutCubic(progress: number) {
   return progress < 0.5
@@ -35,8 +36,7 @@ export function Loader({ onComplete }: LoaderProps) {
       }
 
       setIsComplete(true)
-      // Extended slightly for a graceful exit transition
-      completionTimer = window.setTimeout(onComplete, 800) 
+      completionTimer = window.setTimeout(onComplete, LOADER_EXIT_DELAY_MS)
     }
 
     animationFrame = window.requestAnimationFrame(animate)
@@ -57,7 +57,7 @@ export function Loader({ onComplete }: LoaderProps) {
         {/* Cinematic Logo Reveal */}
         <div className="loader__logo-container">
             <img 
-              src="/images/Logos/Arelia_Logo.png" 
+              src="/images/Logos/Arelia_Logo.webp" 
               alt="Arelia Loading" 
               className={`loader__logo ${isComplete ? 'loader__logo--launch' : ''}`}
             />
