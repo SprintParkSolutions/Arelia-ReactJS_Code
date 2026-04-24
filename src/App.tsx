@@ -36,7 +36,7 @@ function ScrollToTop() {
 export default function App() {
   const [isLoading, setIsLoading] = useState(() => {
     if (typeof window === 'undefined') {
-      return true
+      return false
     }
 
     return window.sessionStorage.getItem('arelia-loader-seen') !== 'true'
@@ -52,17 +52,17 @@ export default function App() {
     <>
       {isLoading ? <Loader onComplete={handleLoaderComplete} /> : null}
 
-      {!isLoading ? (
-        <div className="app-shell">
-          <ScrollToTop />
-          <VideoBackground
-            src="/videos/arelia-global-background-lite.mp4"
-            posterSrc="/videos/arelia-global-background-poster.webp"
-            deferMs={2500}
-            disableOnMobile
-          />
-          <NavigationMenu onOpenConsultation={() => setIsConsultationOpen(true)} />
-          <Suspense fallback={null}>
+      <div className="app-shell">
+        <ScrollToTop />
+        <VideoBackground
+          src="/videos/arelia-global-background-lite.mp4"
+          posterSrc="/videos/arelia-global-background-poster.webp"
+          deferMs={2500}
+          disableOnMobile
+        />
+        <NavigationMenu onOpenConsultation={() => setIsConsultationOpen(true)} />
+        <Suspense fallback={<div className="app-shell__route-fallback" aria-hidden="true" />}>
+          <div className="app-shell__content">
             <Routes>
               <Route
                 path="/"
@@ -78,18 +78,18 @@ export default function App() {
               />
               <Route path="/contact-us" element={<ContactUsPage />} />
             </Routes>
-          </Suspense>
-          <Footer />
-          <Suspense fallback={null}>
-            <ConsultationModal
-              isOpen={isConsultationOpen}
-              onClose={() => setIsConsultationOpen(false)}
-            />
-          </Suspense>
-          {/* Global SocialSidebar - Persists across all pages */}
-          <SocialSidebar />
-        </div>
-      ) : null}
+            <Footer />
+          </div>
+        </Suspense>
+        <Suspense fallback={null}>
+          <ConsultationModal
+            isOpen={isConsultationOpen}
+            onClose={() => setIsConsultationOpen(false)}
+          />
+        </Suspense>
+        {/* Global SocialSidebar - Persists across all pages */}
+        <SocialSidebar />
+      </div>
     </>
   )
 }
