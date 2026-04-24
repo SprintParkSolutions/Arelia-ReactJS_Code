@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { Variants } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import './AboutPage.css'
 
 const ABOUT_US_IMAGES_PATH = '/images/AboutUs%20Page'
@@ -456,9 +457,9 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
             viewport={{ once: true, amount: 0.35 }}
             variants={fadeUp}
           >
-            <a href="/services" className="about-button about-button--secondary">
+            <Link to="/services" className="about-button about-button--secondary">
               View All Projects -&gt;
-            </a>
+            </Link>
           </motion.div>
         </div>
       </section>
@@ -534,9 +535,9 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
               <button type="button" className="about-button about-button--primary" onClick={onOpenConsultation}>
                 Book Consultation
               </button>
-              <a href="/services" className="about-button about-button--secondary">
+              <Link to="/services" className="about-button about-button--secondary">
                 View Our Portfolio
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>
