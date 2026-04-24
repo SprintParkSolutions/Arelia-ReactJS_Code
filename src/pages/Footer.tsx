@@ -3,10 +3,9 @@ import { useEffect, useRef } from 'react'
 import './Footer.css'
 
 const services = [
-  'Commercial Interior Design',
-  'Residential Interior Design',
-  'Hospitality Spaces',
-  'Retail Interiors',
+  'Commercial Interiors',
+  'Residential Interiors',
+  'Hospitality Interior Spaces',
 ]
 
 export function Footer() {
