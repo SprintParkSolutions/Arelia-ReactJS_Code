@@ -37,6 +37,7 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          onClick={onClose}
         >
           <motion.div
             className="consultation-modal__veil"

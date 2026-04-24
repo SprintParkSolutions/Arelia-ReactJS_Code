@@ -5,6 +5,12 @@
   display: grid;
   place-items: center;
   padding: 1.25rem;
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .consultation-modal__veil {
@@ -20,6 +26,7 @@
 .consultation-modal__shell {
   position: relative;
   width: min(100%, 42rem);
+  max-height: min(100dvh - 2.5rem, 58rem);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 2rem;
   background:
@@ -29,6 +36,8 @@
     0 36px 120px rgba(0, 0, 0, 0.38),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .consultation-modal__ambient {
@@ -98,10 +107,17 @@
   display: flex;
   flex-direction: column;
   gap: 1.8rem;
+  min-width: 0;
 }
 
 .consultation-form--modal {
   padding: 1.7rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.consultation-form.is-loading {
+  overflow: hidden;
 }
 
 .consultation-form--page {
@@ -128,11 +144,15 @@
   align-items: center;
   justify-content: center;
   gap: 1.5rem;
-  background: rgba(12, 15, 20, 0.85);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background:
+    linear-gradient(180deg, rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.9)),
+    rgba(12, 15, 20, 0.84);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: inherit;
   animation: fadeIn 0.3s ease-in;
+  padding: 1.5rem;
+  text-align: center;
 }
 
 .consultation-form__loading-spinner {
@@ -197,10 +217,11 @@
   color: rgba(232, 226, 216, 0.9);
   font-size: var(--type-small);
   font-weight: 500;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   margin: 0;
   text-align: center;
   max-width: 20rem;
+  line-height: 1.6;
 }
 
 @keyframes fadeIn {
@@ -214,6 +235,7 @@
 
 .consultation-form__intro {
   max-width: 38rem;
+  min-width: 0;
 }
 
 .consultation-form__eyebrow {
@@ -240,6 +262,7 @@
   color: rgba(232, 226, 216, 0.82);
   font-size: var(--type-body);
   line-height: 1.75;
+  overflow-wrap: anywhere;
 }
 
 .consultation-form__grid {
@@ -281,6 +304,7 @@
 .consultation-form__field {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .consultation-form__field--full {
@@ -311,6 +335,8 @@
     transform 220ms ease,
     box-shadow 220ms ease,
     background 220ms ease;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .consultation-form__field input::placeholder {
@@ -398,6 +424,7 @@
   color: rgba(232, 226, 216, 0.72);
   font-size: var(--type-small);
   line-height: 1.6;
+  text-align: center;
 }
 
 .consultation-form__verification-wrapper {
@@ -426,6 +453,10 @@
 @media (max-width: 720px) {
   .consultation-modal {
     padding: 0.65rem;
+    padding-top: max(0.65rem, env(safe-area-inset-top));
+    padding-right: max(0.65rem, env(safe-area-inset-right));
+    padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+    padding-left: max(0.65rem, env(safe-area-inset-left));
     align-items: stretch;
   }
 
@@ -527,11 +558,19 @@
     width: 3.8rem;
     height: 3.8rem;
   }
+
+  .consultation-form__loading-overlay {
+    padding: 1.25rem;
+  }
 }
 
 @media (max-width: 420px) {
   .consultation-modal {
     padding: 0.45rem;
+    padding-top: max(0.45rem, env(safe-area-inset-top));
+    padding-right: max(0.45rem, env(safe-area-inset-right));
+    padding-bottom: max(0.45rem, env(safe-area-inset-bottom));
+    padding-left: max(0.45rem, env(safe-area-inset-left));
   }
 
   .consultation-modal__shell {
@@ -551,5 +590,22 @@
 
   .consultation-form__title {
     font-size: clamp(1.5rem, 8vw, 2rem);
+  }
+
+  .consultation-form__description {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .consultation-form__field input {
+    min-height: 3rem;
+    padding: 0.85rem 0.95rem;
+    font-size: 0.95rem;
+  }
+
+  .consultation-form__submit {
+    padding: 0.9rem 1rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.12em;
   }
 }
