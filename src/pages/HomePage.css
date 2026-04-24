@@ -15,6 +15,16 @@
     linear-gradient(180deg, rgba(4, 4, 4, 0) 0%, rgba(4, 4, 4, 0.46) 8%, rgba(4, 4, 4, 0.28) 22%, rgba(4, 4, 4, 0.5) 100%);
 }
 
+.home-page__deferred-section {
+  min-height: var(--deferred-min-height);
+  content-visibility: auto;
+  contain-intrinsic-size: auto var(--deferred-min-height);
+}
+
+.home-page__deferred-section.is-loaded {
+  min-height: 0;
+}
+
 .luxury-section {
   width: 100%;
   margin: 0 auto;
