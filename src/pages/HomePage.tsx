@@ -226,13 +226,13 @@ function HomeHeroSection() {
         isHome
         isSection
         deferMs={1200}
-        disableOnMobile
       />
       <div className="home-page__content">
         <h1 className="home-page__title">
-          <span className="home-page__line">We Don't Just Design Spaces </span>
-          <span className="home-page__line">We Design</span>
-          <span className="home-page__brand"> How You Live.</span>
+          <span className="home-page__line">We Don't Just Design Spaces</span>
+          <span className="home-page__line">
+            We Design <span className="home-page__brand home-page__brand--inline">How You Live.</span>
+          </span>
         </h1>
       </div>
     </section>

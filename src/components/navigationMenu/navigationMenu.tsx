@@ -5,7 +5,7 @@ import "./navigationMenu.css";
 
 const navItems = ["Home", "About Us", "Services", "Contact Us"];
 const logoSrc = "/images/Logos/Arelia.png";
-const phoneHref = "tel:+919652380588";
+const phoneHref = "tel:+917207845556";
 const brandTitle = "ARELIA";
 
 const navLineVariants: Variants = {

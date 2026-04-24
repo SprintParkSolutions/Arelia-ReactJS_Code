@@ -138,6 +138,12 @@
   letter-spacing: -0.035em;
 }
 
+.home-hero__brand--inline,
+.home-page__brand--inline {
+  display: inline;
+  margin-top: 0;
+}
+
 /* ================== WHY CHOOSE SECTION ================== */
 
 .why-choose-luxe {
