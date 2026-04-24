@@ -155,7 +155,7 @@ const servicesData: ServiceItem[] = [
   },
   {
     note: "02 / BUILT FOR BUSINESS",
-    title: "Commercial Spaces",
+    title: "Commercial Interiors",
     caption:
       "From dynamic office interior design to branded retail store interiors  we design commercial spaces that express confidence, inspire productivity and leave a lasting impression from the very first visit.",
     images: [
