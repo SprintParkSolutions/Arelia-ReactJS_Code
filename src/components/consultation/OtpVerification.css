@@ -32,6 +32,7 @@
   color: rgba(232, 226, 216, 0.82);
   font-size: var(--type-body);
   line-height: 1.75;
+  overflow-wrap: anywhere;
 }
 
 .otp-verification__description strong {
@@ -80,6 +81,8 @@
     transform 220ms ease,
     box-shadow 220ms ease,
     background 220ms ease;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .otp-verification__input::placeholder {
@@ -233,5 +236,34 @@
   .otp-verification__resend-btn {
     width: 100%;
     min-width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .otp-verification__description {
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .otp-verification__input {
+    min-height: 3.1rem;
+    padding: 0.85rem 0.8rem;
+    font-size: 1rem;
+    letter-spacing: 0.18rem;
+  }
+
+  .otp-verification__input::placeholder {
+    letter-spacing: 0.18rem;
+  }
+
+  .otp-verification__timer {
+    padding: 0.85rem 1rem;
+  }
+
+  .otp-verification__verify-btn,
+  .otp-verification__resend-btn {
+    padding: 0.9rem 1rem;
+    font-size: 0.74rem;
+    letter-spacing: 0.12em;
   }
 }

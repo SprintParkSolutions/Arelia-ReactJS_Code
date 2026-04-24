@@ -226,7 +226,7 @@ export function ConsultationForm({
   }
 
   return (
-    <div className={cardClassName}>
+    <div className={`${cardClassName}${isLoading ? ' is-loading' : ''}`}>
       {isLoading && (
         <div className="consultation-form__loading-overlay">
           <div className="consultation-form__loading-spinner">

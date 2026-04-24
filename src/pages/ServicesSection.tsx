@@ -850,14 +850,15 @@ function SignatureServicesSection() {
       <AnimatePresence>
         {lightboxIndex !== null && expandedImage && (
           <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505]/85 backdrop-blur-lg"
+            className="fixed inset-0 z-[140] flex items-center justify-center bg-[#050505]/88 px-3 pb-4 pt-24 backdrop-blur-lg sm:px-6 sm:pb-6 sm:pt-28"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            onClick={closeLightbox}
           >
             <motion.div
-              className="relative w-[90vw] h-[85vh] rounded-3xl border border-white/10 bg-white/5 backdrop-blur-md p-4 overflow-hidden flex items-center justify-center"
+              className="relative flex h-[min(72vh,42rem)] w-full max-w-[min(96vw,75rem)] items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-3 backdrop-blur-md sm:h-[min(82vh,48rem)] sm:rounded-[2rem] sm:p-4"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -866,7 +867,7 @@ function SignatureServicesSection() {
             >
               {/* Close Button */}
               <motion.button
-                className="absolute top-6 right-6 z-20 w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/10 hover:scale-110 transition-all"
+                className="absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur-md transition-all hover:scale-110 hover:bg-white/10 hover:text-white sm:right-6 sm:top-6"
                 onClick={closeLightbox}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
@@ -875,17 +876,17 @@ function SignatureServicesSection() {
               </motion.button>
 
               {/* Image Container */}
-              <div className="w-full h-full flex items-center justify-center">
+              <div className="flex h-full w-full items-center justify-center px-2 pb-14 pt-10 sm:px-16 sm:pb-8 sm:pt-8">
                 <img
                   src={servicesData[expandedImage.rowIndex].images[lightboxIndex]}
                   alt={`${servicesData[expandedImage.rowIndex].title} - Image ${lightboxIndex + 1}`}
-                  className="max-w-full max-h-full object-contain"
+                  className="max-h-full max-w-full rounded-xl object-contain sm:rounded-2xl"
                 />
               </div>
 
-              {/* Navigation Buttons */}
+              {/* Navigation Buttons - Desktop */}
               <motion.button
-                className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/10 hover:scale-110 transition-all"
+                className="absolute left-6 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur-md transition-all hover:scale-110 hover:bg-white/10 hover:text-white sm:flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   goToPrevImage();
@@ -897,7 +898,7 @@ function SignatureServicesSection() {
               </motion.button>
 
               <motion.button
-                className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full flex items-center justify-center bg-white/5 border border-white/10 backdrop-blur-md text-white/70 hover:text-white hover:bg-white/10 hover:scale-110 transition-all"
+                className="absolute right-6 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur-md transition-all hover:scale-110 hover:bg-white/10 hover:text-white sm:flex"
                 onClick={(e) => {
                   e.stopPropagation();
                   goToNextImage();
@@ -910,13 +911,35 @@ function SignatureServicesSection() {
 
               {/* Image Counter */}
               <motion.div
-                className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-white/60 text-xs font-medium tracking-wide"
+                className="absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium tracking-wide text-white/60 backdrop-blur-md sm:bottom-6"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.2 }}
               >
                 {lightboxIndex + 1} / {servicesData[expandedImage.rowIndex].images.length}
               </motion.div>
+              <div className="absolute inset-x-0 bottom-3 z-20 flex items-center justify-center gap-3 sm:hidden">
+                <motion.button
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur-md transition-all hover:bg-white/10 hover:text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToPrevImage();
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <span className="text-lg leading-none">‹</span>
+                </motion.button>
+                <motion.button
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 backdrop-blur-md transition-all hover:bg-white/10 hover:text-white"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToNextImage();
+                  }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <span className="text-lg leading-none">›</span>
+                </motion.button>
+              </div>
             </motion.div>
           </motion.div>
         )}
