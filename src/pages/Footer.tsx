@@ -5,7 +5,7 @@ import './Footer.css'
 const services = [
   'Commercial Interiors',
   'Residential Interiors',
-  'Hospitality Interior Spaces',
+  'Hospitality Interiors',
 ]
 
 export function Footer() {
