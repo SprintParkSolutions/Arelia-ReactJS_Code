@@ -839,7 +839,7 @@ function SignatureShowcaseSection() {
           viewport={{ once: true }}
           transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         >
-          Where Excellence is Not an Option , It's a Standard.
+          Where Excellence is Not an Option, It's a Standard.
         </motion.h2>
 
         <motion.p
