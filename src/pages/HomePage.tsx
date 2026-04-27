@@ -226,13 +226,13 @@ function HomeHeroSection() {
         isHome
         isSection
         deferMs={1200}
-        disableOnMobile
       />
       <div className="home-page__content">
         <h1 className="home-page__title">
-          <span className="home-page__line">We Don't Just Design Spaces </span>
-          <span className="home-page__line">We Design</span>
-          <span className="home-page__brand"> How You Live.</span>
+          <span className="home-page__line">We Don't Just Design Spaces</span>
+          <span className="home-page__line">
+            We Design <span className="home-page__brand home-page__brand--inline">How You Live.</span>
+          </span>
         </h1>
       </div>
     </section>
@@ -839,7 +839,7 @@ function SignatureShowcaseSection() {
           viewport={{ once: true }}
           transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         >
-          Where Excellence is Not an Option , It's a Standard.
+          Where Excellence is Not an Option, It's a Standard.
         </motion.h2>
 
         <motion.p

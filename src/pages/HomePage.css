@@ -3,6 +3,7 @@
 .home-page {
   position: relative;
   z-index: 1;
+  overflow-x: clip;
 }
 
 .home-page__sections {
@@ -101,6 +102,7 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 7.5rem 1.5rem 2rem;
+  padding-top: max(7.5rem, calc(6.25rem + env(safe-area-inset-top)));
   text-align: center;
   pointer-events: none;
 }
@@ -136,6 +138,12 @@
   font-style: italic;
   font-weight: 500;
   letter-spacing: -0.035em;
+}
+
+.home-hero__brand--inline,
+.home-page__brand--inline {
+  display: inline;
+  margin-top: 0;
 }
 
 /* ================== WHY CHOOSE SECTION ================== */
@@ -1802,7 +1810,7 @@
     left: 0;
     transform: none;
     min-height: 100vh;
-    padding: 8.75rem 1rem 1.5rem;
+    padding: calc(8rem + env(safe-area-inset-top)) 1rem max(1.5rem, env(safe-area-inset-bottom));
   }
 
   .home-hero__title,
@@ -1814,6 +1822,30 @@
   .home-hero__brand,
   .home-page__brand {
     margin-top: 0.1em;
+  }
+
+  .home-hero__brand--inline,
+  .home-page__brand--inline {
+    display: inline;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 420px) {
+  .home-hero,
+  .home-page__hero {
+    min-height: 100svh;
+  }
+
+  .home-hero__content,
+  .home-page__content {
+    padding: calc(7.2rem + env(safe-area-inset-top)) 0.9rem
+      max(1.15rem, env(safe-area-inset-bottom));
+  }
+
+  .home-hero__title,
+  .home-page__title {
+    line-height: 1.05;
   }
 }
 
