@@ -1,0 +1,158 @@
+body {
+  min-height: 100vh;
+  position: relative;
+  background: transparent;
+  overflow-x: hidden;
+}
+
+.app-shell {
+  --app-shell-page-padding-x: 1.5rem;
+  --app-shell-page-padding-top: 8rem;
+  --app-shell-page-padding-bottom: 3rem;
+  --app-shell-page-width: 64rem;
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  isolation: isolate;
+  transform-origin: center top;
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell--entering {
+  opacity: 0;
+  transform: scale(0.985);
+}
+
+.app-shell--ready {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.app-shell__page-frame {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell__content {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell__route-fallback {
+  min-height: 100vh;
+}
+
+.page {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--app-shell-page-padding-top) var(--app-shell-page-padding-x) var(--app-shell-page-padding-bottom);
+}
+
+.home-page {
+  position: relative;
+  z-index: 1;
+}
+
+.page__inner {
+  width: min(100%, var(--app-shell-page-width));
+  padding: 2rem;
+  text-align: center;
+  color: #f8f5ef;
+}
+
+.page__eyebrow {
+  margin: 0 0 1rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: rgba(212, 175, 55, 0.88);
+}
+
+.page__title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--type-h1);
+  font-weight: 700;
+  letter-spacing: var(--tracking-heading);
+  line-height: 1.1;
+  text-wrap: balance;
+  color: #f8f6f2;
+  text-shadow: 0 10px 35px rgba(0, 0, 0, 0.55);
+}
+
+.page--hero .page__title {
+  font-size: var(--type-h1);
+  line-height: 1.1;
+  letter-spacing: var(--tracking-heading);
+  text-wrap: balance;
+}
+
+
+.page__description {
+  width: min(100%, 42rem);
+  margin: 1.5rem auto 0;
+  font-size: var(--type-body);
+  line-height: 1.75;
+  color: var(--text-soft);
+  font-weight: 400;
+}
+
+.page__secondary {
+  width: min(100%, 34rem);
+  margin: 1rem auto 0;
+  font-size: var(--type-small);
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  justify-content: center;
+  margin-top: 1.8rem;
+}
+
+.page__action-pill {
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(212, 175, 55, 0.18);
+  border-radius: 999px;
+  background: rgba(10, 10, 10, 0.35);
+  color: rgba(248, 245, 239, 0.88);
+  font-size: 0.74rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 767px) {
+  .app-shell {
+    --app-shell-page-padding-top: 9rem;
+    --app-shell-page-padding-x: 1rem;
+  }
+
+  .page {
+    padding-top: var(--app-shell-page-padding-top);
+  }
+
+  .page__inner {
+    padding: 1rem;
+  }
+
+  .page--hero .page__title {
+    font-size: clamp(2.6rem, 11vw, 4.4rem);
+  }
+
+  .page__actions {
+    gap: 0.55rem;
+  }
+
+  .page__action-pill {
+    width: 100%;
+  }
+}

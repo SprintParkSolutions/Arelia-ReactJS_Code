@@ -1,0 +1,35 @@
+/**
+ * SOCIAL SIDEBAR STYLES
+ * Bottom-right floating icons with no background container
+ */
+
+/* Smooth transitions for responsive changes */
+.social-sidebar-container {
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Icon hover state - scale effect */
+.social-icon-btn:hover {
+  transform: scale(1.15) translateY(-4px); /* Slightly lifts the icon up on hover */
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5) !important;
+}
+
+/* Accessibility - focus states */
+.social-icon-btn:focus-visible {
+  outline: 2px solid rgba(212, 175, 55, 0.8);
+  outline-offset: 4px;
+}
+
+/* Smooth transitions for all interactive elements */
+a, button {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Ensure padding adjustments on very small mobile screens */
+@media (max-width: 480px) {
+  .social-sidebar-container {
+    bottom: 20px !important;
+    right: 20px !important;
+  }
+}

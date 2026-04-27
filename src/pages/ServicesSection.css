@@ -1,0 +1,1456 @@
+.servicesHero {
+  position: relative;
+  width: 100%;
+  min-height: clamp(32rem, 72vh, 46rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(8.5rem, 15vw, 11rem) clamp(1.5rem, 4vw, 3.5rem)
+    clamp(4.5rem, 8vw, 6.5rem);
+  padding-top: max(clamp(8.5rem, 15vw, 11rem), calc(7rem + env(safe-area-inset-top)));
+}
+
+.servicesHero::before,
+.servicesHero::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  pointer-events: none;
+}
+
+.servicesHero::before {
+  z-index: 0;
+  background:
+    radial-gradient(circle at 18% 26%, rgba(212, 163, 115, 0.16), transparent 20%),
+    radial-gradient(circle at 78% 18%, rgba(248, 246, 242, 0.05), transparent 18%),
+    radial-gradient(circle at 50% 76%, rgba(212, 163, 115, 0.08), transparent 24%),
+    linear-gradient(
+      120deg,
+      rgba(255, 255, 255, 0.03) 8%,
+      transparent 30%,
+      rgba(212, 163, 115, 0.08) 48%,
+      transparent 68%,
+      rgba(255, 255, 255, 0.025) 100%
+    );
+  filter: blur(28px);
+  opacity: 0.8;
+  transform-origin: center;
+  animation: services-hero-flow 24s ease-in-out infinite alternate;
+}
+
+.servicesHero::after {
+  z-index: 0;
+  background:
+    radial-gradient(120% 70% at 50% 8%, rgba(248, 246, 242, 0.06), transparent 48%),
+    linear-gradient(
+      100deg,
+      transparent 10%,
+      rgba(248, 246, 242, 0.04) 30%,
+      transparent 48%,
+      rgba(212, 163, 115, 0.07) 66%,
+      transparent 84%
+    );
+  filter: blur(16px);
+  opacity: 0.34;
+  transform-origin: center;
+  animation: services-hero-wave 18s ease-in-out infinite;
+}
+
+.servicesHeroMarquee {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(0.25rem, 0.95vw, 0.8rem);
+  overflow: hidden;
+  pointer-events: none;
+  padding-block: clamp(1.5rem, 4.5vw, 3rem);
+}
+
+.servicesHeroMarqueeRow {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.servicesHeroMarqueeRow--top {
+  align-items: flex-end;
+  min-height: clamp(3.25rem, 7.2vw, 5.2rem);
+}
+
+.servicesHeroMarqueeRow--bottom {
+  align-items: flex-start;
+  min-height: clamp(3.25rem, 7.2vw, 5.2rem);
+}
+
+.servicesHeroMarqueeRow--middle {
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  min-height: clamp(7.4rem, 15vw, 11.25rem);
+}
+
+.servicesHeroMarqueeTrack {
+  display: flex;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: max-content;
+  min-width: max(200%, max-content);
+  white-space: nowrap;
+  will-change: transform;
+}
+
+.servicesHeroMarqueeTrack--rtl {
+  animation: services-hero-marquee-rtl 50s linear infinite;
+}
+
+.servicesHeroMarqueeTrack--ltr {
+  animation: services-hero-marquee-ltr 80s linear infinite;
+}
+
+.servicesHeroMarqueeRow--middle .servicesHeroMarqueeTrack {
+  animation-duration: 80s;
+}
+
+.servicesHeroMarqueeText {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-shrink: 0;
+  padding-right: clamp(2.75rem, 4vw, 4.5rem);
+  font-family: var(--font-serif);
+  font-size: clamp(4.6rem, 9.5vw, 8.9rem);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-shadow:
+    0 0 30px rgba(212, 163, 115, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.16);
+}
+
+.servicesHeroMarqueeRow--top .servicesHeroMarqueeText,
+.servicesHeroMarqueeRow--bottom .servicesHeroMarqueeText {
+  color: rgba(230, 194, 122, 0.1);
+}
+
+.servicesHeroMarqueeRow--middle .servicesHeroMarqueeText {
+  color: rgba(243, 229, 171, 0.14);
+  font-size: clamp(6.9rem, 14vw, 13.4rem);
+  font-weight: 800;
+  line-height: 1.08;
+}
+
+.servicesProcessHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 62rem;
+}
+
+.servicesProcessHeadingEyebrow {
+  margin: 0;
+  color: #d4a373;
+  font-family: var(--font-sans);
+  font-size: clamp(0.74rem, 0.85vw, 0.88rem);
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.servicesProcessHeadingTitle {
+  margin: 0;
+  max-width: 40rem;
+  margin-inline: auto;
+  font-family: var(--font-serif);
+  font-size: clamp(1.55rem, 2.3vw, 2.35rem);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: 0.012em;
+  text-align: center;
+  text-shadow: 0 10px 26px rgba(0, 0, 0, 0.18);
+  text-wrap: balance;
+}
+
+.servicesProcessHeadingPrimary {
+  color: #f8f6f2;
+}
+
+.servicesProcessHeadingAccent {
+  color: #d9b46f;
+}
+
+.servicesProcessHeadingDescription {
+  margin: 0;
+  max-width: 34rem;
+  margin-inline: auto;
+  color: rgba(248, 246, 242, 0.72);
+  font-family: var(--font-sans);
+  font-size: clamp(0.96rem, 1.1vw, 1.05rem);
+  font-weight: 400;
+  line-height: 1.8;
+  text-align: center;
+}
+
+.servicesHeroShell {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 52rem;
+  margin: 0 auto;
+  text-align: center;
+  gap: 1.15rem;
+}
+
+.servicesHeroEyebrow {
+  margin: 0;
+  color: #d4a373;
+  font-family: var(--font-sans);
+  font-size: clamp(0.78rem, 1vw, 0.92rem);
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+}
+
+.servicesHeroHeading {
+  margin: 0;
+  max-width: 48rem;
+  font-family: var(--font-serif);
+  font-size: clamp(3rem, 7vw, 5.6rem);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: 0.02em;
+  text-align: center;
+  text-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  text-wrap: balance;
+}
+
+.servicesHeroHeadingPrimary {
+  color: #f3e5ab;
+}
+
+.servicesHeroHeadingAccent {
+  color: #e6c27a;
+}
+
+.servicesHeroDescription {
+  margin: 0;
+  max-width: 34rem;
+  color: rgba(248, 246, 242, 0.72);
+  font-family: var(--font-sans);
+  font-size: clamp(1rem, 1.35vw, 1.12rem);
+  font-weight: 400;
+  line-height: 1.85;
+  text-align: center;
+}
+
+.servicesHeroAura {
+  position: relative;
+  position: absolute;
+  inset: auto;
+  z-index: 1;
+  width: 30rem;
+  height: 30rem;
+  border-radius: 999px;
+  pointer-events: none;
+  filter: blur(12px);
+}
+
+.servicesHeroAura--left {
+  top: 5rem;
+  left: -10rem;
+  background: radial-gradient(circle, rgba(212, 163, 115, 0.18), transparent 68%);
+}
+
+.servicesHeroAura--right {
+  right: -10rem;
+  bottom: -5rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 70%);
+}
+
+.servicesConsultationCard {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgba(212, 163, 115, 0.08), rgba(13, 17, 22, 0.9) 34%, rgba(13, 17, 22, 0.94) 100%);
+}
+
+.servicesConsultationCard::before,
+.servicesConsultationCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.servicesConsultationCard::before {
+  z-index: -2;
+  background-image: var(--services-consultation-bg);
+  background-position: center 14%;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transform: scale(1.08);
+  transform-origin: center top;
+}
+
+.servicesConsultationCard::after {
+  z-index: -1;
+  background:
+    linear-gradient(90deg, rgba(6, 8, 12, 0.82) 0%, rgba(8, 11, 15, 0.64) 42%, rgba(9, 12, 17, 0.84) 100%),
+    linear-gradient(180deg, rgba(212, 163, 115, 0.12), rgba(10, 12, 16, 0.08) 28%, rgba(10, 12, 16, 0.2) 100%);
+}
+
+.rows {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.row {
+  position: relative;
+  overflow: hidden;
+  min-height: clamp(26rem, 36vw, 31rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 2rem;
+  background:
+    radial-gradient(circle at top right, rgba(212, 163, 115, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(8, 12, 18, 0.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 28px 90px rgba(0, 0, 0, 0.28);
+  padding: 1rem;
+  min-width: 0;
+}
+
+.marqueeFrame {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: calc(clamp(26rem, 36vw, 31rem) - 2rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.55rem;
+  background:
+    radial-gradient(circle at center, rgba(212, 163, 115, 0.08), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(9, 13, 19, 0.12));
+}
+
+.marqueeFrame::before,
+.marqueeFrame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.marqueeFrame::before {
+  z-index: 1;
+  background:
+    linear-gradient(90deg, rgba(7, 10, 14, 0.72), transparent 11%, transparent 89%, rgba(7, 10, 14, 0.72)),
+    linear-gradient(180deg, rgba(7, 10, 14, 0.18), transparent 24%, transparent 76%, rgba(7, 10, 14, 0.22));
+}
+
+.marqueeFrame::after {
+  z-index: 2;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.02), transparent 34%, rgba(212, 163, 115, 0.04)),
+    radial-gradient(circle at center, rgba(0, 0, 0, 0.08), transparent 58%);
+}
+
+.marqueeTrack {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  width: max-content;
+  padding: 1rem;
+  will-change: transform;
+}
+
+.rowPaused .marqueeTrack {
+  animation-play-state: paused;
+}
+
+.rowExpanded .marqueeFrame {
+  z-index: 20;
+}
+
+.marqueeGroup {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  min-width: max-content;
+  padding-right: 1rem;
+}
+
+.marqueeLeft {
+  animation: marquee-left var(--marquee-duration, 28s) linear infinite;
+}
+
+.marqueeRight {
+  animation: marquee-right var(--marquee-duration, 28s) linear infinite;
+}
+
+.imageCard {
+  position: relative;
+  overflow: hidden;
+  flex: 0 0 clamp(14rem, 20vw, 19rem);
+  align-self: stretch;
+  min-height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.1rem;
+  background: rgba(255, 255, 255, 0.03);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 16px 40px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  transform: translateZ(0);
+}
+
+.imageMedia {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-origin: center center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.imageCard:nth-child(3n + 2) {
+  flex-basis: clamp(16rem, 23vw, 22rem);
+}
+
+.imageCard:nth-child(3n + 3) {
+  flex-basis: clamp(12.5rem, 17vw, 16.5rem);
+}
+
+.imageCardActive {
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.imageCardActive .imageMedia {
+  opacity: 0;
+}
+
+.image,
+.expandedImage {
+  object-fit: cover;
+}
+
+.image {
+  transform: scale(1);
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  backface-visibility: hidden;
+}
+
+.imageCard:hover .image {
+  transform: scale(1.05);
+}
+
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 10, 14, 0.04), rgba(8, 10, 14, 0.12) 48%, rgba(8, 10, 14, 0.36)),
+    linear-gradient(140deg, rgba(212, 163, 115, 0.04), transparent 38%, rgba(255, 255, 255, 0.04));
+  pointer-events: none;
+}
+
+.cardShell {
+  position: absolute;
+  top: 50%;
+  left: clamp(1.35rem, 5%, 4rem);
+  z-index: 10;
+  width: min(35%, 31rem);
+  isolation: isolate;
+  contain: paint style;
+  transform: translate3d(0, -50%, 0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.cardShield {
+  position: absolute;
+  top: 1rem;
+  bottom: 1rem;
+  left: clamp(1.35rem, 5%, 4rem);
+  z-index: 5;
+  width: min(35%, 31rem);
+  background: transparent;
+  opacity: 0;
+}
+
+.rowReverse .cardShell {
+  left: auto;
+  right: clamp(1.35rem, 5%, 4rem);
+}
+
+.rowReverse .cardShield {
+  left: auto;
+  right: clamp(1.35rem, 5%, 4rem);
+}
+
+.rowExpanded .cardShell {
+  pointer-events: none;
+}
+
+.textPane {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: auto;
+  display: flex;
+  min-height: clamp(20rem, 26vw, 23rem);
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1.75rem;
+  clip-path: inset(0 round 1.75rem);
+  background-clip: padding-box;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: linear-gradient(#fff 0 0);
+  background:
+    linear-gradient(180deg, rgba(22, 24, 28, 0.72), rgba(8, 11, 15, 0.68)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.05), transparent 56%);
+  backdrop-filter: blur(16px) saturate(145%);
+  -webkit-backdrop-filter: blur(16px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  contain: paint style;
+  transform: translate3d(0, 0, 0);
+  will-change: transform, backdrop-filter;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  padding: clamp(1.85rem, 3.2vw, 2.65rem);
+  color: #f8f6f2;
+  min-width: 0;
+}
+
+.textPane::before,
+.textPane::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.textPane::before {
+  background:
+    linear-gradient(180deg, rgba(7, 9, 12, 0.24), rgba(7, 9, 12, 0.18)),
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.13), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(212, 163, 115, 0.1), transparent 26%);
+}
+
+.textPane::after {
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.textGlow {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05), transparent 42%),
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.12));
+  pointer-events: none;
+}
+
+.textContent,
+.textFooter {
+  position: relative;
+  z-index: 1;
+}
+
+.note {
+  margin: 0;
+  color: rgba(248, 246, 242, 0.72);
+  font-size: var(--type-small);
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.title {
+  margin: 0.8rem 0 0;
+  color: #f8f6f2;
+  font-family: var(--font-serif);
+
+  /* Reduce size */
+  font-size: clamp(1.6rem, 2.2vw, 2.2rem); 
+
+  font-weight: 500; /* slightly lighter = more refined */
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+
+  text-wrap: balance;
+
+  /* Softer shadow (less dramatic) */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.caption {
+  margin: 1.35rem 0 0;
+  max-width: 28rem;
+  color: rgba(248, 246, 242, 0.9);
+  font-size: var(--type-body);
+  font-weight: 300;
+  line-height: 1.75;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  overflow-wrap: anywhere;
+}
+
+.textFooter {
+  margin-top: 2rem;
+}
+
+.button {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem;
+  gap: 0.7rem;
+  padding-inline: 1.25rem 0.35rem;
+  border: 1px solid rgba(212, 163, 115, 0.24);
+  border-radius: 999px;
+  background:
+    radial-gradient(120% 120% at 50% 0%, rgba(31, 26, 12, 0.98) 0%, rgba(9, 10, 13, 0.96) 72%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0));
+  color: #f4e6d5;
+  font-size: var(--type-small);
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.08),
+    0 12px 24px rgba(0, 0, 0, 0.22);
+  transition:
+    transform 260ms ease,
+    border-color 260ms ease,
+    box-shadow 260ms ease;
+}
+
+.button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(212, 163, 115, 0.12), rgba(212, 163, 115, 0));
+  pointer-events: none;
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 163, 115, 0.38);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.1),
+    0 16px 30px rgba(0, 0, 0, 0.28);
+}
+
+.buttonLabel,
+.buttonIcon {
+  position: relative;
+  z-index: 1;
+}
+
+.buttonIcon {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border: 1px solid rgba(212, 163, 115, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(212, 163, 115, 0.18), rgba(212, 163, 115, 0.06));
+  transition: transform 260ms ease;
+}
+
+.buttonIconArrow {
+  display: block;
+  font-size: 0.92rem;
+  line-height: 1;
+  transition: transform 260ms ease;
+}
+
+.button:hover .buttonIcon {
+  transform: translateX(2px);
+}
+
+.button:hover .buttonIconArrow {
+  transform: translate3d(1px, -1px, 0);
+}
+
+.expandedImageCard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 28px 80px rgba(0, 0, 0, 0.34);
+  pointer-events: auto;
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-origin: center center;
+}
+
+.expandedImageMedia {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+.expandedImageCardClosing {
+  z-index: 50;
+  pointer-events: none;
+}
+
+.expandedBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  background:
+    linear-gradient(180deg, rgba(3, 5, 8, 0.2), rgba(3, 5, 8, 0.46)),
+    rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.expandedImageOverlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(8, 10, 14, 0.04), rgba(8, 10, 14, 0.1) 48%, rgba(8, 10, 14, 0.22)),
+    linear-gradient(140deg, transparent 34%, rgba(212, 163, 115, 0.05));
+  pointer-events: none;
+}
+
+.expandedImage {
+  object-fit: cover;
+}
+
+.cursorBadge {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100px;
+  height: 100px;
+  border-radius: 999px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.42), transparent 34%),
+    linear-gradient(135deg, #f7dd62, #f4d03f 48%, #d4a373);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 18px 42px rgba(244, 208, 63, 0.28),
+    0 8px 18px rgba(0, 0, 0, 0.24);
+  will-change: transform, opacity;
+  transform-origin: center;
+}
+
+.cursorBadgeLabel {
+  max-width: 4.5rem;
+  color: #050505;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+@keyframes hero-fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes services-hero-flow {
+  0% {
+    transform: translate3d(-4%, -2%, 0) scale(1.02);
+  }
+
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+
+  100% {
+    transform: translate3d(6%, -1%, 0) scale(1.04);
+  }
+}
+
+@keyframes services-hero-wave {
+  0% {
+    transform: translate3d(-8%, 0, 0) scale(1.08);
+  }
+
+  50% {
+    transform: translate3d(0%, 2%, 0) scale(1.14);
+  }
+
+  100% {
+    transform: translate3d(8%, -1%, 0) scale(1.1);
+  }
+}
+
+@keyframes services-hero-marquee-rtl {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes services-hero-marquee-ltr {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes marquee-left {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes marquee-right {
+  from {
+    transform: translate3d(-50%, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1023px) {
+  .servicesHero {
+    min-height: clamp(26rem, 62vh, 34rem);
+    padding: calc(7.5rem + env(safe-area-inset-top)) 1.25rem 3.75rem;
+  }
+
+  .servicesHeroShell {
+    gap: 1rem;
+  }
+
+  .servicesHeroEyebrow {
+    letter-spacing: 0.28em;
+  }
+
+  .servicesHeroHeading {
+    font-size: clamp(2.5rem, 12vw, 4rem);
+  }
+
+  .servicesHeroDescription {
+    max-width: 28rem;
+  }
+
+  .servicesHeroAura {
+    width: 18rem;
+    height: 18rem;
+    filter: blur(16px);
+  }
+
+  .servicesHeroMarquee {
+    padding-block: 1.25rem;
+    gap: 0.35rem;
+  }
+
+  .servicesHeroMarqueeRow--top,
+  .servicesHeroMarqueeRow--bottom {
+    min-height: clamp(2.5rem, 10vw, 4rem);
+  }
+
+  .servicesHeroMarqueeRow--middle {
+    min-height: clamp(5.3rem, 16vw, 8rem);
+  }
+
+  .servicesConsultationCard::before {
+    background-position: center 12%;
+    transform: scale(1.14);
+  }
+
+  .rows {
+    gap: 1.25rem;
+  }
+
+  .row {
+    min-height: auto;
+  }
+
+  .cardShell {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    width: 100%;
+    transform: none;
+    margin-bottom: 1rem;
+  }
+
+  .cardShield {
+    display: none;
+  }
+
+  .rowReverse .cardShell {
+    right: auto;
+  }
+
+  .rowExpanded .cardShell {
+    pointer-events: none;
+  }
+
+  .textPane {
+    min-height: auto;
+  }
+
+  .marqueeFrame {
+    min-height: 18rem;
+  }
+
+  .imageCard {
+    flex-basis: clamp(11rem, 48vw, 14rem);
+  }
+
+  .imageCard:nth-child(3n + 2) {
+    flex-basis: clamp(12.5rem, 56vw, 16rem);
+  }
+
+  .imageCard:nth-child(3n + 3) {
+    flex-basis: clamp(10.5rem, 42vw, 13rem);
+  }
+
+  .expandedImageCard {
+    top: 0;
+    left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesHero {
+    min-height: 24rem;
+    padding: calc(6.2rem + env(safe-area-inset-top)) 0.95rem 3rem;
+  }
+
+  .servicesHeroHeading {
+    font-size: clamp(2.15rem, 10vw, 3rem);
+    line-height: 1.08;
+  }
+
+  .servicesHeroDescription {
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .row {
+    border-radius: 1.35rem;
+    padding: 0.75rem;
+  }
+
+  .marqueeFrame {
+    min-height: 15rem;
+    border-radius: 1.1rem;
+  }
+
+  .textPane {
+    padding: 1.1rem;
+    border-radius: 1.2rem;
+  }
+
+  .note {
+    letter-spacing: 0.24em;
+  }
+
+  .title {
+    font-size: clamp(1.3rem, 6.2vw, 1.8rem);
+  }
+
+  .caption {
+    margin-top: 0.95rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .textFooter {
+    margin-top: 1.35rem;
+  }
+
+  .button {
+    width: 100%;
+    justify-content: space-between;
+    padding-inline: 1rem 0.35rem;
+    letter-spacing: 0.2em;
+  }
+
+  .servicesConsultationCard {
+    border-radius: 1.45rem;
+  }
+}
+
+.servicesProcessSection {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(5rem, 8vw, 7rem) clamp(1.5rem, 4vw, 2.5rem);
+  perspective: 1200px;
+}
+
+.servicesProcessBackdrop {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.servicesProcessGlow,
+.servicesProcessMesh {
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+}
+
+.servicesProcessGlow {
+  width: 28rem;
+  height: 28rem;
+  border-radius: 999px;
+  filter: blur(20px);
+  opacity: 0.58;
+}
+
+.servicesProcessGlow--left {
+  top: -4rem;
+  left: -8rem;
+  background: radial-gradient(circle, rgba(212, 163, 115, 0.2), transparent 68%);
+}
+
+.servicesProcessGlow--right {
+  right: -9rem;
+  bottom: -7rem;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08), transparent 72%);
+}
+
+.servicesProcessMesh {
+  inset: 0;
+  background:
+    radial-gradient(circle at 16% 28%, rgba(212, 163, 115, 0.12), transparent 22%),
+    radial-gradient(circle at 82% 34%, rgba(248, 246, 242, 0.06), transparent 18%),
+    linear-gradient(
+      120deg,
+      transparent 10%,
+      rgba(212, 163, 115, 0.05) 30%,
+      transparent 52%,
+      rgba(248, 246, 242, 0.04) 74%,
+      transparent 92%
+    );
+  filter: blur(16px);
+  opacity: 0.65;
+}
+
+.servicesProcessShell {
+  position: relative;
+  z-index: 1;
+  max-width: 84rem;
+  margin: 0 auto;
+}
+
+.servicesProcessHeadingWrap {
+  max-width: 62rem;
+  margin: 0 auto;
+}
+
+.servicesProcessTimeline {
+  position: relative;
+  max-width: 74rem;
+  margin: clamp(3.5rem, 6vw, 5rem) auto 0;
+  padding: clamp(1rem, 2vw, 1.5rem) 0;
+}
+
+.servicesProcessRail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(212, 163, 115, 0.2) 14%,
+      rgba(243, 229, 171, 0.48) 50%,
+      rgba(212, 163, 115, 0.2) 86%,
+      transparent 100%
+    );
+  box-shadow: 0 0 28px rgba(212, 163, 115, 0.18);
+}
+
+.servicesProcessGrid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.25rem, 2.2vw, 2rem);
+  align-items: start;
+}
+
+.servicesProcessStep {
+  position: relative;
+  min-height: clamp(18rem, 22vw, 22rem);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.servicesProcessStep--rise {
+  padding-bottom: clamp(4.5rem, 6vw, 5.75rem);
+}
+
+.servicesProcessStep--fall {
+  padding-top: clamp(4.5rem, 6vw, 5.75rem);
+}
+
+.servicesProcessConnector {
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(243, 229, 171, 0),
+      rgba(243, 229, 171, 0.5) 42%,
+      rgba(243, 229, 171, 0.12)
+    );
+  opacity: 0.9;
+}
+
+.servicesProcessStep--rise .servicesProcessConnector {
+  bottom: 0;
+  height: clamp(4.5rem, 6vw, 5.75rem);
+}
+
+.servicesProcessStep--fall .servicesProcessConnector {
+  top: 0;
+  height: clamp(4.5rem, 6vw, 5.75rem);
+  transform: translateX(-50%) rotate(180deg);
+}
+
+.servicesProcessBadge {
+  position: absolute;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(3.9rem, 4.6vw, 4.5rem);
+  height: clamp(3.9rem, 4.6vw, 4.5rem);
+  padding: 1px;
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(243, 229, 171, 0.9), rgba(212, 163, 115, 0.32));
+  box-shadow:
+    0 18px 36px rgba(0, 0, 0, 0.22),
+    0 0 24px rgba(212, 163, 115, 0.16);
+  transform: translateX(-50%);
+  transition:
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 420ms ease;
+}
+
+.servicesProcessStep--rise .servicesProcessBadge {
+  bottom: clamp(2.65rem, 3.7vw, 3.5rem);
+}
+
+.servicesProcessStep--fall .servicesProcessBadge {
+  top: clamp(2.65rem, 3.7vw, 3.5rem);
+}
+
+.servicesProcessBadgeInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.14), transparent 34%),
+    linear-gradient(180deg, rgba(14, 15, 18, 0.98), rgba(7, 8, 11, 0.98));
+  color: #f3e5ab;
+  font-size: 0.84rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.servicesProcessCard {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: clamp(15.5rem, 21vw, 18.75rem);
+  padding: clamp(1.65rem, 2.2vw, 2rem);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.85rem;
+  background:
+    linear-gradient(180deg, rgba(16, 18, 22, 0.88), rgba(8, 9, 12, 0.94)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 46%);
+  backdrop-filter: blur(16px) saturate(125%);
+  -webkit-backdrop-filter: blur(16px) saturate(125%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 26px 60px rgba(0, 0, 0, 0.22);
+  transition:
+    border-color 420ms ease,
+    box-shadow 420ms ease,
+    background-color 420ms ease,
+    transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.servicesProcessCard::before,
+.servicesProcessCard::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.servicesProcessCard::before {
+  border-radius: inherit;
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.06), transparent 38%),
+    radial-gradient(circle at top right, rgba(212, 163, 115, 0.1), transparent 28%);
+  opacity: 0.9;
+}
+
+.servicesProcessCard::after {
+  inset: 1px;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.servicesProcessCardSheen {
+  position: absolute;
+  inset: -35%;
+  background:
+    linear-gradient(
+      115deg,
+      transparent 28%,
+      rgba(243, 229, 171, 0.12) 48%,
+      transparent 66%
+    );
+  opacity: 0;
+  transform: translateX(-24%) rotate(8deg);
+  transition:
+    opacity 460ms ease,
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.servicesProcessStep:hover .servicesProcessCard {
+  border-color: rgba(243, 229, 171, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 32px 72px rgba(0, 0, 0, 0.28),
+    0 0 0 1px rgba(243, 229, 171, 0.08);
+}
+
+.servicesProcessStep:hover .servicesProcessCardSheen {
+  opacity: 1;
+  transform: translateX(18%) rotate(8deg);
+}
+
+.servicesProcessStep:hover .servicesProcessBadge {
+  box-shadow:
+    0 22px 44px rgba(0, 0, 0, 0.26),
+    0 0 30px rgba(212, 163, 115, 0.24);
+}
+
+.servicesProcessStage,
+.servicesProcessCardTitle,
+.servicesProcessCardText {
+  position: relative;
+  z-index: 1;
+}
+
+.servicesProcessStage {
+  margin: 0;
+  color: rgba(243, 229, 171, 0.74);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.servicesProcessCardTitle {
+  margin: 0;
+  color: #f8f6f2;
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 2.6vw, 2.75rem);
+  font-weight: 600;
+  line-height: 0.96;
+  letter-spacing: 0.01em;
+}
+
+.servicesProcessCardText {
+  margin: 0;
+  max-width: 19rem;
+  color: rgba(232, 224, 212, 0.86);
+  font-size: clamp(0.98rem, 1.08vw, 1.08rem);
+  font-weight: 400;
+  line-height: 1.8;
+}
+
+@media (max-width: 1023px) {
+  .servicesProcessHeading {
+    max-width: 100%;
+  }
+
+  .servicesProcessHeadingWrap {
+    max-width: 46rem;
+  }
+
+  .servicesProcessHeadingTitle {
+    max-width: 100%;
+    font-size: clamp(1.45rem, 3.8vw, 2rem);
+    line-height: 1.2;
+  }
+
+  .servicesProcessSection {
+    padding: 4.75rem 1.25rem 5.25rem;
+  }
+
+  .servicesProcessGlow {
+    width: 18rem;
+    height: 18rem;
+  }
+
+  .servicesProcessTimeline {
+    margin-top: 3rem;
+    padding-left: 0.25rem;
+  }
+
+  .servicesProcessRail {
+    top: 0;
+    bottom: 0;
+    left: 1.6rem;
+    right: auto;
+    width: 1px;
+    height: auto;
+    transform: none;
+    background:
+      linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(212, 163, 115, 0.24) 12%,
+        rgba(243, 229, 171, 0.42) 50%,
+        rgba(212, 163, 115, 0.24) 88%,
+        transparent 100%
+      );
+  }
+
+  .servicesProcessGrid {
+    grid-template-columns: 1fr;
+    gap: 1.35rem;
+  }
+
+  .servicesProcessStep,
+  .servicesProcessStep--rise,
+  .servicesProcessStep--fall {
+    min-height: auto;
+    padding: 0 0 0 4.15rem;
+  }
+
+  .servicesProcessConnector {
+    display: none;
+  }
+
+  .servicesProcessBadge,
+  .servicesProcessStep--rise .servicesProcessBadge,
+  .servicesProcessStep--fall .servicesProcessBadge {
+    top: 1.35rem;
+    left: 1.6rem;
+    bottom: auto;
+    width: 3.4rem;
+    height: 3.4rem;
+    transform: translateX(-50%);
+  }
+
+  .servicesProcessCard {
+    min-height: auto;
+    padding: 1.5rem 1.35rem 1.45rem;
+  }
+
+  .servicesProcessCardText {
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesProcessHeadingTitle {
+    font-size: clamp(1.3rem, 5.8vw, 1.7rem);
+    line-height: 1.24;
+    letter-spacing: 0.01em;
+  }
+
+  .servicesProcessHeadingDescription {
+    max-width: 30rem;
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+}
