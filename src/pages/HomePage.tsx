@@ -18,6 +18,9 @@ const HOME_PAGE_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page`
 const homePageImagePath = (fileName: string) =>
   `${HOME_PAGE_IMAGES_PATH}/${encodeURIComponent(fileName)}`
 
+const homePageOptimizedImagePath = (fileName: string) =>
+  `${HOME_PAGE_IMAGES_PATH}/${encodeURIComponent(fileName)}`
+
 type FeatureItem = {
   id: string
   number: string
@@ -38,10 +41,46 @@ type HomePageProps = {
   onOpenConsultation: () => void
 }
 
-const QUOTE_BACKGROUND_LAYER = homePageImagePath('quote-background.jpg')
+type DeferredSectionProps = {
+  children: ReactElement
+  minHeight: string
+}
+
+function useDeferredActivation<T extends HTMLElement>(rootMargin = '250px 0px') {
+  const ref = useRef<T | null>(null)
+  const [isActive, setIsActive] = useState(false)
+
+  useEffect(() => {
+    if (isActive || ref.current === null) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          return
+        }
+
+        setIsActive(true)
+        observer.disconnect()
+      },
+      { rootMargin },
+    )
+
+    observer.observe(ref.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [isActive, rootMargin])
+
+  return { ref, isActive }
+}
+
+const QUOTE_BACKGROUND_LAYER = homePageOptimizedImagePath('quote-background.webp')
 const QUOTE_FOREGROUND_LAYER = homePageImagePath('quote-foreground.jpg')
 const QUOTE_TEXT = 'Every Space Has a Story ,We Help You Tell It Beautifully.'
-const CONTACT_IMAGE = homePageImagePath('contact-cta-background.jpg')
+const CONTACT_IMAGE = homePageOptimizedImagePath('contact-cta-background.webp')
 
 const stats = [
   { label: 'Years Experience', value: '05+' },
@@ -141,8 +180,8 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     title: 'Everything in One Platform',
     description:
       'Replace multiple tools with a single interior design platform designed for planning, coordination, and execution.',
-    image: homePageImagePath('why-choose-platform-main.jpg'),
-    thumbnail: homePageImagePath('why-choose-platform-thumb.jpg'),
+    image: homePageOptimizedImagePath('why-choose-platform-main.webp'),
+    thumbnail: homePageOptimizedImagePath('why-choose-platform-thumb.webp'),
     Icon: PlatformIcon,
   },
   {
@@ -150,7 +189,7 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     number: '02',
     title: 'Control Your Budget with Clarity',
     description: 'Stay financially in control with structured estimation and real-time cost tracking.',
-    image: homePageImagePath('why-choose-budget-main.jpg'),
+    image: homePageOptimizedImagePath('why-choose-budget-main.webp'),
     thumbnail: homePageImagePath('why-choose-budget-thumb.jpg'),
     Icon: BudgetIcon,
   },
@@ -159,7 +198,7 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     number: '03',
     title: 'Total Transparency at Every Step',
     description: 'Track updates, milestones, and execution progress with full visibility.',
-    image: homePageImagePath('why-choose-transparency-main.jpg'),
+    image: homePageOptimizedImagePath('why-choose-transparency-main.webp'),
     thumbnail: homePageImagePath('why-choose-transparency-thumb.jpg'),
     Icon: TransparencyIcon,
   },
@@ -168,8 +207,8 @@ const whyChooseFeatures: readonly FeatureItem[] = [
     number: '04',
     title: 'Your Project, In Your Pocket',
     description: 'Monitor progress, updates, and communication anytime through mobile access.',
-    image: homePageImagePath('why-choose-mobile-main.jpg'),
-    thumbnail: homePageImagePath('why-choose-mobile-thumb.jpg'),
+    image: homePageOptimizedImagePath('why-choose-mobile-main.webp'),
+    thumbnail: homePageOptimizedImagePath('why-choose-mobile-thumb.webp'),
     Icon: MobileIcon,
   },
 ] as const
@@ -181,15 +220,61 @@ const whyChooseFeatures: readonly FeatureItem[] = [
 function HomeHeroSection() {
   return (
     <section className="home-page__hero">
-      <VideoBackground src="/videos/Arelia_Space.mp4" isHome isSection />
+      <VideoBackground
+        src="/videos/Arelia_Space-lite.mp4"
+        posterSrc="/videos/Arelia_Space-poster.webp"
+        isHome
+        isSection
+        deferMs={1200}
+      />
       <div className="home-page__content">
         <h1 className="home-page__title">
-          <span className="home-page__line">We Don't Just Design Spaces </span>
-          <span className="home-page__line">We Design</span>
-          <span className="home-page__brand"> How You Live.</span>
+          <span className="home-page__line">We Don't Just Design Spaces</span>
+          <span className="home-page__line">
+            We Design <span className="home-page__brand home-page__brand--inline">How You Live.</span>
+          </span>
         </h1>
       </div>
     </section>
+  )
+}
+
+function DeferredSection({ children, minHeight }: DeferredSectionProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [shouldRender, setShouldRender] = useState(false)
+
+  useEffect(() => {
+    if (shouldRender || containerRef.current === null) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) {
+          return
+        }
+
+        setShouldRender(true)
+        observer.disconnect()
+      },
+      { rootMargin: '400px 0px' },
+    )
+
+    observer.observe(containerRef.current)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [shouldRender])
+
+  return (
+    <div
+      ref={containerRef}
+      className={`home-page__deferred-section${shouldRender ? ' is-loaded' : ''}`}
+      style={{ '--deferred-min-height': minHeight } as CSSProperties}
+    >
+      {shouldRender ? children : null}
+    </div>
   )
 }
 
@@ -198,7 +283,7 @@ function HomeHeroSection() {
 // ============================================================
 
 function WhyChooseSection() {
-  const sectionRef = useRef<HTMLElement | null>(null)
+  const { ref: sectionRef, isActive } = useDeferredActivation<HTMLElement>('350px 0px')
   const cardRef = useRef<HTMLElement | null>(null)
   const layoutRef = useRef<HTMLDivElement | null>(null)
   const contentRef = useRef<HTMLDivElement | null>(null)
@@ -210,7 +295,14 @@ function WhyChooseSection() {
   const [isAutoPaused, setIsAutoPaused] = useState(false)
 
   useEffect(() => {
-    if (!sectionRef.current || !cardRef.current || !contentRef.current || !imageLayerRef.current || !navRef.current) {
+    if (
+      !isActive ||
+      !sectionRef.current ||
+      !cardRef.current ||
+      !contentRef.current ||
+      !imageLayerRef.current ||
+      !navRef.current
+    ) {
       return
     }
 
@@ -245,10 +337,17 @@ function WhyChooseSection() {
       cardElement.removeEventListener('mouseleave', resetCardLight)
       context.revert()
     }
-  }, [])
+  }, [isActive, sectionRef])
 
   useEffect(() => {
-    if (!contentRef.current || !imageLayerRef.current || !activeImageRef.current || !detailImageRef.current || !navRef.current) {
+    if (
+      !isActive ||
+      !contentRef.current ||
+      !imageLayerRef.current ||
+      !activeImageRef.current ||
+      !detailImageRef.current ||
+      !navRef.current
+    ) {
       return
     }
 
@@ -278,10 +377,10 @@ function WhyChooseSection() {
     return () => {
       timeline.kill()
     }
-  }, [activeIndex])
+  }, [activeIndex, isActive])
 
   useEffect(() => {
-    if (isAutoPaused) {
+    if (!isActive || isAutoPaused) {
       return
     }
 
@@ -292,7 +391,7 @@ function WhyChooseSection() {
     return () => {
       window.clearInterval(intervalId)
     }
-  }, [isAutoPaused])
+  }, [isActive, isAutoPaused])
 
   const activeFeature = whyChooseFeatures[activeIndex]
 
@@ -419,7 +518,7 @@ const SHOWCASE_CARDS: readonly ShowcaseCardData[] = [
     number: '01',
     title: 'Live Project Tracking',
     description: 'Monitor every milestone and vendor in real time.',
-    image: homePageImagePath('Live Tracking.jpg'),
+    image: homePageOptimizedImagePath('Live-Tracking.webp'),
     floatDuration: 5.4,
     Icon: (props) => (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" {...props}>
@@ -434,7 +533,7 @@ const SHOWCASE_CARDS: readonly ShowcaseCardData[] = [
     number: '02',
     title: 'Live Mobile Updates',
     description: 'Instant updates and approvals, right on your phone.',
-    image: homePageImagePath('Live Upadte.jpg'),
+    image: homePageOptimizedImagePath('Live-Update.webp'),
     floatDuration: 6.0,
     Icon: (props) => (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" {...props}>
@@ -449,7 +548,7 @@ const SHOWCASE_CARDS: readonly ShowcaseCardData[] = [
     number: '03',
     title: 'End-to-End Coordination',
     description: 'Every vendor, approval and detail — handled for you.',
-    image: homePageImagePath('End to end coordination.jpg'),
+    image: homePageOptimizedImagePath('End-to-end-coordination.webp'),
     floatDuration: 5.7,
     Icon: (props) => (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" {...props}>
@@ -707,19 +806,20 @@ function ShowcaseCard({ card, index, isActive, isAnyHovered, onMouseEnter, onMou
 }
 
 function SignatureShowcaseSection() {
+  const { ref: sectionRef, isActive } = useDeferredActivation<HTMLElement>('350px 0px')
   const [activeIndex, setActiveIndex] = useState(0)
   const [isAnyHovered, setIsAnyHovered] = useState(false)
 
   useEffect(() => {
-    if (isAnyHovered) return
+    if (!isActive || isAnyHovered) return
     const id = window.setInterval(() => {
       setActiveIndex((i) => (i + 1) % SHOWCASE_CARDS.length)
     }, CYCLE_INTERVAL)
     return () => window.clearInterval(id)
-  }, [isAnyHovered])
+  }, [isActive, isAnyHovered])
 
   return (
-    <section className="ssc-section">
+    <section ref={sectionRef} className="ssc-section">
       {/* Header */}
       <header className="ssc-header">
         <motion.p
@@ -739,7 +839,7 @@ function SignatureShowcaseSection() {
           viewport={{ once: true }}
           transition={{ delay: 0.1, duration: 0.7, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
         >
-          Where Excellence is Not an Option , It's a Standard.
+          Where Excellence is Not an Option, It's a Standard.
         </motion.h2>
 
         <motion.p
@@ -806,14 +906,14 @@ function SignatureShowcaseSection() {
 // ============================================================
 
 function QuoteSectionSection() {
-  const sectionRef = useRef<HTMLElement | null>(null)
+  const { ref: sectionRef, isActive } = useDeferredActivation<HTMLElement>('300px 0px')
   const backgroundRef = useRef<HTMLDivElement | null>(null)
   const foregroundRef = useRef<HTMLDivElement | null>(null)
   const wordRefs = useRef<Array<HTMLSpanElement | null>>([])
   const words = useMemo(() => QUOTE_TEXT.split(' '), [])
 
   useEffect(() => {
-    if (!sectionRef.current || !backgroundRef.current || !foregroundRef.current) return
+    if (!isActive || !sectionRef.current || !backgroundRef.current || !foregroundRef.current) return
     const animationContext = gsap.context(() => {
       gsap.fromTo(sectionRef.current, { autoAlpha: 0, y: 50 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 85%', once: true } })
       gsap.to(backgroundRef.current, { yPercent: -5, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
@@ -821,7 +921,7 @@ function QuoteSectionSection() {
       gsap.fromTo(wordRefs.current, { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true } })
     }, sectionRef)
     return () => animationContext.revert()
-  }, [])
+  }, [isActive, sectionRef])
 
   return (
     <section ref={sectionRef} className="quote-section">
@@ -883,11 +983,11 @@ function AnimatedNumber({ value, isActive }: AnimatedNumberProps) {
 }
 
 function StatsSection() {
-  const sectionRef = useRef<HTMLElement | null>(null)
+  const { ref: sectionRef, isActive: isSectionActive } = useDeferredActivation<HTMLElement>('300px 0px')
   const [isActive, setIsActive] = useState(false)
 
   useEffect(() => {
-    if (sectionRef.current === null) return
+    if (!isSectionActive || sectionRef.current === null) return
     const animationContext = gsap.context(() => {
       gsap.fromTo('.stats__lane', { autoAlpha: 0, y: 60 }, {
         autoAlpha: 1,
@@ -909,7 +1009,7 @@ function StatsSection() {
       })
     }, sectionRef)
     return () => animationContext.revert()
-  }, [])
+  }, [isSectionActive, sectionRef])
 
   return (
     <section ref={sectionRef} className="stats luxury-section">
@@ -964,17 +1064,17 @@ function LocalTestimonialCard({ testimonial }: { testimonial: Testimonial }) {
 }
 
 function ClientTestimonialsSection() {
-  const sectionRef = useRef<HTMLElement | null>(null)
+  const { ref: sectionRef, isActive } = useDeferredActivation<HTMLElement>('300px 0px')
   const duplicated = [...testimonials, ...testimonials]
 
   useEffect(() => {
-    if (sectionRef.current === null) return
+    if (!isActive || sectionRef.current === null) return
     const context = gsap.context(() => {
       gsap.fromTo('.client-testimonials__reveal', { autoAlpha: 0, y: 32 }, { autoAlpha: 1, y: 0, duration: 0.95, stagger: 0.1, ease: 'power3.out' })
       gsap.fromTo('.client-testimonials__row', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 1.1, stagger: 0.08, ease: 'power3.out', delay: 0.1 })
     }, sectionRef)
     return () => context.revert()
-  }, [])
+  }, [isActive, sectionRef])
 
   return (
     <section ref={sectionRef} className="client-testimonials luxury-section luxury-section--wide">
@@ -1011,11 +1111,11 @@ function ClientTestimonialsSection() {
 // ============================================================
 
 function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => void }) {
-  const sectionRef = useRef<HTMLElement | null>(null)
+  const { ref: sectionRef, isActive } = useDeferredActivation<HTMLElement>('300px 0px')
   const backgroundRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (sectionRef.current === null || backgroundRef.current === null) return
+    if (!isActive || sectionRef.current === null || backgroundRef.current === null) return
     const animationContext = gsap.context(() => {
       gsap.fromTo('.contact-cta__reveal', { autoAlpha: 0, y: 70 }, {
         autoAlpha: 1,
@@ -1036,7 +1136,7 @@ function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => v
     return () => {
       animationContext.revert()
     }
-  }, [])
+  }, [isActive, sectionRef])
 
   return (
     <section ref={sectionRef} className="contact-cta luxury-section luxury-section--wide">
@@ -1068,11 +1168,21 @@ export function HomePage({ onOpenConsultation }: HomePageProps) {
       <HomeHeroSection />
       <div className="home-page__sections">
         <WhyChooseSection />
-        <SignatureShowcaseSection />
-        <QuoteSectionSection />
-        <StatsSection />
-        <ClientTestimonialsSection />
-        <ContactCTASection onOpenConsultation={onOpenConsultation} />
+        <DeferredSection minHeight="780px">
+          <SignatureShowcaseSection />
+        </DeferredSection>
+        <DeferredSection minHeight="760px">
+          <QuoteSectionSection />
+        </DeferredSection>
+        <DeferredSection minHeight="420px">
+          <StatsSection />
+        </DeferredSection>
+        <DeferredSection minHeight="540px">
+          <ClientTestimonialsSection />
+        </DeferredSection>
+        <DeferredSection minHeight="720px">
+          <ContactCTASection onOpenConsultation={onOpenConsultation} />
+        </DeferredSection>
       </div>
     </main>
   )

@@ -362,7 +362,8 @@
   align-items: center;
   justify-content: space-between;
   height: 72px;
-  padding-inline: 1rem;
+  padding-inline: max(1rem, env(safe-area-inset-left)) max(1rem, env(safe-area-inset-right));
+  padding-top: env(safe-area-inset-top);
 }
 
 .navigationMenu__brand--mobile {
@@ -424,9 +425,13 @@
   flex-direction: column;
   gap: 1.5rem;
   padding: 1.5rem;
+  padding-left: max(1.5rem, env(safe-area-inset-left));
+  padding-right: max(1.5rem, env(safe-area-inset-right));
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
   background: linear-gradient(180deg, rgba(18, 18, 18, 0.96), rgba(10, 10, 10, 0.92));
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
+  overflow-y: auto;
 }
 
 .navigationMenu__mobileLinks {
@@ -466,6 +471,55 @@
   top: 72px;
   z-index: 30;
   background: rgba(0, 0, 0, 0.22);
+}
+
+@media (max-width: 420px) {
+  .navigationMenu__mobileBar {
+    height: 68px;
+    padding-inline: max(0.85rem, env(safe-area-inset-left))
+      max(0.85rem, env(safe-area-inset-right));
+  }
+
+  .navigationMenu__brand--mobile {
+    gap: 0.55rem;
+    min-width: 0;
+  }
+
+  .navigationMenu__brandLogo--mobile {
+    height: 34px;
+  }
+
+  .navigationMenu__brandTitle--mobile {
+    font-size: 0.82rem;
+    letter-spacing: 0.16em;
+  }
+
+  .navigationMenu__mobilePanel {
+    top: 68px;
+    gap: 1.15rem;
+    padding-top: 1rem;
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .navigationMenu__mobileActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navigationMenu__consultation--mobile {
+    width: 100%;
+    min-height: 3rem;
+  }
+
+  .navigationMenu__iconButton--mobile {
+    width: 100%;
+    height: 3rem;
+  }
+
+  .navigationMenu__mobileBackdrop {
+    top: 68px;
+  }
 }
 
 @media (max-width: 1279px) {

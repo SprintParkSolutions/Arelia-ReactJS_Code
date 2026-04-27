@@ -35,6 +35,15 @@ body {
   z-index: 1;
 }
 
+.app-shell__content {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell__route-fallback {
+  min-height: 100vh;
+}
+
 .page {
   position: relative;
   z-index: 1;
