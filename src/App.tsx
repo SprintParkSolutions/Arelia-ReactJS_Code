@@ -58,7 +58,6 @@ export default function App() {
           src="/videos/arelia-global-background-lite.mp4"
           posterSrc="/videos/arelia-global-background-poster.webp"
           deferMs={2500}
-          disableOnMobile
         />
         <NavigationMenu onOpenConsultation={() => setIsConsultationOpen(true)} />
         <Suspense fallback={<div className="app-shell__route-fallback" aria-hidden="true" />}>
