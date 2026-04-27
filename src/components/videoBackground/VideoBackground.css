@@ -24,6 +24,19 @@
   object-fit: cover;
 }
 
+.site-video-background__poster {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  transition: opacity 300ms ease;
+}
+
+.site-video-background__poster--hidden {
+  opacity: 0;
+}
+
 .site-video-background__media--home {
   filter: brightness(1.18) saturate(1.05);
 }

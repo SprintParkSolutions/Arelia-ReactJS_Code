@@ -9,6 +9,7 @@
   overflow: hidden;
   padding: clamp(8.5rem, 15vw, 11rem) clamp(1.5rem, 4vw, 3.5rem)
     clamp(4.5rem, 8vw, 6.5rem);
+  padding-top: max(clamp(8.5rem, 15vw, 11rem), calc(7rem + env(safe-area-inset-top)));
 }
 
 .servicesHero::before,
@@ -331,6 +332,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 28px 90px rgba(0, 0, 0, 0.28);
   padding: 1rem;
+  min-width: 0;
 }
 
 .marqueeFrame {
@@ -543,6 +545,7 @@
   -webkit-backface-visibility: hidden;
   padding: clamp(1.85rem, 3.2vw, 2.65rem);
   color: #f8f6f2;
+  min-width: 0;
 }
 
 .textPane::before,
@@ -617,6 +620,7 @@
   font-weight: 300;
   line-height: 1.75;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  overflow-wrap: anywhere;
 }
 
 .textFooter {
@@ -878,7 +882,7 @@
 @media (max-width: 1023px) {
   .servicesHero {
     min-height: clamp(26rem, 62vh, 34rem);
-    padding: 7.5rem 1.25rem 3.75rem;
+    padding: calc(7.5rem + env(safe-area-inset-top)) 1.25rem 3.75rem;
   }
 
   .servicesHeroShell {
@@ -975,6 +979,67 @@
   .expandedImageCard {
     top: 0;
     left: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .servicesHero {
+    min-height: 24rem;
+    padding: calc(6.2rem + env(safe-area-inset-top)) 0.95rem 3rem;
+  }
+
+  .servicesHeroHeading {
+    font-size: clamp(2.15rem, 10vw, 3rem);
+    line-height: 1.08;
+  }
+
+  .servicesHeroDescription {
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .row {
+    border-radius: 1.35rem;
+    padding: 0.75rem;
+  }
+
+  .marqueeFrame {
+    min-height: 15rem;
+    border-radius: 1.1rem;
+  }
+
+  .textPane {
+    padding: 1.1rem;
+    border-radius: 1.2rem;
+  }
+
+  .note {
+    letter-spacing: 0.24em;
+  }
+
+  .title {
+    font-size: clamp(1.3rem, 6.2vw, 1.8rem);
+  }
+
+  .caption {
+    margin-top: 0.95rem;
+    font-size: 0.95rem;
+    line-height: 1.65;
+  }
+
+  .textFooter {
+    margin-top: 1.35rem;
+  }
+
+  .button {
+    width: 100%;
+    justify-content: space-between;
+    padding-inline: 1rem 0.35rem;
+    letter-spacing: 0.2em;
+  }
+
+  .servicesConsultationCard {
+    border-radius: 1.45rem;
   }
 }
 

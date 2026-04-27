@@ -3,10 +3,9 @@ import { useEffect, useRef } from 'react'
 import './Footer.css'
 
 const services = [
-  'Commercial Interior Design',
-  'Residential Interior Design',
-  'Hospitality Spaces',
-  'Retail Interiors',
+  'Commercial Interiors',
+  'Residential Interiors',
+  'Hospitality Interiors',
 ]
 
 export function Footer() {
@@ -62,7 +61,7 @@ export function Footer() {
         <div className="site-footer__grid">
           <div className="site-footer__brand">
             <img
-              src="/images/Logos/Arelia_Logo.png"
+              src="/images/Logos/Arelia_Logo.webp"
               alt="Arelia"
               className="site-footer__logo"
             />
