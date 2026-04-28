@@ -2,6 +2,7 @@ import type {
   CSSProperties,
   MouseEvent as ReactMouseEvent,
   ReactNode,
+  TouchEvent as ReactTouchEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -86,6 +87,15 @@ type MotionRect = {
   y: number;
 };
 
+type ImageActivationParams = {
+  imageAlt: string;
+  imageId: string;
+  imageIndex: number;
+  imageSrc: string;
+  rowIndex: number;
+  sourceElement: HTMLDivElement | null;
+};
+
 type ServiceImageProps = {
   alt: string;
   className: string;
@@ -167,6 +177,7 @@ const FALLBACK_SERVICE_IMAGE = serviceImagePath(
   "services-residential-01.jpg",
 );
 const CURSOR_BADGE_SIZE = 100;
+const TOUCH_CLICK_SUPPRESSION_MS = 750;
 const thumbnailRadius = 18;
 const expandedRadius = 32;
 
@@ -214,7 +225,7 @@ const servicesData: ServiceItem[] = [
     note: "04 /  BEYOND FOUR WALLS",
     title: "Full Home & Turnkey Design",
     caption:
-      "A complete end-to-end interior design service  from 3D interior design visualization and premium material selection to dedicated site supervision and final project handover, every room perfectly brought to life. ",
+      "A complete end-to-end interior design service  from 3D interior design visualization to dedicated site supervision and final project handover. ",
     images: [
       serviceImagePath("kitchen", "services-kitchen-01.jpg"),
       serviceImagePath("kitchen", "services-kitchen-02.jpg"),
@@ -396,6 +407,12 @@ function SignatureServicesSection() {
   const cardHoverRowRef = useRef<number | null>(null);
   const frameRefs = useRef<Record<number, HTMLDivElement | null>>({});
   const imageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const supportsHoverRef = useRef(
+    typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(hover: hover) and (pointer: fine)").matches,
+  );
+  const isTouchSuppressedRef = useRef(false);
   const pointerX = useMotionValue(0);
   const pointerY = useMotionValue(0);
   const cursorX = useMotionValue(-CURSOR_BADGE_SIZE);
@@ -417,6 +434,33 @@ function SignatureServicesSection() {
   const cursorYSpring = useSpring(cursorY, cursorSpringConfig);
   const panX = useTransform(smoothPointerX, [-1, 1], [32, -32]);
   const panY = useTransform(smoothPointerY, [-1, 1], [24, -24]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const updateSupportsHover = () => {
+      supportsHoverRef.current = mediaQuery.matches;
+    };
+
+    updateSupportsHover();
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", updateSupportsHover);
+
+      return () => {
+        mediaQuery.removeEventListener("change", updateSupportsHover);
+      };
+    }
+
+    mediaQuery.addListener(updateSupportsHover);
+
+    return () => {
+      mediaQuery.removeListener(updateSupportsHover);
+    };
+  }, []);
 
   const resetExpandedPan = () => {
     pointerX.set(0);
@@ -513,6 +557,87 @@ function SignatureServicesSection() {
     });
   };
 
+  const openLightboxFromImage = ({
+    imageAlt,
+    imageId,
+    imageIndex,
+    imageSrc,
+    rowIndex,
+    sourceElement,
+  }: ImageActivationParams) => {
+    const frameElement = frameRefs.current[rowIndex];
+
+    if (!frameElement) {
+      return;
+    }
+
+    const coverRect = getCoverRect(frameElement);
+
+    resetExpandedPan();
+    resetFollowerCursor();
+    setIsExpandedImageReady(false);
+    setExpandedImage({
+      alt: imageAlt,
+      coverRect,
+      id: imageId,
+      phase: "open",
+      rect: getRectWithinFrame(frameElement, sourceElement, thumbnailRadius),
+      rowIndex,
+      src: imageSrc,
+    });
+    setLightboxIndex(imageIndex);
+  };
+
+  const handleThumbnailMouseEnter = (
+    image: Omit<ExpandedImage, "coverRect" | "phase" | "rect">,
+    sourceElement: HTMLDivElement | null,
+  ) => {
+    if (!supportsHoverRef.current) {
+      return;
+    }
+
+    openExpandedImage(image, sourceElement);
+  };
+
+  const handleThumbnailClick = (
+    event: ReactMouseEvent<HTMLDivElement>,
+    image: ImageActivationParams,
+  ) => {
+    event.stopPropagation();
+
+    if (isTouchSuppressedRef.current) {
+      return;
+    }
+
+    if (!supportsHoverRef.current) {
+      openLightboxFromImage(image);
+      return;
+    }
+
+    openExpandedImage(
+      {
+        alt: image.imageAlt,
+        id: image.imageId,
+        rowIndex: image.rowIndex,
+        src: image.imageSrc,
+      },
+      image.sourceElement,
+    );
+  };
+
+  const handleThumbnailTouchEnd = (
+    event: ReactTouchEvent<HTMLDivElement>,
+    image: ImageActivationParams,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    isTouchSuppressedRef.current = true;
+    setTimeout(() => {
+      isTouchSuppressedRef.current = false;
+    }, TOUCH_CLICK_SUPPRESSION_MS);
+    openLightboxFromImage(image);
+  };
+
   const closeExpandedImage = (rowIndex: number) => {
     resetExpandedPan();
     resetFollowerCursor();
@@ -542,11 +667,19 @@ function SignatureServicesSection() {
   };
 
   const handleCardMouseEnter = (rowIndex: number) => {
+    if (!supportsHoverRef.current) {
+      return;
+    }
+
     cardHoverRowRef.current = rowIndex;
     closeExpandedImage(rowIndex);
   };
 
   const handleCardMouseLeave = (rowIndex: number) => {
+    if (!supportsHoverRef.current) {
+      return;
+    }
+
     if (cardHoverRowRef.current === rowIndex) {
       cardHoverRowRef.current = null;
     }
@@ -643,6 +776,13 @@ function SignatureServicesSection() {
                           {service.images.map((image, imageIndex) => {
                             const imageId = `service-image-${index}-${copyIndex}-${imageIndex}`;
                             const imageAlt = `${service.title} visual ${imageIndex + 1}`;
+                            const imageActivation = {
+                              imageAlt,
+                              imageId,
+                              imageIndex,
+                              imageSrc: image,
+                              rowIndex: index,
+                            };
 
                             return (
                               <figure
@@ -658,10 +798,13 @@ function SignatureServicesSection() {
                                     imageRefs.current[imageId] = node;
                                   }}
                                   className={styles.imageMedia}
-                                  style={{ borderRadius: thumbnailRadius }}
+                                  style={{
+                                    borderRadius: thumbnailRadius,
+                                    touchAction: "manipulation",
+                                  }}
                                   transition={imageTransition}
                                   onMouseEnter={(event) =>
-                                    openExpandedImage(
+                                    handleThumbnailMouseEnter(
                                       {
                                         alt: imageAlt,
                                         id: imageId,
@@ -672,16 +815,16 @@ function SignatureServicesSection() {
                                     )
                                   }
                                   onClick={(event) => {
-                                    event.stopPropagation();
-                                    openExpandedImage(
-                                      {
-                                        alt: imageAlt,
-                                        id: imageId,
-                                        rowIndex: index,
-                                        src: image,
-                                      },
-                                      event.currentTarget,
-                                    );
+                                    handleThumbnailClick(event, {
+                                      ...imageActivation,
+                                      sourceElement: event.currentTarget,
+                                    });
+                                  }}
+                                  onTouchEnd={(event) => {
+                                    handleThumbnailTouchEnd(event, {
+                                      ...imageActivation,
+                                      sourceElement: event.currentTarget,
+                                    });
                                   }}
                                 >
                                   <ServiceImage
@@ -718,6 +861,7 @@ function SignatureServicesSection() {
                               ? styles.expandedImageCardClosing
                               : ""
                           }`}
+                          style={{ touchAction: "manipulation" }}
                           initial={expandedImage.rect}
                           animate={
                             expandedImage.phase === "closing"

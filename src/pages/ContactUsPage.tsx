@@ -38,7 +38,7 @@ export function ContactUsPage() {
 
           <div className="contact-page__hero-content contact-page__section-inner">
             <div className="contact-page__hero-grid">
-              <div className="contact-page__hero-copy">
+              <div className="contact-page__hero-copy px-4 text-center md:px-0 md:text-left">
                 <p className="contact-page__tag">YOUR JOURNEY STARTS HERE</p>
                 <h1 className="contact-page__hero-title">
                  Get In Touch
