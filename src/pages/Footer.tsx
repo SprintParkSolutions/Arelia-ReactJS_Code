@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useRef } from 'react'
 import './Footer.css'
 
 const services = [
@@ -9,32 +8,8 @@ const services = [
 ]
 
 export function Footer() {
-  const footerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const footer = footerRef.current
-    if (!footer) return
-
-    // Subtle parallax effect on scroll
-    const handleScroll = () => {
-      const scrollY = window.scrollY
-      const footerTop = footer.offsetTop
-
-      if (scrollY > footerTop - window.innerHeight) {
-        const parallaxValue = (scrollY - (footerTop - window.innerHeight)) * 0.015
-        footer.style.setProperty('--parallax-offset', `${parallaxValue}px`)
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll, { passive: true })
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-    }
-  }, [])
-
   return (
-    <footer className="site-footer" ref={footerRef}>
+    <footer className="site-footer">
       <div className="site-footer__glass-container">
         {/* Multiple glass layers for depth */}
         <div className="site-footer__glass-layer site-footer__glass-layer--1" />
@@ -94,7 +69,7 @@ export function Footer() {
             <h3 className="site-footer__title">Contact</h3>
             <div className="site-footer__links">
               <a href="tel:+917207845556" className="site-footer__link site-footer__link--interactive">+91 72078 45556</a>
-              <a href="mailto:info@areliaspace.com" className="site-footer__link site-footer__link--interactive">info@areliaspace.com</a>
+              <a href="mailto:info@areliaspace.com" className="site-footer__link site-footer__link--interactive site-footer__email">info@areliaspace.com</a>
               <span className="site-footer__link">
                 Unit No 1204, Forest Department,
                 <br />

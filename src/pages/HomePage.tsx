@@ -98,8 +98,8 @@ const homeHeroImagePath = (fileName: string) =>
 
 const heroShowcaseSlides: readonly HeroShowcaseSlide[] = [
   {
-    accent: 'Delivered with Clarity.',
-    emphasis: 'Arelia — Built on Trust.',
+    accent: 'Delivered Transparently.',
+    emphasis: 'Arelia-Designed Effectively.',
     eyebrow: 'USER-FRIENDLY EXPERIENCE',
     id: 'motive',
     image: homeHeroImagePath('hero-landing.webp'),
@@ -117,13 +117,13 @@ const heroShowcaseSlides: readonly HeroShowcaseSlide[] = [
     title: 'Designed',
   },
   {
-    accent: '3D Designs',
+    accent: 'Before Execution',
     eyebrow: 'PHOTOREALISTIC',
     id: 'designs',
     image: homeHeroImagePath('hero-3d-designs.webp'),
     imagePosition: '62% center',
     support: 'Preview 3D designs and see exactly how your home will look before execution begins.',
-    title: 'Preview Before Execution',
+    title: 'Preview 3D Designs',
   },
   {
     accent: 'in the App',
@@ -1354,10 +1354,9 @@ function ClientTestimonialsSection() {
 
 function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => void }) {
   const { ref: sectionRef, isActive } = useDeferredActivation<HTMLElement>('300px 0px')
-  const backgroundRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!isActive || sectionRef.current === null || backgroundRef.current === null) return
+    if (!isActive || sectionRef.current === null) return
     const animationContext = gsap.context(() => {
       gsap.fromTo('.contact-cta__reveal', { autoAlpha: 0, y: 70 }, {
         autoAlpha: 1,
@@ -1366,12 +1365,6 @@ function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => v
         ease: 'power3.out',
         stagger: 0.12,
         scrollTrigger: { trigger: sectionRef.current, start: 'top 84%', once: true },
-      })
-      gsap.to(backgroundRef.current, {
-        yPercent: -12,
-        scale: 1.08,
-        ease: 'none',
-        scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
       })
     }, sectionRef)
 
@@ -1382,7 +1375,7 @@ function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => v
 
   return (
     <section ref={sectionRef} className="contact-cta luxury-section luxury-section--wide">
-      <div ref={backgroundRef} className="contact-cta__background" style={{ backgroundImage: `url(${CONTACT_IMAGE})` }} />
+      <div className="contact-cta__background" style={{ backgroundImage: `url(${CONTACT_IMAGE})` }} />
       <div className="contact-cta__overlay" />
       <div className="contact-cta__vignette" />
       <div className="contact-cta__content">
