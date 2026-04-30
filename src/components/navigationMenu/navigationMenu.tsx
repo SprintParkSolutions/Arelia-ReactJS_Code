@@ -85,6 +85,7 @@ export default function NavigationMenu({
   const navigate = useNavigate();
   const location = useLocation();
   const pathname = location.pathname;
+  const isHomePage = pathname === "/";
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(
     typeof window !== "undefined" && window.innerWidth < 1024,
@@ -185,8 +186,17 @@ export default function NavigationMenu({
   return (
     <>
       {!isMobile ? (
-        <div className="navigationMenu navigationMenu--desktop">
-          <nav className="navigationMenu__desktopBar" aria-label="Primary">
+        <div
+          className={`navigationMenu navigationMenu--desktop${
+            isHomePage ? " navigationMenu--overlay" : ""
+          }`}
+        >
+          <nav
+            className={`navigationMenu__desktopBar${
+              isHomePage ? " navigationMenu__desktopBar--overlay" : ""
+            }`}
+            aria-label="Primary"
+          >
             <div className="navigationMenu__desktopInner">
               <button
                 type="button"
@@ -228,8 +238,16 @@ export default function NavigationMenu({
         </div>
       ) : (
         <>
-          <div className="navigationMenu navigationMenu--mobile">
-            <div className="navigationMenu__mobileBar">
+          <div
+            className={`navigationMenu navigationMenu--mobile${
+              isHomePage ? " navigationMenu--overlay" : ""
+            }`}
+          >
+            <div
+              className={`navigationMenu__mobileBar${
+                isHomePage ? " navigationMenu__mobileBar--overlay" : ""
+              }`}
+            >
               <button
                 type="button"
                 className="navigationMenu__brand navigationMenu__brand--mobile"

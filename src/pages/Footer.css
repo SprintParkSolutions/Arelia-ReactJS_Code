@@ -5,7 +5,6 @@
 
 /* CSS Variables */
 :root {
-  --parallax-offset: 0px;
   --glass-blur: 40px;
   --glass-saturation: 140%;
   --glass-contrast: 110%;
@@ -21,8 +20,7 @@
   padding: 0;
   background: transparent;
   overflow: hidden;
-  transform: translateY(var(--parallax-offset));
-  transition: transform 0.08s ease-out;
+  max-width: 100%;
 }
 
 /* ============= GLASS CONTAINER - Multi-layer system ============= */
@@ -329,6 +327,10 @@
 
 .site-footer__link:hover::after {
   width: 100%;
+}
+
+.site-footer__email {
+  text-decoration: none;
 }
 
 /* ============= BOTTOM SECTION ============= */
