@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactElement, SVGProps } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import {
   motion,
   AnimatePresence,
@@ -8,7 +8,6 @@ import {
 } from 'framer-motion'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { VideoBackground } from '../components/videoBackground/VideoBackground'
 import './HomePage.css'
 
 gsap.registerPlugin(ScrollTrigger)
@@ -46,6 +45,17 @@ type DeferredSectionProps = {
   minHeight: string
 }
 
+type HeroShowcaseSlide = {
+  accent: string
+  eyebrow: string
+  emphasis?: string
+  id: string
+  image: string
+  imagePosition: string
+  support: string
+  title: string
+}
+
 function useDeferredActivation<T extends HTMLElement>(rootMargin = '250px 0px') {
   const ref = useRef<T | null>(null)
   const [isActive, setIsActive] = useState(false)
@@ -78,9 +88,71 @@ function useDeferredActivation<T extends HTMLElement>(rootMargin = '250px 0px') 
 }
 
 const QUOTE_BACKGROUND_LAYER = homePageOptimizedImagePath('quote-background.webp')
-const QUOTE_FOREGROUND_LAYER = homePageImagePath('quote-foreground.jpg')
+const QUOTE_FOREGROUND_LAYER = homePageOptimizedImagePath('quote-background.webp')
 const QUOTE_TEXT = 'Every Space Has a Story ,We Help You Tell It Beautifully.'
 const CONTACT_IMAGE = homePageOptimizedImagePath('contact-cta-background.webp')
+const HERO_AMBIENT_IMAGE = '/videos/Arelia_Space-poster.webp'
+const HOME_HERO_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page/hero-specialties`
+const homeHeroImagePath = (fileName: string) =>
+  `${HOME_HERO_IMAGES_PATH}/${encodeURIComponent(fileName)}`
+
+const heroShowcaseSlides: readonly HeroShowcaseSlide[] = [
+  {
+    accent: 'Delivered with Clarity.',
+    emphasis: 'Arelia — Built on Trust.',
+    eyebrow: 'USER-FRIENDLY EXPERIENCE',
+    id: 'motive',
+    image: homeHeroImagePath('hero-landing.webp'),
+    imagePosition: 'center center',
+    support: '',
+    title: 'Premium interiors',
+  },
+  {
+    accent: 'With You',
+    eyebrow: 'DESIGNED',
+    id: 'designed',
+    image: homeHeroImagePath('hero-designed-with-you.webp'),
+    imagePosition: '58% center',
+    support: 'Every design starts with your comfort, your taste, and your way of living.',
+    title: 'Designed',
+  },
+  {
+    accent: '3D Designs',
+    eyebrow: 'PHOTOREALISTIC',
+    id: 'designs',
+    image: homeHeroImagePath('hero-3d-designs.webp'),
+    imagePosition: '62% center',
+    support: 'Preview 3D designs and see exactly how your home will look before execution begins.',
+    title: 'Preview Before Execution',
+  },
+  {
+    accent: 'in the App',
+    eyebrow: 'DAILY UPDATES',
+    id: 'updates',
+    image: homeHeroImagePath('hero-daily-updates.webp'),
+    imagePosition: '70% center',
+    support: 'You never have to chase updates because the important moments are shared with clarity, every day.',
+    title: 'Daily Updates',
+  },
+  {
+    accent: 'At Every Step',
+    eyebrow: 'TOTAL TRANSPARENCY',
+    id: 'transparency',
+    image: homeHeroImagePath('hero-transparency.webp'),
+    imagePosition: 'center center',
+    support: 'From cost to progress, Arelia keeps the journey open and understandable from day one.',
+    title: 'Transparency',
+  },
+  {
+    accent: 'End to End',
+    eyebrow: 'EXECUTION',
+    id: 'execution',
+    image: homeHeroImagePath('hero-execution.webp'),
+    imagePosition: 'center center',
+    support: 'Arelia stays involved throughout, keeping the experience calm, organized, and supported.',
+    title: 'Execution',
+  },
+] as const
 
 const stats = [
   { label: 'Years Experience', value: '05+' },
@@ -218,22 +290,192 @@ const whyChooseFeatures: readonly FeatureItem[] = [
 // ============================================================
 
 function HomeHeroSection() {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const autoplayTimeoutRef = useRef<number | null>(null)
+  const transitionTimeoutRef = useRef<number | null>(null)
+  const activeSlide = heroShowcaseSlides[activeIndex]
+  const displayDuration = 5500
+  const textExitDuration = 520
+
+  const clearAutoplayTimer = () => {
+    if (autoplayTimeoutRef.current !== null) {
+      window.clearTimeout(autoplayTimeoutRef.current)
+      autoplayTimeoutRef.current = null
+    }
+  }
+
+  const clearTransitionTimer = () => {
+    if (transitionTimeoutRef.current !== null) {
+      window.clearTimeout(transitionTimeoutRef.current)
+      transitionTimeoutRef.current = null
+    }
+  }
+
+  const queueSlideChange = (direction: 1 | -1) => {
+    clearAutoplayTimer()
+    clearTransitionTimer()
+    setIsTransitioning(true)
+
+    transitionTimeoutRef.current = window.setTimeout(() => {
+      setActiveIndex((currentIndex) => {
+        if (direction === 1) {
+          return (currentIndex + 1) % heroShowcaseSlides.length
+        }
+
+        return (currentIndex - 1 + heroShowcaseSlides.length) % heroShowcaseSlides.length
+      })
+      setIsTransitioning(false)
+      transitionTimeoutRef.current = null
+    }, textExitDuration)
+  }
+
+  const showNextSlide = () => {
+    if (isTransitioning) {
+      return
+    }
+
+    queueSlideChange(1)
+  }
+
+  const showPreviousSlide = () => {
+    if (isTransitioning) {
+      return
+    }
+
+    queueSlideChange(-1)
+  }
+
+  const handleAutoplayAdvance = useEffectEvent(() => {
+    queueSlideChange(1)
+  })
+
+  useEffect(() => {
+    clearAutoplayTimer()
+    autoplayTimeoutRef.current = window.setTimeout(() => {
+      handleAutoplayAdvance()
+    }, displayDuration)
+
+    return () => {
+      clearAutoplayTimer()
+    }
+  }, [activeIndex])
+
+  useEffect(
+    () => () => {
+      clearAutoplayTimer()
+      clearTransitionTimer()
+    },
+    [],
+  )
+
   return (
     <section className="home-page__hero">
-      <VideoBackground
-        src="/videos/Arelia_Space-lite.mp4"
-        posterSrc="/videos/Arelia_Space-poster.webp"
-        isHome
-        isSection
-        deferMs={1200}
-      />
-      <div className="home-page__content">
-        <h1 className="home-page__title">
-          <span className="home-page__line">We Don't Just Design Spaces</span>
-          <span className="home-page__line">
-            We Design <span className="home-page__brand home-page__brand--inline">How You Live.</span>
-          </span>
-        </h1>
+      {heroShowcaseSlides.map((slide, index) => (
+        <div
+          key={slide.id}
+          className={`home-page__hero-ambient${index === activeIndex ? ' is-active' : ''}`}
+          aria-hidden="true"
+          style={{ backgroundImage: `url(${slide.image || HERO_AMBIENT_IMAGE})` }}
+        />
+      ))}
+      <div className="home-page__hero-veil" aria-hidden="true" />
+      <div className="home-page__hero-noise" aria-hidden="true" />
+      <div className="home-page__hero-glow home-page__hero-glow--left" aria-hidden="true" />
+      <div className="home-page__hero-glow home-page__hero-glow--right" aria-hidden="true" />
+      <div className="home-page__content home-page__content--showcase">
+        <div className="home-page__showcase-panel">
+          <div className="home-page__showcase-layout">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSlide.id}
+                className={`home-page__hero-copy-block${activeSlide.id === 'motive' ? ' home-page__hero-copy-block--motive' : ''}${activeSlide.id === 'updates' ? ' home-page__hero-copy-block--updates' : ''}`}
+                aria-live="polite"
+                initial={{ opacity: 0, y: 34, filter: 'blur(12px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -28, filter: 'blur(10px)' }}
+                transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <h1 className="home-page__hero-title">
+                  <motion.span
+                    initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+                    animate={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -18 : 0, filter: isTransitioning ? 'blur(6px)' : 'blur(0px)' }}
+                    transition={{ duration: 0.68, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {activeSlide.emphasis ?? activeSlide.title}
+                  </motion.span>
+                  <motion.em
+                    initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
+                    animate={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -20 : 0, filter: isTransitioning ? 'blur(6px)' : 'blur(0px)' }}
+                    transition={{ duration: 0.74, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {activeSlide.accent}
+                  </motion.em>
+                </h1>
+                {activeSlide.support ? (
+                  <motion.p
+                    className="home-page__hero-support"
+                    initial={{ opacity: 0, y: 18, filter: 'blur(8px)' }}
+                    animate={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -16 : 0, filter: isTransitioning ? 'blur(6px)' : 'blur(0px)' }}
+                    transition={{ duration: 0.58, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {activeSlide.support}
+                  </motion.p>
+                ) : null}
+              </motion.div>
+            </AnimatePresence>
+            <div className="home-page__hero-status" aria-hidden="true">
+              <span>{String(activeIndex + 1).padStart(2, '0')}</span>
+              <span>/</span>
+              <span>{String(heroShowcaseSlides.length).padStart(2, '0')}</span>
+            </div>
+            <div className="home-page__hero-arrows">
+              <button
+                type="button"
+                className="home-page__hero-arrow"
+                aria-label="Previous hero slide"
+                disabled={isTransitioning}
+                onClick={showPreviousSlide}
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+              <button
+                type="button"
+                className="home-page__hero-arrow"
+                aria-label="Next hero slide"
+                disabled={isTransitioning}
+                onClick={showNextSlide}
+              >
+                <span aria-hidden="true">›</span>
+              </button>
+            </div>
+            <div className="home-page__showcase-visual-shell" aria-hidden="true">
+              <div className="home-page__showcase-visual-glow" />
+              {heroShowcaseSlides.map((slide, index) => (
+                <div
+                  key={slide.id}
+                  className={`home-page__showcase-visual-card${index === activeIndex ? ' is-active' : ''}`}
+                >
+                  <img
+                    src={slide.image}
+                    alt={`Arelia showcase image ${index + 1}`}
+                    className="home-page__showcase-image"
+                    loading={index === 0 ? 'eager' : 'lazy'}
+                    style={{ objectPosition: slide.imagePosition }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="home-page__hero-pagination" aria-hidden="true">
+              {heroShowcaseSlides.map((slide, index) => (
+                <span
+                  key={slide.id}
+                  className={`home-page__hero-pagination-dot${index === activeIndex ? ' is-active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
