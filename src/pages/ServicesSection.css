@@ -173,7 +173,7 @@
   max-width: 40rem;
   margin-inline: auto;
   font-family: var(--font-serif);
-  font-size: clamp(1.55rem, 2.3vw, 2.35rem);
+  font-size: clamp(2.05rem, 3vw, 3.1rem);
   font-weight: 600;
   line-height: 1.18;
   letter-spacing: 0.012em;
@@ -683,6 +683,7 @@
     radial-gradient(120% 120% at 50% 0%, rgba(31, 26, 12, 0.98) 0%, rgba(9, 10, 13, 0.96) 72%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0));
   color: #f4e6d5;
+  cursor: pointer;
   font-size: var(--type-small);
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -739,6 +740,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 28px 80px rgba(0, 0, 0, 0.34);
   pointer-events: auto;
+  cursor: pointer;
   will-change: transform;
   backface-visibility: hidden;
   transform-origin: center center;
@@ -1418,7 +1420,7 @@
 
   .servicesProcessHeadingTitle {
     max-width: 100%;
-    font-size: clamp(1.45rem, 3.8vw, 2rem);
+    font-size: clamp(1.85rem, 4.2vw, 2.45rem);
     line-height: 1.2;
   }
 
@@ -1494,7 +1496,7 @@
 
 @media (max-width: 640px) {
   .servicesProcessHeadingTitle {
-    font-size: clamp(1.3rem, 5.8vw, 1.7rem);
+    font-size: clamp(1.55rem, 6.2vw, 1.95rem);
     line-height: 1.24;
     letter-spacing: 0.01em;
   }

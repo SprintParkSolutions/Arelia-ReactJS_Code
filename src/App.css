@@ -11,6 +11,8 @@ body {
   --app-shell-page-padding-bottom: 3rem;
   --app-shell-page-width: 64rem;
   position: relative;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
   isolation: isolate;
@@ -38,6 +40,9 @@ body {
 .app-shell__content {
   position: relative;
   z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 .app-shell__route-fallback {
