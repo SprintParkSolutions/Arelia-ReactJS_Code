@@ -1005,11 +1005,6 @@ function SignatureServicesSection() {
                           }}
                         >
                           <span className={styles.buttonLabel}>View Gallery</span>
-                          <span className={styles.buttonIcon} aria-hidden="true">
-                            <span className={styles.buttonIconArrow}>
-                              &#8599;
-                            </span>
-                          </span>
                         </button>
                       </div>
                     </div>
