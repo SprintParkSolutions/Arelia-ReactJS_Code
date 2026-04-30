@@ -6,13 +6,34 @@ import {
   useInView,
   type Variants,
 } from 'framer-motion'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import './HomePage.css'
 
-gsap.registerPlugin(ScrollTrigger)
-
 const HOME_PAGE_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page`
+
+type GsapBundle = {
+  gsap: typeof import('gsap').default
+  ScrollTrigger: typeof import('gsap/ScrollTrigger').ScrollTrigger
+}
+
+let gsapBundlePromise: Promise<GsapBundle> | null = null
+
+function loadGsapBundle() {
+  if (gsapBundlePromise === null) {
+    gsapBundlePromise = Promise.all([
+      import('gsap'),
+      import('gsap/ScrollTrigger'),
+    ]).then(([gsapModule, scrollTriggerModule]) => {
+      const gsap = gsapModule.default
+      const ScrollTrigger = scrollTriggerModule.ScrollTrigger
+
+      gsap.registerPlugin(ScrollTrigger)
+
+      return { gsap, ScrollTrigger }
+    })
+  }
+
+  return gsapBundlePromise
+}
 
 const homePageImagePath = (fileName: string) =>
   `${HOME_PAGE_IMAGES_PATH}/${encodeURIComponent(fileName)}`
@@ -292,6 +313,11 @@ const whyChooseFeatures: readonly FeatureItem[] = [
 function HomeHeroSection() {
   const [activeIndex, setActiveIndex] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [loadedSlideIndexes, setLoadedSlideIndexes] = useState<readonly number[]>([
+    heroShowcaseSlides.length - 1,
+    0,
+    1,
+  ])
   const autoplayTimeoutRef = useRef<number | null>(null)
   const transitionTimeoutRef = useRef<number | null>(null)
   const activeSlide = heroShowcaseSlides[activeIndex]
@@ -361,6 +387,29 @@ function HomeHeroSection() {
     }
   }, [activeIndex])
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      const previousIndex = (activeIndex - 1 + heroShowcaseSlides.length) % heroShowcaseSlides.length
+      const nextIndex = (activeIndex + 1) % heroShowcaseSlides.length
+
+      setLoadedSlideIndexes((currentIndexes) => {
+        if (
+          currentIndexes.includes(previousIndex) &&
+          currentIndexes.includes(activeIndex) &&
+          currentIndexes.includes(nextIndex)
+        ) {
+          return currentIndexes
+        }
+
+        return Array.from(new Set([...currentIndexes, previousIndex, activeIndex, nextIndex]))
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [activeIndex])
+
   useEffect(
     () => () => {
       clearAutoplayTimer()
@@ -376,7 +425,7 @@ function HomeHeroSection() {
           key={slide.id}
           className={`home-page__hero-ambient${index === activeIndex ? ' is-active' : ''}`}
           aria-hidden="true"
-          style={{ backgroundImage: `url(${slide.image || HERO_AMBIENT_IMAGE})` }}
+          style={loadedSlideIndexes.includes(index) ? { backgroundImage: `url(${slide.image || HERO_AMBIENT_IMAGE})` } : undefined}
         />
       ))}
       <div className="home-page__hero-veil" aria-hidden="true" />
@@ -456,13 +505,17 @@ function HomeHeroSection() {
                   key={slide.id}
                   className={`home-page__showcase-visual-card${index === activeIndex ? ' is-active' : ''}`}
                 >
-                  <img
-                    src={slide.image}
-                    alt={`Arelia showcase image ${index + 1}`}
-                    className="home-page__showcase-image"
-                    loading={index === 0 ? 'eager' : 'lazy'}
-                    style={{ objectPosition: slide.imagePosition }}
-                  />
+                  {loadedSlideIndexes.includes(index) ? (
+                    <img
+                      src={slide.image}
+                      alt={`Arelia showcase image ${index + 1}`}
+                      className="home-page__showcase-image"
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      fetchPriority={index === 0 ? 'high' : 'auto'}
+                      style={{ objectPosition: slide.imagePosition }}
+                    />
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -566,18 +619,30 @@ function WhyChooseSection() {
       cardElement.style.setProperty('--pointer-y', '50')
     }
 
-    const context = gsap.context(() => {
-      gsap.fromTo('.why-choose-luxe__reveal', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.1, ease: 'power3.out' })
-      gsap.fromTo('.why-choose-luxe__nav-item', { autoAlpha: 0, x: -26 }, { autoAlpha: 1, x: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', delay: 0.14 })
-    }, sectionRef)
-
     cardElement.addEventListener('mousemove', updateCardLight)
     cardElement.addEventListener('mouseleave', resetCardLight)
 
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const context = gsap.context(() => {
+        gsap.fromTo('.why-choose-luxe__reveal', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.1, ease: 'power3.out' })
+        gsap.fromTo('.why-choose-luxe__nav-item', { autoAlpha: 0, x: -26 }, { autoAlpha: 1, x: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', delay: 0.14 })
+      }, sectionRef)
+
+      cleanupAnimations = () => context.revert()
+    })
+
     return () => {
+      isMounted = false
       cardElement.removeEventListener('mousemove', updateCardLight)
       cardElement.removeEventListener('mouseleave', resetCardLight)
-      context.revert()
+      cleanupAnimations?.()
     }
   }, [isActive, sectionRef])
 
@@ -593,31 +658,58 @@ function WhyChooseSection() {
       return
     }
 
-    const nextFeature = whyChooseFeatures[activeIndex]
-    const nextBackground = document.createElement('div')
-    nextBackground.className = 'why-choose-luxe__image why-choose-luxe__image--incoming'
-    nextBackground.style.backgroundImage = `url(${nextFeature.image})`
-    imageLayerRef.current.appendChild(nextBackground)
+    let isMounted = true
+    let nextBackground: HTMLDivElement | null = null
+    let hasCompleted = false
+    let cleanupTimeline: (() => void) | undefined
 
-    const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
-    timeline.to(navRef.current.querySelectorAll('.why-choose-luxe__nav-item'), {
-      x: (_index: number, target: Element) => (target.classList.contains('is-active') ? 10 : 0),
-      duration: 0.46,
-      stagger: 0.02,
-    }, 0)
-    timeline.to(contentRef.current, { autoAlpha: 0, y: 24, filter: 'blur(8px)', duration: 0.2 })
-    timeline.fromTo(nextBackground, { autoAlpha: 0, scale: 1.1, xPercent: 4 }, { autoAlpha: 1, scale: 1, xPercent: 0, duration: 0.8 }, 0)
-    timeline.to(activeImageRef.current, { autoAlpha: 0, scale: 0.96, xPercent: -2, duration: 0.7 }, 0)
-    timeline.fromTo(detailImageRef.current, { autoAlpha: 0.32, xPercent: 12, scale: 1.08 }, { autoAlpha: 1, xPercent: 0, scale: 1, duration: 0.68 }, 0.08)
-    timeline.call(() => {
-      activeImageRef.current?.remove()
-      nextBackground.classList.remove('why-choose-luxe__image--incoming')
-      activeImageRef.current = nextBackground
+    loadGsapBundle().then(({ gsap }) => {
+      if (
+        !isMounted ||
+        !contentRef.current ||
+        !imageLayerRef.current ||
+        !activeImageRef.current ||
+        !detailImageRef.current ||
+        !navRef.current
+      ) {
+        return
+      }
+
+      const nextFeature = whyChooseFeatures[activeIndex]
+      nextBackground = document.createElement('div')
+      nextBackground.className = 'why-choose-luxe__image why-choose-luxe__image--incoming'
+      nextBackground.style.backgroundImage = `url(${nextFeature.image})`
+      imageLayerRef.current.appendChild(nextBackground)
+
+      const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      timeline.to(navRef.current.querySelectorAll('.why-choose-luxe__nav-item'), {
+        x: (_index: number, target: Element) => (target.classList.contains('is-active') ? 10 : 0),
+        duration: 0.46,
+        stagger: 0.02,
+      }, 0)
+      timeline.to(contentRef.current, { autoAlpha: 0, y: 24, filter: 'blur(8px)', duration: 0.2 })
+      timeline.fromTo(nextBackground, { autoAlpha: 0, scale: 1.1, xPercent: 4 }, { autoAlpha: 1, scale: 1, xPercent: 0, duration: 0.8 }, 0)
+      timeline.to(activeImageRef.current, { autoAlpha: 0, scale: 0.96, xPercent: -2, duration: 0.7 }, 0)
+      timeline.fromTo(detailImageRef.current, { autoAlpha: 0.32, xPercent: 12, scale: 1.08 }, { autoAlpha: 1, xPercent: 0, scale: 1, duration: 0.68 }, 0.08)
+      timeline.call(() => {
+        activeImageRef.current?.remove()
+        nextBackground?.classList.remove('why-choose-luxe__image--incoming')
+        activeImageRef.current = nextBackground
+        hasCompleted = true
+      })
+      timeline.fromTo(contentRef.current, { autoAlpha: 0, y: 26, filter: 'blur(10px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.56 })
+
+      cleanupTimeline = () => {
+        timeline.kill()
+        if (!hasCompleted) {
+          nextBackground?.remove()
+        }
+      }
     })
-    timeline.fromTo(contentRef.current, { autoAlpha: 0, y: 26, filter: 'blur(10px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.56 })
 
     return () => {
-      timeline.kill()
+      isMounted = false
+      cleanupTimeline?.()
     }
   }, [activeIndex, isActive])
 
@@ -1156,13 +1248,28 @@ function QuoteSectionSection() {
 
   useEffect(() => {
     if (!isActive || !sectionRef.current || !backgroundRef.current || !foregroundRef.current) return
-    const animationContext = gsap.context(() => {
-      gsap.fromTo(sectionRef.current, { autoAlpha: 0, y: 50 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 85%', once: true } })
-      gsap.to(backgroundRef.current, { yPercent: -5, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
-      gsap.to(foregroundRef.current, { yPercent: -15, scale: 1.05, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
-      gsap.fromTo(wordRefs.current, { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true } })
-    }, sectionRef)
-    return () => animationContext.revert()
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || !sectionRef.current || !backgroundRef.current || !foregroundRef.current) {
+        return
+      }
+
+      const animationContext = gsap.context(() => {
+        gsap.fromTo(sectionRef.current, { autoAlpha: 0, y: 50 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 85%', once: true } })
+        gsap.to(backgroundRef.current, { yPercent: -5, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
+        gsap.to(foregroundRef.current, { yPercent: -15, scale: 1.05, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
+        gsap.fromTo(wordRefs.current, { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true } })
+      }, sectionRef)
+
+      cleanupAnimations = () => animationContext.revert()
+    })
+
+    return () => {
+      isMounted = false
+      cleanupAnimations?.()
+    }
   }, [isActive, sectionRef])
 
   return (
@@ -1230,27 +1337,42 @@ function StatsSection() {
 
   useEffect(() => {
     if (!isSectionActive || sectionRef.current === null) return
-    const animationContext = gsap.context(() => {
-      gsap.fromTo('.stats__lane', { autoAlpha: 0, y: 60 }, {
-        autoAlpha: 1,
-        y: 0,
-        duration: 1,
-        ease: 'power3.out',
-        stagger: 0.14,
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 82%', once: true },
-      })
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
 
-      ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top 74%',
-        once: true,
-        onEnter: () => {
-          setIsActive(true)
-          gsap.fromTo('.stats__streak', { xPercent: -120, opacity: 0 }, { xPercent: 130, opacity: 1, duration: 1.6, ease: 'power2.out', stagger: 0.08 })
-        },
-      })
-    }, sectionRef)
-    return () => animationContext.revert()
+    loadGsapBundle().then(({ gsap, ScrollTrigger }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const animationContext = gsap.context(() => {
+        gsap.fromTo('.stats__lane', { autoAlpha: 0, y: 60 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: 1,
+          ease: 'power3.out',
+          stagger: 0.14,
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 82%', once: true },
+        })
+
+        ScrollTrigger.create({
+          trigger: sectionRef.current,
+          start: 'top 74%',
+          once: true,
+          onEnter: () => {
+            setIsActive(true)
+            gsap.fromTo('.stats__streak', { xPercent: -120, opacity: 0 }, { xPercent: 130, opacity: 1, duration: 1.6, ease: 'power2.out', stagger: 0.08 })
+          },
+        })
+      }, sectionRef)
+
+      cleanupAnimations = () => animationContext.revert()
+    })
+
+    return () => {
+      isMounted = false
+      cleanupAnimations?.()
+    }
   }, [isSectionActive, sectionRef])
 
   return (
@@ -1311,11 +1433,26 @@ function ClientTestimonialsSection() {
 
   useEffect(() => {
     if (!isActive || sectionRef.current === null) return
-    const context = gsap.context(() => {
-      gsap.fromTo('.client-testimonials__reveal', { autoAlpha: 0, y: 32 }, { autoAlpha: 1, y: 0, duration: 0.95, stagger: 0.1, ease: 'power3.out' })
-      gsap.fromTo('.client-testimonials__row', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 1.1, stagger: 0.08, ease: 'power3.out', delay: 0.1 })
-    }, sectionRef)
-    return () => context.revert()
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const context = gsap.context(() => {
+        gsap.fromTo('.client-testimonials__reveal', { autoAlpha: 0, y: 32 }, { autoAlpha: 1, y: 0, duration: 0.95, stagger: 0.1, ease: 'power3.out' })
+        gsap.fromTo('.client-testimonials__row', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 1.1, stagger: 0.08, ease: 'power3.out', delay: 0.1 })
+      }, sectionRef)
+
+      cleanupAnimations = () => context.revert()
+    })
+
+    return () => {
+      isMounted = false
+      cleanupAnimations?.()
+    }
   }, [isActive, sectionRef])
 
   return (
@@ -1357,19 +1494,31 @@ function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => v
 
   useEffect(() => {
     if (!isActive || sectionRef.current === null) return
-    const animationContext = gsap.context(() => {
-      gsap.fromTo('.contact-cta__reveal', { autoAlpha: 0, y: 70 }, {
-        autoAlpha: 1,
-        y: 0,
-        duration: 1,
-        ease: 'power3.out',
-        stagger: 0.12,
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 84%', once: true },
-      })
-    }, sectionRef)
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const animationContext = gsap.context(() => {
+        gsap.fromTo('.contact-cta__reveal', { autoAlpha: 0, y: 70 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: 1,
+          ease: 'power3.out',
+          stagger: 0.12,
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 84%', once: true },
+        })
+      }, sectionRef)
+
+      cleanupAnimations = () => animationContext.revert()
+    })
 
     return () => {
-      animationContext.revert()
+      isMounted = false
+      cleanupAnimations?.()
     }
   }, [isActive, sectionRef])
 
