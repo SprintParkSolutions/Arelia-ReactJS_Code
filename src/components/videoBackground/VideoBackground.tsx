@@ -9,6 +9,12 @@ type VideoBackgroundProps = {
   deferMs?: number
 }
 
+type IdleWindow = Window &
+  typeof globalThis & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number
+    cancelIdleCallback?: (handle: number) => void
+  }
+
 export function VideoBackground({
   src,
   posterSrc,
@@ -33,9 +39,20 @@ export function VideoBackground({
     }
 
     let timeoutId = 0
+    let idleId = 0
+    const browserWindow = window as IdleWindow
+
+    const loadVideo = () => {
+      setShouldLoadVideo(true)
+    }
 
     const queueLoad = () => {
-      setShouldLoadVideo(true)
+      if (browserWindow.requestIdleCallback) {
+        idleId = browserWindow.requestIdleCallback(loadVideo, { timeout: 2000 })
+        return
+      }
+
+      timeoutId = window.setTimeout(loadVideo, 0)
     }
 
     if (deferMs > 0) {
@@ -46,6 +63,9 @@ export function VideoBackground({
 
     return () => {
       window.clearTimeout(timeoutId)
+      if (idleId !== 0 && browserWindow.cancelIdleCallback) {
+        browserWindow.cancelIdleCallback(idleId)
+      }
     }
   }, [deferMs, shouldReduceMotion])
 
@@ -99,7 +119,7 @@ export function VideoBackground({
     videoElement.muted = true
     videoElement.defaultMuted = true
     videoElement.playsInline = true
-    videoElement.preload = 'auto'
+    videoElement.preload = 'metadata'
     videoElement.setAttribute('autoplay', '')
     videoElement.setAttribute('loop', '')
     videoElement.setAttribute('muted', '')
@@ -145,7 +165,7 @@ export function VideoBackground({
           loop={true}
           muted={true}
           playsInline={true}
-          preload="auto"
+          preload="metadata"
         >
           <source src={src} type="video/mp4" />
         </video>

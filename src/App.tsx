@@ -73,12 +73,14 @@ export default function App() {
             <Footer />
           </div>
         </Suspense>
-        <Suspense fallback={null}>
-          <ConsultationModal
-            isOpen={isConsultationOpen}
-            onClose={() => setIsConsultationOpen(false)}
-          />
-        </Suspense>
+        {isConsultationOpen ? (
+          <Suspense fallback={null}>
+            <ConsultationModal
+              isOpen={isConsultationOpen}
+              onClose={() => setIsConsultationOpen(false)}
+            />
+          </Suspense>
+        ) : null}
         {/* Global SocialSidebar - Persists across all pages */}
         <SocialSidebar />
       </div>
