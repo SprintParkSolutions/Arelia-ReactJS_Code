@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactElement, SVGProps } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import {
   motion,
   AnimatePresence,
@@ -346,10 +346,14 @@ function HomeHeroSection() {
     queueSlideChange(-1)
   }
 
+  const handleAutoplayAdvance = useEffectEvent(() => {
+    queueSlideChange(1)
+  })
+
   useEffect(() => {
     clearAutoplayTimer()
     autoplayTimeoutRef.current = window.setTimeout(() => {
-      queueSlideChange(1)
+      handleAutoplayAdvance()
     }, displayDuration)
 
     return () => {
