@@ -1005,11 +1005,6 @@ function SignatureServicesSection() {
                           }}
                         >
                           <span className={styles.buttonLabel}>View Gallery</span>
-                          <span className={styles.buttonIcon} aria-hidden="true">
-                            <span className={styles.buttonIconArrow}>
-                              &#8599;
-                            </span>
-                          </span>
                         </button>
                       </div>
                     </div>
@@ -1215,8 +1210,8 @@ function ServicesConsultationSection({
   onOpenConsultation: () => void;
 }) {
   return (
-    <section id="contact" className="px-6 py-20 sm:px-8 lg:px-10 lg:py-24">
-      <div className="mx-auto max-w-7xl">
+    <section id="contact" className="w-full max-w-full px-6 py-20 sm:px-8 lg:px-10 lg:py-24">
+      <div className="mx-auto w-full max-w-7xl">
         <FadeIn>
           <div
             className="servicesConsultationCard overflow-hidden rounded-[2rem] border border-[#d4a373]/25 px-8 py-10 sm:px-10 sm:py-12 lg:flex lg:items-center lg:justify-between lg:px-14"

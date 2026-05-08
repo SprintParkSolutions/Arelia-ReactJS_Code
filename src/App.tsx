@@ -34,17 +34,10 @@ function ScrollToTop() {
 }
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(() => {
-    if (typeof window === 'undefined') {
-      return false
-    }
-
-    return window.sessionStorage.getItem('arelia-loader-seen') !== 'true'
-  })
+  const [isLoading, setIsLoading] = useState(() => typeof window !== 'undefined')
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
 
   const handleLoaderComplete = () => {
-    window.sessionStorage.setItem('arelia-loader-seen', 'true')
     setIsLoading(false)
   }
 
@@ -80,12 +73,14 @@ export default function App() {
             <Footer />
           </div>
         </Suspense>
-        <Suspense fallback={null}>
-          <ConsultationModal
-            isOpen={isConsultationOpen}
-            onClose={() => setIsConsultationOpen(false)}
-          />
-        </Suspense>
+        {isConsultationOpen ? (
+          <Suspense fallback={null}>
+            <ConsultationModal
+              isOpen={isConsultationOpen}
+              onClose={() => setIsConsultationOpen(false)}
+            />
+          </Suspense>
+        ) : null}
         {/* Global SocialSidebar - Persists across all pages */}
         <SocialSidebar />
       </div>

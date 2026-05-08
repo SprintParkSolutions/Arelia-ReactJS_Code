@@ -22,13 +22,17 @@ export function Loader({ onComplete }: LoaderProps) {
     let animationFrame = 0
     let completionTimer = 0
     const startTime = performance.now()
+    let lastProgressUpdate = startTime
 
     const animate = (timestamp: number) => {
       const elapsed = timestamp - startTime
       const rawProgress = Math.min(elapsed / LOADER_DURATION_MS, 1)
       const easedProgress = easeInOutCubic(rawProgress) * 100
 
-      setProgress(easedProgress)
+      if (rawProgress === 1 || timestamp - lastProgressUpdate >= 75) {
+        lastProgressUpdate = timestamp
+        setProgress(easedProgress)
+      }
 
       if (rawProgress < 1) {
         animationFrame = window.requestAnimationFrame(animate)
@@ -60,6 +64,8 @@ export function Loader({ onComplete }: LoaderProps) {
               src="/images/Logos/Arelia_Logo.webp" 
               alt="Arelia Loading" 
               className={`loader__logo ${isComplete ? 'loader__logo--launch' : ''}`}
+              decoding="async"
+              fetchPriority="high"
             />
             <div className="loader__logo-glow" style={{ opacity: progress / 100 }} />
         </div>

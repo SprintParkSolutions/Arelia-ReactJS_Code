@@ -1,19 +1,39 @@
 import type { CSSProperties, ReactElement, SVGProps } from 'react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import {
   motion,
   AnimatePresence,
   useInView,
   type Variants,
 } from 'framer-motion'
-import gsap from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { VideoBackground } from '../components/videoBackground/VideoBackground'
 import './HomePage.css'
 
-gsap.registerPlugin(ScrollTrigger)
-
 const HOME_PAGE_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page`
+
+type GsapBundle = {
+  gsap: typeof import('gsap').default
+  ScrollTrigger: typeof import('gsap/ScrollTrigger').ScrollTrigger
+}
+
+let gsapBundlePromise: Promise<GsapBundle> | null = null
+
+function loadGsapBundle() {
+  if (gsapBundlePromise === null) {
+    gsapBundlePromise = Promise.all([
+      import('gsap'),
+      import('gsap/ScrollTrigger'),
+    ]).then(([gsapModule, scrollTriggerModule]) => {
+      const gsap = gsapModule.default
+      const ScrollTrigger = scrollTriggerModule.ScrollTrigger
+
+      gsap.registerPlugin(ScrollTrigger)
+
+      return { gsap, ScrollTrigger }
+    })
+  }
+
+  return gsapBundlePromise
+}
 
 const homePageImagePath = (fileName: string) =>
   `${HOME_PAGE_IMAGES_PATH}/${encodeURIComponent(fileName)}`
@@ -44,6 +64,17 @@ type HomePageProps = {
 type DeferredSectionProps = {
   children: ReactElement
   minHeight: string
+}
+
+type HeroShowcaseSlide = {
+  accent: string
+  eyebrow: string
+  emphasis?: string
+  id: string
+  image: string
+  imagePosition: string
+  support: string
+  title: string
 }
 
 function useDeferredActivation<T extends HTMLElement>(rootMargin = '250px 0px') {
@@ -78,9 +109,71 @@ function useDeferredActivation<T extends HTMLElement>(rootMargin = '250px 0px') 
 }
 
 const QUOTE_BACKGROUND_LAYER = homePageOptimizedImagePath('quote-background.webp')
-const QUOTE_FOREGROUND_LAYER = homePageImagePath('quote-foreground.jpg')
+const QUOTE_FOREGROUND_LAYER = homePageOptimizedImagePath('quote-background.webp')
 const QUOTE_TEXT = 'Every Space Has a Story ,We Help You Tell It Beautifully.'
 const CONTACT_IMAGE = homePageOptimizedImagePath('contact-cta-background.webp')
+const HERO_AMBIENT_IMAGE = '/videos/Arelia_Space-poster.webp'
+const HOME_HERO_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page/hero-specialties`
+const homeHeroImagePath = (fileName: string) =>
+  `${HOME_HERO_IMAGES_PATH}/${encodeURIComponent(fileName)}`
+
+const heroShowcaseSlides: readonly HeroShowcaseSlide[] = [
+  {
+    accent: 'Delivered Transparently.',
+    emphasis: 'Arelia-Designed Effectively.',
+    eyebrow: 'USER-FRIENDLY EXPERIENCE',
+    id: 'motive',
+    image: homeHeroImagePath('hero-landing.webp'),
+    imagePosition: 'center center',
+    support: '',
+    title: 'Premium interiors',
+  },
+  {
+    accent: 'With You',
+    eyebrow: 'DESIGNED',
+    id: 'designed',
+    image: homeHeroImagePath('hero-designed-with-you.webp'),
+    imagePosition: '58% center',
+    support: 'Every design starts with your comfort, your taste, and your way of living.',
+    title: 'Designed',
+  },
+  {
+    accent: 'Before Execution',
+    eyebrow: 'PHOTOREALISTIC',
+    id: 'designs',
+    image: homeHeroImagePath('hero-3d-designs.webp'),
+    imagePosition: '62% center',
+    support: 'Preview 3D designs and see exactly how your home will look before execution begins.',
+    title: 'Preview 3D Designs',
+  },
+  {
+    accent: 'in the App',
+    eyebrow: 'DAILY UPDATES',
+    id: 'updates',
+    image: homeHeroImagePath('hero-daily-updates.webp'),
+    imagePosition: '70% center',
+    support: 'You never have to chase updates because the important moments are shared with clarity, every day.',
+    title: 'Daily Updates',
+  },
+  {
+    accent: 'At Every Step',
+    eyebrow: 'TOTAL TRANSPARENCY',
+    id: 'transparency',
+    image: homeHeroImagePath('hero-transparency.webp'),
+    imagePosition: 'center center',
+    support: 'From cost to progress, Arelia keeps the journey open and understandable from day one.',
+    title: 'Transparency',
+  },
+  {
+    accent: 'End to End',
+    eyebrow: 'EXECUTION',
+    id: 'execution',
+    image: homeHeroImagePath('hero-execution.webp'),
+    imagePosition: 'center center',
+    support: 'Arelia stays involved throughout, keeping the experience calm, organized, and supported.',
+    title: 'Execution',
+  },
+] as const
 
 const stats = [
   { label: 'Years Experience', value: '05+' },
@@ -218,22 +311,224 @@ const whyChooseFeatures: readonly FeatureItem[] = [
 // ============================================================
 
 function HomeHeroSection() {
+  const [activeIndex, setActiveIndex] = useState(0)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [loadedSlideIndexes, setLoadedSlideIndexes] = useState<readonly number[]>([
+    heroShowcaseSlides.length - 1,
+    0,
+    1,
+  ])
+  const autoplayTimeoutRef = useRef<number | null>(null)
+  const transitionTimeoutRef = useRef<number | null>(null)
+  const activeSlide = heroShowcaseSlides[activeIndex]
+  const displayDuration = 5500
+  const textExitDuration = 520
+
+  const clearAutoplayTimer = () => {
+    if (autoplayTimeoutRef.current !== null) {
+      window.clearTimeout(autoplayTimeoutRef.current)
+      autoplayTimeoutRef.current = null
+    }
+  }
+
+  const clearTransitionTimer = () => {
+    if (transitionTimeoutRef.current !== null) {
+      window.clearTimeout(transitionTimeoutRef.current)
+      transitionTimeoutRef.current = null
+    }
+  }
+
+  const queueSlideChange = (direction: 1 | -1) => {
+    clearAutoplayTimer()
+    clearTransitionTimer()
+    setIsTransitioning(true)
+
+    transitionTimeoutRef.current = window.setTimeout(() => {
+      setActiveIndex((currentIndex) => {
+        if (direction === 1) {
+          return (currentIndex + 1) % heroShowcaseSlides.length
+        }
+
+        return (currentIndex - 1 + heroShowcaseSlides.length) % heroShowcaseSlides.length
+      })
+      setIsTransitioning(false)
+      transitionTimeoutRef.current = null
+    }, textExitDuration)
+  }
+
+  const showNextSlide = () => {
+    if (isTransitioning) {
+      return
+    }
+
+    queueSlideChange(1)
+  }
+
+  const showPreviousSlide = () => {
+    if (isTransitioning) {
+      return
+    }
+
+    queueSlideChange(-1)
+  }
+
+  const handleAutoplayAdvance = useEffectEvent(() => {
+    queueSlideChange(1)
+  })
+
+  useEffect(() => {
+    clearAutoplayTimer()
+    autoplayTimeoutRef.current = window.setTimeout(() => {
+      handleAutoplayAdvance()
+    }, displayDuration)
+
+    return () => {
+      clearAutoplayTimer()
+    }
+  }, [activeIndex])
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      const previousIndex = (activeIndex - 1 + heroShowcaseSlides.length) % heroShowcaseSlides.length
+      const nextIndex = (activeIndex + 1) % heroShowcaseSlides.length
+
+      setLoadedSlideIndexes((currentIndexes) => {
+        if (
+          currentIndexes.includes(previousIndex) &&
+          currentIndexes.includes(activeIndex) &&
+          currentIndexes.includes(nextIndex)
+        ) {
+          return currentIndexes
+        }
+
+        return Array.from(new Set([...currentIndexes, previousIndex, activeIndex, nextIndex]))
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(frameId)
+    }
+  }, [activeIndex])
+
+  useEffect(
+    () => () => {
+      clearAutoplayTimer()
+      clearTransitionTimer()
+    },
+    [],
+  )
+
   return (
     <section className="home-page__hero">
-      <VideoBackground
-        src="/videos/Arelia_Space-lite.mp4"
-        posterSrc="/videos/Arelia_Space-poster.webp"
-        isHome
-        isSection
-        deferMs={1200}
-      />
-      <div className="home-page__content">
-        <h1 className="home-page__title">
-          <span className="home-page__line">We Don't Just Design Spaces</span>
-          <span className="home-page__line">
-            We Design <span className="home-page__brand home-page__brand--inline">How You Live.</span>
-          </span>
-        </h1>
+      {heroShowcaseSlides.map((slide, index) => (
+        <div
+          key={slide.id}
+          className={`home-page__hero-ambient${index === activeIndex ? ' is-active' : ''}`}
+          aria-hidden="true"
+          style={loadedSlideIndexes.includes(index) ? { backgroundImage: `url(${slide.image || HERO_AMBIENT_IMAGE})` } : undefined}
+        />
+      ))}
+      <div className="home-page__hero-veil" aria-hidden="true" />
+      <div className="home-page__hero-noise" aria-hidden="true" />
+      <div className="home-page__hero-glow home-page__hero-glow--left" aria-hidden="true" />
+      <div className="home-page__hero-glow home-page__hero-glow--right" aria-hidden="true" />
+      <div className="home-page__content home-page__content--showcase">
+        <div className="home-page__showcase-panel">
+          <div className="home-page__showcase-layout">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeSlide.id}
+                className={`home-page__hero-copy-block${activeSlide.id === 'motive' ? ' home-page__hero-copy-block--motive' : ''}${activeSlide.id === 'updates' ? ' home-page__hero-copy-block--updates' : ''}`}
+                aria-live="polite"
+                initial={{ opacity: 0, y: 34, filter: 'blur(12px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -28, filter: 'blur(10px)' }}
+                transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <h1 className="home-page__hero-title">
+                  <motion.span
+                    initial={{ opacity: 0, y: 24, filter: 'blur(8px)' }}
+                    animate={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -18 : 0, filter: isTransitioning ? 'blur(6px)' : 'blur(0px)' }}
+                    transition={{ duration: 0.68, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {activeSlide.emphasis ?? activeSlide.title}
+                  </motion.span>
+                  <motion.em
+                    initial={{ opacity: 0, y: 30, filter: 'blur(8px)' }}
+                    animate={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -20 : 0, filter: isTransitioning ? 'blur(6px)' : 'blur(0px)' }}
+                    transition={{ duration: 0.74, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {activeSlide.accent}
+                  </motion.em>
+                </h1>
+                {activeSlide.support ? (
+                  <motion.p
+                    className="home-page__hero-support"
+                    initial={{ opacity: 0, y: 18, filter: 'blur(8px)' }}
+                    animate={{ opacity: isTransitioning ? 0 : 1, y: isTransitioning ? -16 : 0, filter: isTransitioning ? 'blur(6px)' : 'blur(0px)' }}
+                    transition={{ duration: 0.58, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {activeSlide.support}
+                  </motion.p>
+                ) : null}
+              </motion.div>
+            </AnimatePresence>
+            <div className="home-page__hero-status" aria-hidden="true">
+              <span>{String(activeIndex + 1).padStart(2, '0')}</span>
+              <span>/</span>
+              <span>{String(heroShowcaseSlides.length).padStart(2, '0')}</span>
+            </div>
+            <div className="home-page__hero-arrows">
+              <button
+                type="button"
+                className="home-page__hero-arrow"
+                aria-label="Previous hero slide"
+                disabled={isTransitioning}
+                onClick={showPreviousSlide}
+              >
+                <span aria-hidden="true">‹</span>
+              </button>
+              <button
+                type="button"
+                className="home-page__hero-arrow"
+                aria-label="Next hero slide"
+                disabled={isTransitioning}
+                onClick={showNextSlide}
+              >
+                <span aria-hidden="true">›</span>
+              </button>
+            </div>
+            <div className="home-page__showcase-visual-shell" aria-hidden="true">
+              <div className="home-page__showcase-visual-glow" />
+              {heroShowcaseSlides.map((slide, index) => (
+                <div
+                  key={slide.id}
+                  className={`home-page__showcase-visual-card${index === activeIndex ? ' is-active' : ''}`}
+                >
+                  {loadedSlideIndexes.includes(index) ? (
+                    <img
+                      src={slide.image}
+                      alt={`Arelia showcase image ${index + 1}`}
+                      className="home-page__showcase-image"
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      fetchPriority={index === 0 ? 'high' : 'auto'}
+                      style={{ objectPosition: slide.imagePosition }}
+                    />
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            <div className="home-page__hero-pagination" aria-hidden="true">
+              {heroShowcaseSlides.map((slide, index) => (
+                <span
+                  key={slide.id}
+                  className={`home-page__hero-pagination-dot${index === activeIndex ? ' is-active' : ''}`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -324,18 +619,30 @@ function WhyChooseSection() {
       cardElement.style.setProperty('--pointer-y', '50')
     }
 
-    const context = gsap.context(() => {
-      gsap.fromTo('.why-choose-luxe__reveal', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.1, ease: 'power3.out' })
-      gsap.fromTo('.why-choose-luxe__nav-item', { autoAlpha: 0, x: -26 }, { autoAlpha: 1, x: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', delay: 0.14 })
-    }, sectionRef)
-
     cardElement.addEventListener('mousemove', updateCardLight)
     cardElement.addEventListener('mouseleave', resetCardLight)
 
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const context = gsap.context(() => {
+        gsap.fromTo('.why-choose-luxe__reveal', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 0.9, stagger: 0.1, ease: 'power3.out' })
+        gsap.fromTo('.why-choose-luxe__nav-item', { autoAlpha: 0, x: -26 }, { autoAlpha: 1, x: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', delay: 0.14 })
+      }, sectionRef)
+
+      cleanupAnimations = () => context.revert()
+    })
+
     return () => {
+      isMounted = false
       cardElement.removeEventListener('mousemove', updateCardLight)
       cardElement.removeEventListener('mouseleave', resetCardLight)
-      context.revert()
+      cleanupAnimations?.()
     }
   }, [isActive, sectionRef])
 
@@ -351,31 +658,58 @@ function WhyChooseSection() {
       return
     }
 
-    const nextFeature = whyChooseFeatures[activeIndex]
-    const nextBackground = document.createElement('div')
-    nextBackground.className = 'why-choose-luxe__image why-choose-luxe__image--incoming'
-    nextBackground.style.backgroundImage = `url(${nextFeature.image})`
-    imageLayerRef.current.appendChild(nextBackground)
+    let isMounted = true
+    let nextBackground: HTMLDivElement | null = null
+    let hasCompleted = false
+    let cleanupTimeline: (() => void) | undefined
 
-    const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
-    timeline.to(navRef.current.querySelectorAll('.why-choose-luxe__nav-item'), {
-      x: (_index: number, target: Element) => (target.classList.contains('is-active') ? 10 : 0),
-      duration: 0.46,
-      stagger: 0.02,
-    }, 0)
-    timeline.to(contentRef.current, { autoAlpha: 0, y: 24, filter: 'blur(8px)', duration: 0.2 })
-    timeline.fromTo(nextBackground, { autoAlpha: 0, scale: 1.1, xPercent: 4 }, { autoAlpha: 1, scale: 1, xPercent: 0, duration: 0.8 }, 0)
-    timeline.to(activeImageRef.current, { autoAlpha: 0, scale: 0.96, xPercent: -2, duration: 0.7 }, 0)
-    timeline.fromTo(detailImageRef.current, { autoAlpha: 0.32, xPercent: 12, scale: 1.08 }, { autoAlpha: 1, xPercent: 0, scale: 1, duration: 0.68 }, 0.08)
-    timeline.call(() => {
-      activeImageRef.current?.remove()
-      nextBackground.classList.remove('why-choose-luxe__image--incoming')
-      activeImageRef.current = nextBackground
+    loadGsapBundle().then(({ gsap }) => {
+      if (
+        !isMounted ||
+        !contentRef.current ||
+        !imageLayerRef.current ||
+        !activeImageRef.current ||
+        !detailImageRef.current ||
+        !navRef.current
+      ) {
+        return
+      }
+
+      const nextFeature = whyChooseFeatures[activeIndex]
+      nextBackground = document.createElement('div')
+      nextBackground.className = 'why-choose-luxe__image why-choose-luxe__image--incoming'
+      nextBackground.style.backgroundImage = `url(${nextFeature.image})`
+      imageLayerRef.current.appendChild(nextBackground)
+
+      const timeline = gsap.timeline({ defaults: { ease: 'power3.out' } })
+      timeline.to(navRef.current.querySelectorAll('.why-choose-luxe__nav-item'), {
+        x: (_index: number, target: Element) => (target.classList.contains('is-active') ? 10 : 0),
+        duration: 0.46,
+        stagger: 0.02,
+      }, 0)
+      timeline.to(contentRef.current, { autoAlpha: 0, y: 24, filter: 'blur(8px)', duration: 0.2 })
+      timeline.fromTo(nextBackground, { autoAlpha: 0, scale: 1.1, xPercent: 4 }, { autoAlpha: 1, scale: 1, xPercent: 0, duration: 0.8 }, 0)
+      timeline.to(activeImageRef.current, { autoAlpha: 0, scale: 0.96, xPercent: -2, duration: 0.7 }, 0)
+      timeline.fromTo(detailImageRef.current, { autoAlpha: 0.32, xPercent: 12, scale: 1.08 }, { autoAlpha: 1, xPercent: 0, scale: 1, duration: 0.68 }, 0.08)
+      timeline.call(() => {
+        activeImageRef.current?.remove()
+        nextBackground?.classList.remove('why-choose-luxe__image--incoming')
+        activeImageRef.current = nextBackground
+        hasCompleted = true
+      })
+      timeline.fromTo(contentRef.current, { autoAlpha: 0, y: 26, filter: 'blur(10px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.56 })
+
+      cleanupTimeline = () => {
+        timeline.kill()
+        if (!hasCompleted) {
+          nextBackground?.remove()
+        }
+      }
     })
-    timeline.fromTo(contentRef.current, { autoAlpha: 0, y: 26, filter: 'blur(10px)' }, { autoAlpha: 1, y: 0, filter: 'blur(0px)', duration: 0.56 })
 
     return () => {
-      timeline.kill()
+      isMounted = false
+      cleanupTimeline?.()
     }
   }, [activeIndex, isActive])
 
@@ -914,13 +1248,28 @@ function QuoteSectionSection() {
 
   useEffect(() => {
     if (!isActive || !sectionRef.current || !backgroundRef.current || !foregroundRef.current) return
-    const animationContext = gsap.context(() => {
-      gsap.fromTo(sectionRef.current, { autoAlpha: 0, y: 50 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 85%', once: true } })
-      gsap.to(backgroundRef.current, { yPercent: -5, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
-      gsap.to(foregroundRef.current, { yPercent: -15, scale: 1.05, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
-      gsap.fromTo(wordRefs.current, { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true } })
-    }, sectionRef)
-    return () => animationContext.revert()
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || !sectionRef.current || !backgroundRef.current || !foregroundRef.current) {
+        return
+      }
+
+      const animationContext = gsap.context(() => {
+        gsap.fromTo(sectionRef.current, { autoAlpha: 0, y: 50 }, { autoAlpha: 1, y: 0, duration: 1.2, ease: 'power3.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 85%', once: true } })
+        gsap.to(backgroundRef.current, { yPercent: -5, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
+        gsap.to(foregroundRef.current, { yPercent: -15, scale: 1.05, ease: 'none', scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: true } })
+        gsap.fromTo(wordRefs.current, { autoAlpha: 0, y: 15 }, { autoAlpha: 1, y: 0, stagger: 0.05, duration: 0.8, ease: 'power2.out', scrollTrigger: { trigger: sectionRef.current, start: 'top 75%', once: true } })
+      }, sectionRef)
+
+      cleanupAnimations = () => animationContext.revert()
+    })
+
+    return () => {
+      isMounted = false
+      cleanupAnimations?.()
+    }
   }, [isActive, sectionRef])
 
   return (
@@ -988,27 +1337,42 @@ function StatsSection() {
 
   useEffect(() => {
     if (!isSectionActive || sectionRef.current === null) return
-    const animationContext = gsap.context(() => {
-      gsap.fromTo('.stats__lane', { autoAlpha: 0, y: 60 }, {
-        autoAlpha: 1,
-        y: 0,
-        duration: 1,
-        ease: 'power3.out',
-        stagger: 0.14,
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 82%', once: true },
-      })
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
 
-      ScrollTrigger.create({
-        trigger: sectionRef.current,
-        start: 'top 74%',
-        once: true,
-        onEnter: () => {
-          setIsActive(true)
-          gsap.fromTo('.stats__streak', { xPercent: -120, opacity: 0 }, { xPercent: 130, opacity: 1, duration: 1.6, ease: 'power2.out', stagger: 0.08 })
-        },
-      })
-    }, sectionRef)
-    return () => animationContext.revert()
+    loadGsapBundle().then(({ gsap, ScrollTrigger }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const animationContext = gsap.context(() => {
+        gsap.fromTo('.stats__lane', { autoAlpha: 0, y: 60 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: 1,
+          ease: 'power3.out',
+          stagger: 0.14,
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 82%', once: true },
+        })
+
+        ScrollTrigger.create({
+          trigger: sectionRef.current,
+          start: 'top 74%',
+          once: true,
+          onEnter: () => {
+            setIsActive(true)
+            gsap.fromTo('.stats__streak', { xPercent: -120, opacity: 0 }, { xPercent: 130, opacity: 1, duration: 1.6, ease: 'power2.out', stagger: 0.08 })
+          },
+        })
+      }, sectionRef)
+
+      cleanupAnimations = () => animationContext.revert()
+    })
+
+    return () => {
+      isMounted = false
+      cleanupAnimations?.()
+    }
   }, [isSectionActive, sectionRef])
 
   return (
@@ -1069,11 +1433,26 @@ function ClientTestimonialsSection() {
 
   useEffect(() => {
     if (!isActive || sectionRef.current === null) return
-    const context = gsap.context(() => {
-      gsap.fromTo('.client-testimonials__reveal', { autoAlpha: 0, y: 32 }, { autoAlpha: 1, y: 0, duration: 0.95, stagger: 0.1, ease: 'power3.out' })
-      gsap.fromTo('.client-testimonials__row', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 1.1, stagger: 0.08, ease: 'power3.out', delay: 0.1 })
-    }, sectionRef)
-    return () => context.revert()
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const context = gsap.context(() => {
+        gsap.fromTo('.client-testimonials__reveal', { autoAlpha: 0, y: 32 }, { autoAlpha: 1, y: 0, duration: 0.95, stagger: 0.1, ease: 'power3.out' })
+        gsap.fromTo('.client-testimonials__row', { autoAlpha: 0, y: 28 }, { autoAlpha: 1, y: 0, duration: 1.1, stagger: 0.08, ease: 'power3.out', delay: 0.1 })
+      }, sectionRef)
+
+      cleanupAnimations = () => context.revert()
+    })
+
+    return () => {
+      isMounted = false
+      cleanupAnimations?.()
+    }
   }, [isActive, sectionRef])
 
   return (
@@ -1112,35 +1491,40 @@ function ClientTestimonialsSection() {
 
 function ContactCTASection({ onOpenConsultation }: { onOpenConsultation: () => void }) {
   const { ref: sectionRef, isActive } = useDeferredActivation<HTMLElement>('300px 0px')
-  const backgroundRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!isActive || sectionRef.current === null || backgroundRef.current === null) return
-    const animationContext = gsap.context(() => {
-      gsap.fromTo('.contact-cta__reveal', { autoAlpha: 0, y: 70 }, {
-        autoAlpha: 1,
-        y: 0,
-        duration: 1,
-        ease: 'power3.out',
-        stagger: 0.12,
-        scrollTrigger: { trigger: sectionRef.current, start: 'top 84%', once: true },
-      })
-      gsap.to(backgroundRef.current, {
-        yPercent: -12,
-        scale: 1.08,
-        ease: 'none',
-        scrollTrigger: { trigger: sectionRef.current, start: 'top bottom', end: 'bottom top', scrub: 1 },
-      })
-    }, sectionRef)
+    if (!isActive || sectionRef.current === null) return
+    let isMounted = true
+    let cleanupAnimations: (() => void) | undefined
+
+    loadGsapBundle().then(({ gsap }) => {
+      if (!isMounted || sectionRef.current === null) {
+        return
+      }
+
+      const animationContext = gsap.context(() => {
+        gsap.fromTo('.contact-cta__reveal', { autoAlpha: 0, y: 70 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: 1,
+          ease: 'power3.out',
+          stagger: 0.12,
+          scrollTrigger: { trigger: sectionRef.current, start: 'top 84%', once: true },
+        })
+      }, sectionRef)
+
+      cleanupAnimations = () => animationContext.revert()
+    })
 
     return () => {
-      animationContext.revert()
+      isMounted = false
+      cleanupAnimations?.()
     }
   }, [isActive, sectionRef])
 
   return (
     <section ref={sectionRef} className="contact-cta luxury-section luxury-section--wide">
-      <div ref={backgroundRef} className="contact-cta__background" style={{ backgroundImage: `url(${CONTACT_IMAGE})` }} />
+      <div className="contact-cta__background" style={{ backgroundImage: `url(${CONTACT_IMAGE})` }} />
       <div className="contact-cta__overlay" />
       <div className="contact-cta__vignette" />
       <div className="contact-cta__content">
