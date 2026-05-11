@@ -34,11 +34,19 @@
 
 * {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
 }
 
 html {
   scroll-behavior: smooth;
   background: var(--background);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 body {
@@ -53,6 +61,13 @@ body {
   line-height: 1.7;
   text-rendering: optimizeLegibility;
   font-feature-settings: "liga" 1, "kern" 1;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 #root {

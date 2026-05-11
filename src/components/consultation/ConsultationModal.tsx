@@ -37,7 +37,6 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={onClose}
         >
           <motion.div
             className="consultation-modal__veil"
@@ -52,7 +51,6 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-            onClick={(event) => event.stopPropagation()}
           >
             <div className="consultation-modal__ambient consultation-modal__ambient--one" />
             <div className="consultation-modal__ambient consultation-modal__ambient--two" />

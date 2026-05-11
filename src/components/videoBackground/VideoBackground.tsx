@@ -7,8 +7,13 @@ type VideoBackgroundProps = {
   isHome?: boolean
   isSection?: boolean
   deferMs?: number
-  disableOnMobile?: boolean
 }
+
+type IdleWindow = Window &
+  typeof globalThis & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number
+    cancelIdleCallback?: (handle: number) => void
+  }
 
 export function VideoBackground({
   src,
@@ -16,7 +21,6 @@ export function VideoBackground({
   isHome = false,
   isSection = false,
   deferMs = 0,
-  disableOnMobile = false,
 }: VideoBackgroundProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [shouldLoadVideo, setShouldLoadVideo] = useState(false)
@@ -26,32 +30,29 @@ export function VideoBackground({
       return false
     }
 
-    const connection = (navigator as Navigator & {
-      connection?: { saveData?: boolean }
-    }).connection
-
-    return (
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
-      connection?.saveData === true
-    )
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
   }, [])
-  const shouldUsePosterOnly = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return false
-    }
-
-    return disableOnMobile && window.matchMedia('(max-width: 768px)').matches
-  }, [disableOnMobile])
 
   useEffect(() => {
-    if (shouldReduceMotion || shouldUsePosterOnly) {
+    if (shouldReduceMotion) {
       return
     }
 
     let timeoutId = 0
+    let idleId = 0
+    const browserWindow = window as IdleWindow
+
+    const loadVideo = () => {
+      setShouldLoadVideo(true)
+    }
 
     const queueLoad = () => {
-      setShouldLoadVideo(true)
+      if (browserWindow.requestIdleCallback) {
+        idleId = browserWindow.requestIdleCallback(loadVideo, { timeout: 2000 })
+        return
+      }
+
+      timeoutId = window.setTimeout(loadVideo, 0)
     }
 
     if (deferMs > 0) {
@@ -62,8 +63,11 @@ export function VideoBackground({
 
     return () => {
       window.clearTimeout(timeoutId)
+      if (idleId !== 0 && browserWindow.cancelIdleCallback) {
+        browserWindow.cancelIdleCallback(idleId)
+      }
     }
-  }, [deferMs, shouldReduceMotion, shouldUsePosterOnly])
+  }, [deferMs, shouldReduceMotion])
 
   useEffect(() => {
     if (!shouldLoadVideo) {
@@ -77,35 +81,68 @@ export function VideoBackground({
     }
 
     const tryPlay = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return
+      }
+
       const playPromise = videoElement.play()
 
       if (playPromise) {
-        playPromise.catch(() => {
-          // Some browsers may block autoplay until the element is fully ready.
-        })
+        playPromise
+          .then(() => {
+            setIsVideoReady(true)
+          })
+          .catch(() => {
+            // Some browsers may block autoplay until the element is fully ready.
+          })
       }
     }
 
-    const handleCanPlay = () => {
+    const handleReadyToPlay = () => {
       setIsVideoReady(true)
       tryPlay()
     }
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        tryPlay()
+      }
+    }
+
+    const handlePageShow = () => {
+      tryPlay()
+    }
+
     // Reinforce autoplay-related flags at the DOM level for Safari/iOS reliability.
+    videoElement.autoplay = true
+    videoElement.loop = true
     videoElement.muted = true
     videoElement.defaultMuted = true
     videoElement.playsInline = true
+    videoElement.preload = 'metadata'
+    videoElement.setAttribute('autoplay', '')
+    videoElement.setAttribute('loop', '')
     videoElement.setAttribute('muted', '')
     videoElement.setAttribute('playsinline', '')
     videoElement.setAttribute('webkit-playsinline', '')
 
     videoElement.load()
-    videoElement.addEventListener('canplay', handleCanPlay)
+    videoElement.addEventListener('loadedmetadata', handleReadyToPlay)
+    videoElement.addEventListener('loadeddata', handleReadyToPlay)
+    videoElement.addEventListener('canplay', handleReadyToPlay)
+    videoElement.addEventListener('playing', handleReadyToPlay)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('pageshow', handlePageShow)
 
     tryPlay()
 
     return () => {
-      videoElement.removeEventListener('canplay', handleCanPlay)
+      videoElement.removeEventListener('loadedmetadata', handleReadyToPlay)
+      videoElement.removeEventListener('loadeddata', handleReadyToPlay)
+      videoElement.removeEventListener('canplay', handleReadyToPlay)
+      videoElement.removeEventListener('playing', handleReadyToPlay)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('pageshow', handlePageShow)
     }
   }, [shouldLoadVideo, src])
 
@@ -124,10 +161,10 @@ export function VideoBackground({
         <video
           ref={videoRef}
           className={`site-video-background__media${isHome ? ' site-video-background__media--home' : ''}`}
-          autoPlay
-          loop
-          muted
-          playsInline
+          autoPlay={true}
+          loop={true}
+          muted={true}
+          playsInline={true}
           preload="metadata"
         >
           <source src={src} type="video/mp4" />
