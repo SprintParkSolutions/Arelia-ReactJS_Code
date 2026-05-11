@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="sofa-gold" x1="16" y1="24" x2="112" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8D66B"/>
+      <stop offset="0.5" stop-color="#E0B047"/>
+      <stop offset="1" stop-color="#A56E1D"/>
+    </linearGradient>
+  </defs>
+  <path d="M30 42C30 35.373 35.373 30 42 30H56C60.418 30 64 33.582 64 38V62H30V42Z" fill="url(#sofa-gold)"/>
+  <path d="M64 38C64 33.582 67.582 30 72 30H86C92.627 30 98 35.373 98 42V62H64V38Z" fill="url(#sofa-gold)"/>
+  <path d="M22 58C17.582 58 14 61.582 14 66V86C14 90.418 17.582 94 22 94H106C110.418 94 114 90.418 114 86V66C114 61.582 110.418 58 106 58H22Z" fill="url(#sofa-gold)"/>
+  <path d="M22 94H32L28 108H22V94Z" fill="url(#sofa-gold)"/>
+  <path d="M106 94H96L100 108H106V94Z" fill="url(#sofa-gold)"/>
+</svg>
