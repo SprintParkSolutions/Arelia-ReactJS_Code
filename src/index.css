@@ -19,8 +19,8 @@
   --foreground: #f8f6f2;
   --muted: #d6cec3;
   --text-soft: #d1d1d1;
-  --gold: #d4a373;
-  --gold-soft: #f0c48d;
+  --gold: #c8a97e;
+  --gold-soft: #e8d2b0;
   --line: rgba(255, 255, 255, 0.1);
   --type-h1: clamp(2.25rem, 5vw, 4rem);
   --type-h2: clamp(1.75rem, 4vw, 3rem);
@@ -78,8 +78,9 @@ body::-webkit-scrollbar {
 body {
   min-width: 320px;
   background:
-    radial-gradient(circle at top, rgba(229, 188, 89, 0.08), transparent 20%),
-    #050505;
+    radial-gradient(circle at top, rgba(200, 169, 126, 0.12), transparent 20%),
+    radial-gradient(circle at 80% 20%, rgba(44, 72, 140, 0.14), transparent 26%),
+    linear-gradient(180deg, #07111d, #020817 44%, #03060f);
 }
 h1,
 h2,

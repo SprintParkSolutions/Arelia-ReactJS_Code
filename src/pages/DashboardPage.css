@@ -1,0 +1,2000 @@
+.dashboardPage {
+  position: relative;
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: 0;
+  color: #f3efe8;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.025), transparent 28%),
+    linear-gradient(180deg, rgba(10, 11, 12, 0.36) 0%, rgba(10, 11, 12, 0.5) 100%);
+}
+
+.dashboardPage__ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.9;
+}
+
+.dashboardPage__orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(110px);
+}
+
+.dashboardPage__orb--gold {
+  top: 4%;
+  left: -6%;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(196, 165, 113, 0.08);
+}
+
+.dashboardPage__orb--blue {
+  right: -10%;
+  top: 12%;
+  width: 26rem;
+  height: 26rem;
+  background: rgba(78, 93, 132, 0.07);
+}
+
+.dashboardPage__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 0.78), transparent 82%);
+}
+
+.dashboardShell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  height: 100vh;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+.dashboardMobileBar,
+.dashboardHero,
+.dashboardSection,
+.dashboardState,
+.dashboardError,
+.dashboardEmptyState,
+.dashboardPreview {
+  border: 1px solid rgba(194, 177, 143, 0.16);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.008)),
+    rgba(16, 17, 18, 0.56);
+  box-shadow:
+    0 22px 80px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.dashboardMobileBar {
+  display: none;
+}
+
+.dashboardRail {
+  width: 17rem;
+  flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  padding: 2.25rem 1rem 1rem;
+  border-right: 1px solid rgba(194, 177, 143, 0.08);
+  background: rgba(21, 23, 24, 0.64);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.dashboardRail__brandWrap {
+  padding: 0 1rem;
+  margin-bottom: 2.8rem;
+}
+
+.dashboardRail__brand {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboardRail__brandTitle {
+  display: block;
+  color: #e2b86d;
+  font-family: var(--font-sans);
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.dashboardRail__brandSubtitle {
+  display: block;
+  margin-top: 0.28rem;
+  color: rgba(241, 237, 229, 0.58);
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.dashboardRail__nav {
+  display: grid;
+  gap: 0.4rem;
+  flex: 1;
+  align-content: start;
+}
+
+.dashboardRail__link {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.82rem 0.95rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: transparent;
+  color: rgba(241, 237, 229, 0.58);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.84rem;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.dashboardRail__link svg,
+.dashboardRail__footerAction svg {
+  font-size: 0.98rem;
+  flex-shrink: 0;
+}
+
+.dashboardRail__link.is-active {
+  color: #ebc987;
+  background: rgba(82, 69, 47, 0.28);
+  border-right: 2px solid rgba(233, 193, 118, 0.9);
+}
+
+.dashboardRail__link:hover,
+.dashboardRail__footerAction:hover {
+  color: #ebc987;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dashboardRail__footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(194, 177, 143, 0.08);
+}
+
+.dashboardRail__footerAction {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.82rem 0.95rem;
+  border: 0;
+  border-radius: 0.9rem;
+  background: transparent;
+  color: rgba(241, 237, 229, 0.58);
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background-color 180ms ease;
+}
+
+.dashboardHero {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  min-height: 17rem;
+  padding: clamp(2rem, 2.5vw, 3.2rem);
+  border-radius: 1.35rem;
+  margin-bottom: 1.7rem;
+  background:
+    linear-gradient(90deg, rgba(8, 10, 11, 0.92), rgba(8, 10, 11, 0.48)),
+    radial-gradient(circle at 80% 30%, rgba(215, 167, 92, 0.1), transparent 18%),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.62)),
+    rgba(16, 17, 18, 0.6);
+}
+
+.dashboardHero__lighting {
+  position: absolute;
+  inset: auto auto -2.5rem -2.5rem;
+  width: 20rem;
+  height: 20rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(208, 167, 100, 0.13), transparent 68%);
+  filter: blur(38px);
+}
+
+.dashboardHero__imageMask {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(9, 11, 12, 0.92) 0%, rgba(9, 11, 12, 0.84) 26%, rgba(9, 11, 12, 0.42) 72%, rgba(9, 11, 12, 0.28) 100%),
+    linear-gradient(90deg, rgba(194, 177, 143, 0.06) 1px, transparent 1px);
+  background-size: auto, 2.25rem 100%;
+  opacity: 0.95;
+}
+
+.dashboardHero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.05), transparent 20%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 24%);
+  pointer-events: none;
+}
+
+.dashboardHero__copy,
+.dashboardHero__aside {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboardHero__copy--minimal {
+  max-width: 40rem;
+}
+
+.dashboardHero__eyebrow,
+.dashboardHero__title,
+.dashboardHero__subtitle {
+  margin: 0;
+}
+
+.dashboardHero__eyebrow,
+.dashboardSection__eyebrow,
+.dashboardProjectCard__eyebrow,
+.dashboardPaymentCard__eyebrow,
+.dashboardPreview__eyebrow {
+  color: #d7bc8f;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.dashboardHero__title {
+  margin-top: 0.8rem;
+  max-width: 13ch;
+  font-family: var(--font-serif);
+  font-size: clamp(2.1rem, 3.2vw, 3.2rem);
+  line-height: 1;
+  color: #f1ece4;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.dashboardHero__subtitle {
+  max-width: 34rem;
+  margin-top: 0.85rem;
+  color: rgba(238, 233, 224, 0.72);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  font-weight: 400;
+}
+
+.dashboardProjectCard__meta span,
+.dashboardInfoCard__label,
+.dashboardSpotlightCard__meta span,
+.dashboardPaymentCard__body p,
+.dashboardPreview__header p,
+.dashboardVendorCard__footer span,
+.dashboardDocumentCard__body p,
+.dashboardImageCard__body p {
+  color: rgba(248, 246, 242, 0.58);
+  font-size: 0.74rem;
+  line-height: 1.45;
+}
+
+.dashboardState,
+.dashboardError,
+.dashboardEmptyState {
+  margin-top: 1.5rem;
+  padding: 1.2rem 1.35rem;
+  border-radius: 1.65rem;
+}
+
+.dashboard-loading {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dashboard-loading::before {
+  content: "";
+  width: 2.6rem;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(200, 169, 126, 0.16), rgba(232, 210, 176, 0.92));
+  box-shadow: 0 0 14px rgba(200, 169, 126, 0.28);
+  animation: dashboard-loader-sweep 1.1s ease-in-out infinite;
+  transform-origin: left center;
+}
+
+.dashboardEmptyStateWrap {
+  margin-top: 1.5rem;
+}
+
+.dashboardDebugNote {
+  margin: 0.75rem 0 0;
+  color: rgba(248, 246, 242, 0.7);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.dashboardError {
+  border-color: rgba(255, 118, 118, 0.16);
+  color: #fecaca;
+}
+
+.dashboardContent {
+  margin-top: 0;
+  min-height: calc(100vh - 7rem);
+}
+
+.dashboardWorkspace {
+  max-width: 96rem;
+  margin-left: 17rem;
+  padding: 4rem 4rem 7rem;
+  width: calc(100% - 17rem);
+  height: 100vh;
+  min-height: 100vh;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.dashboardWorkspace__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.dashboardWorkspace__eyebrow {
+  margin: 0;
+  color: rgba(248, 246, 242, 0.54);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.dashboardWorkspace__clientChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.82rem;
+  padding: 0.25rem 0.8rem 0.25rem 0.25rem;
+  border: 1px solid rgba(194, 177, 143, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.dashboardWorkspace__clientAvatar {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 180, 129, 0.22);
+  background: linear-gradient(180deg, rgba(110, 93, 68, 0.54), rgba(44, 37, 29, 0.88));
+  color: #f4e8d7;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.dashboardWorkspace__clientLabel {
+  display: block;
+  color: rgba(248, 246, 242, 0.48);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.dashboardWorkspace__clientName {
+  display: block;
+  margin-top: 0.16rem;
+  color: #f8f6f2;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dashboardSection--profile {
+  margin-top: 0;
+}
+
+.dashboardSection {
+  padding: clamp(1.6rem, 1.8vw, 2rem);
+  border-radius: 1.35rem;
+  margin-top: 0;
+  margin-bottom: 1.75rem;
+}
+
+.dashboardOverviewStack {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+
+.dashboardSection__heading,
+.dashboardSection__subhead,
+.dashboardStatusLayout,
+.dashboardVendorCard__top,
+.dashboardPaymentCard__head,
+.dashboardPreview__header,
+.dashboardProjectCard__head,
+.dashboardSpotlightCard__head,
+.dashboardSpotlightCard__meta,
+.dashboardVendorCard__footer,
+.dashboardDocumentCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dashboardSection__title,
+.dashboardSection__subhead h3,
+.dashboardPreview__header h3 {
+  margin: 0.25rem 0 0;
+  letter-spacing: -0.01em;
+}
+
+.dashboardSection__subhead h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dashboardSection__title {
+  color: #f1ede5;
+  font-family: var(--font-serif);
+  font-size: clamp(1.8rem, 2.2vw, 2.4rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+}
+
+.dashboardSection__lead {
+  max-width: 46rem;
+  margin: 0.75rem 0 0;
+  color: rgba(231, 224, 214, 0.64);
+  font-size: 0.9rem;
+  line-height: 1.58;
+}
+
+.dashboardSection__heading--profile {
+  align-items: end;
+}
+
+.dashboardSection__title--profile {
+  margin-top: 0.25rem;
+  font-size: clamp(2.1rem, 2vw, 2.5rem);
+}
+
+.dashboardSection__subhead--compact {
+  margin-bottom: 0.75rem;
+}
+
+.dashboardSection__subhead--split {
+  align-items: flex-start;
+  margin-bottom: 1.4rem;
+}
+
+.dashboardSection__ruleHeading {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.dashboardSection__ruleHeading span {
+  flex: 1;
+  height: 1px;
+  background: rgba(194, 177, 143, 0.2);
+}
+
+.dashboardSection__ruleHeading p {
+  margin: 0;
+  color: rgba(248, 246, 242, 0.54);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dashboardSection__ruleHeading--inverse {
+  margin-bottom: 1.35rem;
+}
+
+.dashboardSection__chip {
+  padding: 0.72rem 1.05rem;
+  border: 1px solid rgba(205, 175, 126, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f3d8a7;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.dashboardStatusLayout {
+  align-items: stretch;
+  gap: 1.4rem;
+  margin-top: 2.3rem;
+}
+
+.dashboardSpotlightCard,
+.dashboardProjectsPanel,
+.dashboardProfileCard,
+.dashboardVendorCard,
+.dashboardPaymentCard,
+.dashboardImageCard,
+.dashboardDocumentCard,
+.dashboardInfoCard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(198, 177, 143, 0.14);
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.008)),
+    rgba(13, 14, 15, 0.46);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background-color 220ms ease;
+}
+
+.dashboardSpotlightCard,
+.dashboardProjectsPanel {
+  padding: 1.35rem;
+}
+
+.dashboardProfileCard {
+  padding: 1.45rem;
+  border-color: rgba(200, 169, 126, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.008)),
+    radial-gradient(circle at top right, rgba(200, 169, 126, 0.05), transparent 26%),
+    rgba(13, 14, 15, 0.42);
+  box-shadow:
+    0 16px 44px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.dashboardProfileGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.dashboardProfileDetail {
+  display: block;
+  padding: 0 0 1.2rem;
+  border: 0;
+  border-bottom: 1px solid rgba(194, 177, 143, 0.12);
+  background: transparent;
+}
+
+.dashboardProfileDetail:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.dashboardProfileDetail__icon {
+  display: none;
+}
+
+.dashboardProfileDetail__copy {
+  min-width: 0;
+}
+
+.dashboardProfileDetail__label {
+  display: block;
+  color: rgba(248, 246, 242, 0.48);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.dashboardProfileDetail__value {
+  display: block;
+  margin-top: 0.28rem;
+  color: #f8f6f2;
+  font-size: 0.85rem;
+  line-height: 1.35;
+  word-break: break-word;
+  font-weight: 500;
+}
+
+.dashboardSection__subhead--profileCard {
+  align-items: start;
+}
+
+.dashboardSection__subhead--profileCard h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: clamp(1.9rem, 2.2vw, 2.35rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.dashboardProfileCard__intro {
+  margin: 0.3rem 0 0;
+  color: rgba(248, 246, 242, 0.52);
+  line-height: 1.45;
+  font-size: 0.8rem;
+}
+
+.dashboardSpotlightCard {
+  flex: 1.05;
+  min-height: 21rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008)),
+    radial-gradient(circle at 85% 12%, rgba(208, 167, 100, 0.09), transparent 16%),
+    rgba(13, 14, 15, 0.46);
+}
+
+.dashboardSpotlightCard__head span {
+  color: rgba(248, 246, 242, 0.58);
+  font-size: 0.76rem;
+}
+
+.dashboardSpotlightCard__head strong {
+  color: #e7bd72;
+  font-family: var(--font-serif);
+  font-size: clamp(2.2rem, 3.4vw, 3.1rem);
+  margin-top: 0.55rem;
+  display: block;
+  font-weight: 500;
+  line-height: 0.95;
+}
+
+.dashboardProgressBar {
+  position: relative;
+  height: 0.3rem;
+  margin-top: 1.4rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.dashboardProgressBar--thin {
+  height: 0.22rem;
+}
+
+.dashboardProgressBar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #cba15c, #f0cd8e);
+  box-shadow: 0 0 18px rgba(203, 161, 92, 0.24);
+}
+
+.dashboardProgressBar__fill--neon {
+  background: linear-gradient(90deg, #c8a97e, #f5e1c3);
+  box-shadow: 0 0 16px rgba(200, 169, 126, 0.24);
+}
+
+.dashboardSpotlightCard__meta {
+  margin-top: 0.8rem;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.dashboardSpotlightCard__meta span {
+  color: rgba(248, 246, 242, 0.54);
+  font-size: 0.74rem;
+  font-weight: 400;
+}
+
+.dashboardMetricGrid {
+  flex: 0.95;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dashboardInfoGrid {
+  margin-top: 1.5rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dashboardInfoGrid--overview {
+  margin-top: 0;
+}
+
+.dashboardInfoCard {
+  padding: 1.1rem;
+  min-height: 8rem;
+}
+
+.dashboardInfoCard__icon {
+  display: grid;
+  place-items: center;
+  width: 2.3rem;
+  height: 2.3rem;
+  border: 1px solid rgba(200, 169, 126, 0.15);
+  border-radius: 999px;
+  background: rgba(200, 169, 126, 0.06);
+  color: #e8d2b0;
+}
+
+.dashboardInfoCard__label,
+.dashboardInfoCard__value {
+  display: block;
+  margin-top: 0.55rem;
+}
+
+.dashboardInfoCard__value {
+  color: #f2eee5;
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  line-height: 1.16;
+  font-weight: 500;
+}
+
+.dashboardProjectsPanel {
+  margin-top: 1rem;
+}
+
+.dashboardProjectsPanel--nav {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 0;
+  text-align: left;
+  cursor: pointer;
+  border-color: rgba(200, 169, 126, 0.15);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.008)),
+    radial-gradient(circle at right center, rgba(200, 169, 126, 0.08), transparent 22%),
+    rgba(13, 14, 15, 0.46);
+  min-height: 38rem;
+  padding: 0;
+}
+
+.dashboardProjectsPanel__media {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.dashboardProjectsPanel__media img,
+.dashboardProjectsPanel__placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dashboardProjectsPanel__placeholder {
+  background:
+    linear-gradient(135deg, rgba(33, 35, 36, 0.2), rgba(12, 13, 14, 0.75)),
+    radial-gradient(circle at 70% 25%, rgba(233, 193, 118, 0.12), transparent 18%),
+    linear-gradient(180deg, rgba(10, 11, 12, 0.1), rgba(10, 11, 12, 0.92));
+}
+
+.dashboardProjectsPanel__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 7, 8, 0.18), rgba(6, 7, 8, 0.38) 45%, rgba(6, 7, 8, 0.9) 100%);
+}
+
+.dashboardProjectsPanel__badge {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 1;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(29, 31, 32, 0.68);
+  color: #ebc987;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.dashboardProjectsPanel__copy,
+.dashboardProjectsPanel__cta {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboardProjectsPanel__copy {
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.dashboardProjectsPanel__copy h3 {
+  margin: 0;
+  color: #f4efe7;
+  font-family: var(--font-serif);
+  font-size: clamp(1.65rem, 2vw, 2.15rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  max-width: 12ch;
+}
+
+.dashboardProjectsPanel__meta {
+  display: block;
+  margin-top: 1rem;
+}
+
+.dashboardProjectsPanel__meta span {
+  display: block;
+  color: rgba(248, 246, 242, 0.52);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.dashboardProjectsPanel__meta strong {
+  display: block;
+  margin-top: 0.35rem;
+  color: #f8f6f2;
+  font-size: 1.35rem;
+  font-family: var(--font-serif);
+  font-weight: 500;
+}
+
+.dashboardProjectsPanel__description {
+  margin: 1rem 0 0;
+  max-width: 28rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.58;
+  font-size: 0.86rem;
+}
+
+.dashboardProjectsPanel__cta {
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  margin: 0 1.8rem 1.8rem auto;
+  flex-shrink: 0;
+  border: 1px solid rgba(200, 169, 126, 0.15);
+  border-radius: 999px;
+  background: rgba(200, 169, 126, 0.06);
+  color: #e8d2b0;
+  box-shadow: 0 0 12px rgba(200, 169, 126, 0.06);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+
+.dashboardProjectsPanel--nav:hover .dashboardProjectsPanel__cta {
+  transform: translateX(2px);
+  box-shadow:
+    0 0 16px rgba(200, 169, 126, 0.1),
+    0 8px 18px rgba(0, 0, 0, 0.12);
+}
+
+.dashboardProjectsGrid,
+.dashboardVendorGrid,
+.dashboardPaymentGrid,
+.dashboardImageGrid,
+.dashboardDocumentGrid {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.dashboardProjectsGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1rem;
+}
+
+.dashboardProjectCard {
+  padding: 1rem;
+}
+
+.dashboardProjectCard__head h3,
+.dashboardPaymentCard__head h3,
+.dashboardVendorCard__top h3,
+.dashboardDocumentCard__body strong,
+.dashboardImageCard__body strong {
+  margin: 0.22rem 0 0;
+  color: #f8f6f2;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.dashboardProjectCard__status,
+.dashboardVendorCard__badge,
+.dashboardPaymentCard__status {
+  flex-shrink: 0;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 700;
+}
+
+.dashboardProjectCard__status {
+  background: rgba(200, 169, 126, 0.08);
+  color: #e8d2b0;
+}
+
+.dashboardProjectCard__ring {
+  display: flex;
+  justify-content: center;
+  margin: 0.85rem 0;
+}
+
+.dashboardProjectCard__meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.dashboardProjectCard__meta strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: #f8f6f2;
+  font-weight: 500;
+  font-size: 0.84rem;
+}
+
+.dashboardProjectCard__description {
+  margin: 0.85rem 0 0;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.8rem;
+}
+
+.dashboardVendorGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 1.2rem;
+  gap: 1rem;
+}
+
+.dashboardVendorCard {
+  padding: 1.15rem;
+}
+
+.dashboardVendorCard__content {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+}
+
+.dashboardVendorCard__avatar {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(200, 169, 126, 0.18), rgba(232, 210, 176, 0.06));
+  color: #f9ebd7;
+  font-weight: 700;
+  font-size: 0.78rem;
+}
+
+.dashboardVendorCard__top {
+  align-items: flex-start;
+}
+
+.dashboardVendorCard__top > div {
+  flex: 1;
+}
+
+.dashboardVendorCard__top > div p {
+  margin: 0.2rem 0 0;
+  color: rgba(248, 246, 242, 0.52);
+  font-size: 0.74rem;
+}
+
+.dashboardVendorCard__top > div h3 {
+  font-size: 0.92rem;
+}
+
+.dashboardVendorCard__badge {
+  background: rgba(229, 191, 126, 0.08);
+  color: #e8c891;
+}
+
+.dashboardVendorCard__progress {
+  margin-top: 0.8rem;
+}
+
+.dashboardVendorCard__footer {
+  margin-top: 0.6rem;
+  font-size: 0.74rem;
+}
+
+.dashboardVendorCard__footer strong {
+  color: #f8f6f2;
+  display: block;
+  margin-top: 0.2rem;
+}
+
+.dashboardVendorCard--static {
+  cursor: default;
+}
+
+.dashboardVendorCard--static:hover {
+  transform: none;
+  border-color: rgba(198, 177, 143, 0.14);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.dashboardTaskMediaGrid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dashboardTaskMediaCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0.9rem;
+  background: rgba(10, 10, 15, 0.15);
+}
+
+.dashboardTaskMediaCard__icon,
+.dashboardTaskMediaCard__download {
+  display: grid;
+  place-items: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  background: rgba(200, 169, 126, 0.08);
+  color: #e8d2b0;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+}
+
+.dashboardTaskMediaCard > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboardPaymentGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 1.35rem;
+  gap: 1.2rem;
+}
+
+.dashboardPaymentCard {
+  padding: 1.45rem;
+  min-height: 16rem;
+}
+
+.dashboardPaymentCard__status.is-paid {
+  background: rgba(34, 197, 94, 0.12);
+  color: #86efac;
+}
+
+.dashboardPaymentCard__status.is-pending {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fcd34d;
+}
+
+.dashboardPaymentCard__body {
+  margin-top: 1rem;
+}
+
+.dashboardPaymentCard__body strong {
+  display: block;
+  color: #f5f0e8;
+  font-family: var(--font-serif);
+  font-size: 1.95rem;
+  font-weight: 500;
+  line-height: 1.05;
+}
+
+.dashboardPaymentCard__body p {
+  margin: 0.55rem 0 0;
+  color: rgba(248, 246, 242, 0.54);
+  font-size: 0.8rem;
+}
+
+.dashboardPaymentCard__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1rem;
+  color: #e8d2b0;
+  font-size: 0.75rem;
+}
+
+.dashboardPaymentCard__microcopy {
+  margin: 0.45rem 0 0;
+  color: rgba(240, 229, 212, 0.48);
+  font-size: 0.8rem;
+}
+
+.dashboardMediaBlock + .dashboardMediaBlock {
+  margin-top: 1.2rem;
+}
+
+.dashboardSection__subhead {
+  margin-bottom: 0.8rem;
+}
+
+.dashboardSection__subhead span {
+  color: rgba(248, 246, 242, 0.52);
+  font-size: 0.75rem;
+}
+
+.dashboardImageGrid {
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.dashboardImageCard {
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  grid-column: span 4;
+  min-height: 17rem;
+}
+
+.dashboardImageCard:first-child {
+  grid-column: span 8;
+}
+
+.dashboardImageCard:nth-child(4n) {
+  grid-column: span 8;
+}
+
+.dashboardImageCard__preview {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+}
+
+.dashboardImageCard__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 240ms ease;
+  filter: saturate(0.92) contrast(1.02) brightness(0.9);
+}
+
+.dashboardImageCard:hover .dashboardImageCard__preview img {
+  transform: scale(1.03);
+}
+
+.dashboardImageCard__overlay {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 0.95rem 0.95rem;
+  background: linear-gradient(180deg, transparent, rgba(6, 7, 8, 0.86));
+}
+
+.dashboardImageCard__overlay strong {
+  display: block;
+  margin-top: 0.45rem;
+  color: #f2ede5;
+  font-family: var(--font-serif);
+  font-size: clamp(1.1rem, 1.4vw, 1.45rem);
+  line-height: 1.08;
+}
+
+.dashboardImageCard__tag {
+  color: #e0c289;
+  font-size: 0.64rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.dashboardImageCard__body {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.8rem 0.85rem;
+}
+
+.dashboardImageCard__icon,
+.dashboardDocumentCard__icon {
+  display: grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  background: rgba(200, 169, 126, 0.08);
+  color: #e8d2b0;
+  flex-shrink: 0;
+}
+
+.dashboardDocumentGrid {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.dashboardDocumentCard {
+  padding: 1rem 1.1rem;
+  border-radius: 1.2rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.008)),
+    rgba(51, 50, 50, 0.86);
+}
+
+.dashboardDocumentCard__body {
+  flex: 1;
+}
+
+.dashboardDocumentCard__body strong {
+  display: block;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.dashboardDocumentCard__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.dashboardDocumentCard__button,
+.dashboardDocumentCard__download,
+.dashboardPreview__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.15rem;
+  padding: 0 0.8rem;
+  border: 1px solid rgba(200, 169, 126, 0.15);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f7e8d4;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 500;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.dashboardDocumentCard__download {
+  width: 2.4rem;
+  padding: 0;
+}
+
+.dashboardDocumentCard__button:hover,
+.dashboardDocumentCard__download:hover,
+.dashboardPreview__cta:hover {
+  transform: translateY(-1px);
+  border-color: rgba(232, 210, 176, 0.35);
+  background: rgba(200, 169, 126, 0.08);
+  box-shadow: 0 8px 20px rgba(200, 169, 126, 0.1);
+}
+
+.dashboardPreviewLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.dashboardPreview__backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background:
+    radial-gradient(circle at top, rgba(215, 177, 109, 0.08), transparent 24%),
+    rgba(4, 6, 8, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.dashboardPreview__shell {
+  position: relative;
+  z-index: 121;
+  display: flex;
+  width: min(88vw, 70rem);
+  max-width: 100%;
+  max-height: calc(100vh - clamp(2.5rem, 6vw, 5rem));
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboardPreview {
+  position: relative;
+  z-index: 121;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: min(88vh, 58rem);
+  padding: 0;
+  border-radius: 1.35rem;
+  overflow: hidden;
+}
+
+.dashboardPreview__header {
+  align-items: flex-start;
+  padding: 1.2rem 1.2rem 0;
+}
+
+.dashboardPreview__headerCopy {
+  min-width: 0;
+}
+
+.dashboardPreview__header h3 {
+  color: #f8f6f2;
+  font-family: var(--font-serif);
+  margin-top: 0.25rem;
+  font-size: 1.6rem;
+  font-weight: 500;
+}
+
+.dashboardPreview__header p {
+  margin-top: 0.22rem;
+  font-size: 0.72rem;
+}
+
+.dashboardPreview__stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 1.2rem 0;
+  min-height: 0;
+}
+
+.dashboardPreview__metaBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(194, 177, 143, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(248, 246, 242, 0.58);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dashboardPreview__close::before {
+  content: none !important;
+}
+
+.dashboardPreview__image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 0;
+  flex: 1 1 auto;
+  padding: 1rem;
+  border-radius: 1.15rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.01)),
+    rgba(9, 10, 12, 0.92);
+}
+
+.dashboardPreview__image img {
+  width: 100%;
+  max-height: 62vh;
+  object-fit: contain;
+  background: #0d0e10;
+  border-radius: 0.8rem;
+}
+
+.dashboardPreview__file {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  min-height: 18rem;
+  padding: 1.5rem;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 1.15rem;
+  color: rgba(248, 246, 242, 0.68);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.008)),
+    rgba(12, 13, 15, 0.92);
+  text-align: left;
+}
+
+.dashboardPreview__fileIcon {
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  border: 1px solid rgba(194, 177, 143, 0.15);
+  background: rgba(200, 169, 126, 0.08);
+  color: #e8d2b0;
+  flex-shrink: 0;
+}
+
+.dashboardPreview__fileIcon svg {
+  font-size: 1.4rem;
+}
+
+.dashboardPreview__fileCopy strong {
+  display: block;
+  color: #f8f6f2;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.dashboardPreview__fileCopy p {
+  margin: 0.35rem 0 0;
+  color: rgba(248, 246, 242, 0.58);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.dashboardStatusHero {
+  margin-top: 1.6rem;
+}
+
+.dashboardStatusHeroCard {
+  position: relative;
+  overflow: hidden;
+  min-height: 15rem;
+  padding: 1.7rem;
+  border: 1px solid rgba(198, 177, 143, 0.14);
+  border-radius: 1.75rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.008)),
+    radial-gradient(circle at top center, rgba(233, 193, 118, 0.08), transparent 24%),
+    rgba(13, 14, 15, 0.78);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.dashboardStatusHeroCard__progressTop {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 0.24rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dashboardStatusHeroCard__progressLine {
+  height: 100%;
+  background: linear-gradient(90deg, #cba15c, #f0cd8e);
+  box-shadow: 0 0 16px rgba(203, 161, 92, 0.35);
+}
+
+.dashboardStatusHeroCard__header,
+.dashboardStatusHeroCard__body {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboardStatusHeroCard__header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dashboardStatusHeroCard__header h3 {
+  margin: 0.45rem 0 0;
+  color: #f2eee7;
+  font-family: var(--font-serif);
+  font-size: clamp(1.85rem, 2.4vw, 2.65rem);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+.dashboardStatusHeroCard__chip {
+  padding: 0.6rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid rgba(194, 177, 143, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f3d8a7;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.dashboardStatusHeroCard__body {
+  margin-top: 2.2rem;
+}
+
+.dashboardStatusHeroCard__body strong {
+  display: block;
+  color: #e9c176;
+  font-family: var(--font-serif);
+  font-size: clamp(2.5rem, 4.5vw, 3.4rem);
+  line-height: 0.94;
+  font-weight: 500;
+}
+
+.dashboardStatusHeroCard__body p {
+  margin: 0.65rem 0 0;
+  color: rgba(248, 246, 242, 0.56);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.dashboardStatusLayout--metrics {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+
+.dashboardSpotlightCard--status {
+  min-height: 16rem;
+}
+
+.dashboardVendorCard__progressMeta {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.dashboardVendorCard__progressMeta span {
+  color: rgba(248, 246, 242, 0.56);
+  font-size: 0.72rem;
+}
+
+.dashboardVendorCard__progressMeta strong {
+  color: #e9c176;
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.dashboardPaymentTimeline {
+  position: relative;
+  margin-top: 1.6rem;
+  display: grid;
+  gap: 1.1rem;
+}
+
+.dashboardPaymentTimeline::before {
+  content: "";
+  position: absolute;
+  left: 2rem;
+  top: 1.2rem;
+  bottom: 1.2rem;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(233, 193, 118, 0.55), rgba(78, 70, 57, 0.12));
+}
+
+.dashboardPaymentTimeline__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: 1.2rem;
+  align-items: start;
+}
+
+.dashboardPaymentTimeline__node {
+  position: relative;
+  z-index: 1;
+  width: 4rem;
+  height: 4rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 143, 128, 0.3);
+  background: rgba(31, 33, 34, 0.92);
+}
+
+.dashboardPaymentTimeline__node::before {
+  content: "";
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: rgba(209, 197, 180, 0.46);
+}
+
+.dashboardPaymentTimeline__node.is-paid {
+  border-color: rgba(233, 193, 118, 0.55);
+  background: rgba(233, 193, 118, 0.1);
+}
+
+.dashboardPaymentTimeline__node.is-paid::before {
+  background: #e9c176;
+  box-shadow: 0 0 14px rgba(233, 193, 118, 0.45);
+}
+
+.dashboardPaymentCard {
+  padding: 1.35rem 1.5rem;
+  min-height: 0;
+  border-radius: 1.3rem;
+}
+
+.dashboardPaymentCard__aside {
+  min-width: 11rem;
+  padding-left: 1.5rem;
+  border-left: 1px solid rgba(194, 177, 143, 0.14);
+}
+
+.dashboardPaymentCard__aside span {
+  display: block;
+  color: rgba(248, 246, 242, 0.48);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.dashboardPaymentCard__aside strong {
+  display: block;
+  margin-top: 0.45rem;
+  color: #f5f0e8;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.dashboardPaymentCard__microcopy {
+  max-width: 36rem;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.dashboardPreview {
+  width: min(88vw, 70rem);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 1.35rem;
+  max-height: min(88vh, 58rem);
+}
+
+.dashboardPreview__header {
+  padding: 1.2rem 1.2rem 0;
+}
+
+.dashboardPreview__close {
+  width: 2.45rem;
+  height: 2.45rem;
+  border: 1px solid rgba(194, 177, 143, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(248, 246, 242, 0.72);
+  font-size: 0;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.dashboardPreview__close svg {
+  font-size: 1rem;
+}
+
+.dashboardPreview__close::before {
+  content: none !important;
+}
+
+.dashboardPreview__close::before {
+  content: "×";
+  font-size: 1.2rem;
+}
+
+.dashboardPreview__image {
+  min-height: 30rem;
+  background: transparent;
+}
+
+.dashboardPreview__image img {
+  max-height: 62vh;
+}
+
+.dashboardPreview__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem 1.2rem;
+  border-top: 1px solid rgba(194, 177, 143, 0.12);
+  background: rgba(30, 32, 32, 0.92);
+}
+
+.dashboardPreview__footer strong {
+  display: block;
+  color: #f5f0e8;
+  font-size: 0.96rem;
+  font-weight: 500;
+}
+
+.dashboardPreview__footer p {
+  margin: 0.3rem 0 0;
+  color: rgba(248, 246, 242, 0.52);
+  font-size: 0.74rem;
+}
+
+.dashboardSpotlightCard:hover,
+.dashboardProjectsPanel:hover,
+.dashboardVendorCard:hover,
+.dashboardPaymentCard:hover,
+.dashboardImageCard:hover,
+.dashboardDocumentCard:hover,
+.dashboardInfoCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 180, 129, 0.25);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+@keyframes dashboard-loader-sweep {
+  0%,
+  100% {
+    opacity: 0.42;
+    transform: scaleX(0.72);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@media (max-width: 1080px) {
+  .dashboardWorkspace {
+    width: auto;
+    margin-left: 17rem;
+    padding: 2.25rem 1.5rem 6rem;
+  }
+
+  .dashboardHero {
+    min-height: 0;
+  }
+
+  .dashboardOverviewStack,
+  .dashboardTaskMediaGrid,
+  .dashboardInfoGrid,
+  .dashboardProfileGrid,
+  .dashboardProjectsGrid,
+  .dashboardVendorGrid,
+  .dashboardPaymentGrid,
+  .dashboardImageGrid,
+  .dashboardDocumentGrid,
+  .dashboardStatusLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardStatusLayout {
+    display: grid;
+  }
+
+  .dashboardStatusLayout--metrics,
+  .dashboardPaymentTimeline__row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardPaymentTimeline::before,
+  .dashboardPaymentTimeline__node {
+    display: none;
+  }
+
+  .dashboardMetricGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dashboardImageCard,
+  .dashboardImageCard:first-child,
+  .dashboardImageCard:nth-child(4n) {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboardPage {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    padding-inline: 0;
+  }
+
+  .dashboardShell {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .dashboardMobileBar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    border-bottom: 1px solid rgba(194, 177, 143, 0.1);
+    background: rgba(18, 20, 20, 0.86);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+  }
+
+  .dashboardMobileBar__brand,
+  .dashboardMobileBar__logout {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #e2b86d;
+    cursor: pointer;
+  }
+
+  .dashboardMobileBar__brandLogo {
+    width: 2rem;
+    height: 2rem;
+    object-fit: contain;
+  }
+
+  .dashboardMobileBar__brand span {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+  }
+
+  .dashboardMobileBar__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .dashboardMobileBar__clientLabel {
+    color: rgba(248, 246, 242, 0.55);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .dashboardRail {
+    display: none;
+  }
+
+  .dashboardWorkspace {
+    width: auto;
+    height: auto;
+    min-height: 0;
+    margin-left: 0;
+    overflow: visible;
+    padding: 1.25rem 1rem 5rem;
+  }
+
+  .dashboardHero,
+  .dashboardSection,
+  .dashboardPreview {
+    border-radius: 1.4rem;
+  }
+
+  .dashboardHero {
+    padding: 1.3rem 1.2rem;
+    margin-bottom: 1.2rem;
+  }
+
+  .dashboardMetricGrid,
+  .dashboardProjectCard__meta,
+  .dashboardTaskMediaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboardSection__heading,
+  .dashboardSection__subhead,
+  .dashboardPreview__header,
+  .dashboardDocumentCard,
+  .dashboardProjectsPanel--nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboardDocumentCard__actions {
+    width: 100%;
+  }
+
+  .dashboardPaymentCard__aside {
+    min-width: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .dashboardPreview__footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboardPreview__metaBar,
+  .dashboardPreview__file {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dashboardPreview__stage {
+    padding: 0.85rem 1rem 0;
+  }
+
+  .dashboardProjectsPanel__cta {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboardPage {
+    padding-inline: 0;
+  }
+
+  .dashboardHero {
+    padding: 0.85rem 1rem;
+  }
+
+  .dashboardHero__title {
+    font-size: 1.9rem;
+    max-width: 12ch;
+  }
+
+  .dashboardHero__subtitle {
+    font-size: 0.78rem;
+  }
+
+  .dashboardSection {
+    padding: 1rem;
+    border-radius: 1.2rem;
+  }
+
+  .dashboardSection__title {
+    font-size: 1.18rem;
+  }
+
+  .dashboardProfileGrid {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .dashboardProjectsPanel {
+    margin-top: 0.8rem;
+  }
+}
