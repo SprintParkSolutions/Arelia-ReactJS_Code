@@ -98,8 +98,7 @@ export default function App() {
 
         {/* FIX: Changed 'videoSrc' to 'src' to match your interface */}
         <VideoBackground
-          src="/videos/arelia-global-background.mp4"
-          posterSrc="/videos/arelia-global-background-poster.webp"
+          src="/videos/arelia-global-background-lite.mp4"
           deferMs={2500}
         />
 
