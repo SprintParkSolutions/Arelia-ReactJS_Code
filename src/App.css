@@ -7,9 +7,9 @@ body {
 
 .app-shell {
   --app-shell-page-padding-x: 1.5rem;
-  --app-shell-page-padding-top: 8rem;
+  --app-shell-page-padding-top: 9rem;
   --app-shell-page-padding-bottom: 3rem;
-  --app-shell-page-width: 64rem;
+  --app-shell-page-width: 84rem;
   position: relative;
   width: 100%;
   max-width: 100%;
@@ -20,6 +20,36 @@ body {
   transition:
     opacity 0.8s ease,
     transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(110px);
+  opacity: 0.8;
+}
+
+.app-shell::before {
+  top: 4rem;
+  left: -7rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(200, 169, 126, 0.12);
+}
+
+.app-shell::after {
+  right: -8rem;
+  top: 16rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(50, 90, 170, 0.12);
 }
 
 .app-shell--entering {
@@ -47,6 +77,27 @@ body {
 
 .app-shell__route-fallback {
   min-height: 100vh;
+  padding: 7rem 1.5rem 2rem;
+}
+
+.app-shell__routeFallbackGlass {
+  width: min(100%, 78rem);
+  height: min(80vh, 48rem);
+  margin: 0 auto;
+  border: 1px solid rgba(200, 169, 126, 0.1);
+  border-radius: 1.75rem;
+  background:
+    linear-gradient(180deg, rgba(15, 17, 20, 0.34), rgba(15, 17, 20, 0.18)),
+    rgba(15, 17, 20, 0.12);
+  box-shadow:
+    0 24px 72px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.app-shell__routeStage {
+  width: 100%;
 }
 
 .page {

@@ -1,9 +1,12 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import NavigationMenu from './components/navigationMenu/navigationMenu'
 import { SocialSidebar } from './components/socialsidebar/SocialSidebar'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
+import { useAuth } from './context/AuthContext'
 import { Footer } from './pages/Footer'
 import { Loader } from './components/loader/Loader'
 
@@ -22,6 +25,12 @@ const AboutPage = lazy(() =>
 const ContactUsPage = lazy(() =>
   import('./pages/ContactUsPage').then((module) => ({ default: module.ContactUsPage })),
 )
+const LoginPage = lazy(() =>
+  import('./pages/Login.tsx').then((module) => ({ default: module.Login })),
+)
+const DashboardPage = lazy(() =>
+  import('./pages/DashboardPage.tsx').then((module) => ({ default: module.DashboardPage })),
+)
 
 function ScrollToTop() {
   const location = useLocation()
@@ -35,15 +44,41 @@ function ScrollToTop() {
 
 export default function App() {
   const [isLoading, setIsLoading] = useState(() => typeof window !== 'undefined')
+  const [isRouteTransitioning, setIsRouteTransitioning] = useState(false)
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
+  const { isAuthenticated } = useAuth()
+  const location = useLocation()
+  const previousPathRef = useRef(location.pathname)
+  const isLoginPage = location.pathname === '/login'
+  const isDashboardPage = location.pathname === '/dashboard' && isAuthenticated
 
   const handleLoaderComplete = () => {
     setIsLoading(false)
   }
 
+  useEffect(() => {
+    if (previousPathRef.current === location.pathname) return
+
+    previousPathRef.current = location.pathname
+    setIsRouteTransitioning(true)
+
+    const timer = window.setTimeout(() => {
+      setIsRouteTransitioning(false)
+    }, 520)
+
+    return () => window.clearTimeout(timer)
+  }, [location.pathname])
+
   return (
     <>
-      {isLoading ? <Loader onComplete={handleLoaderComplete} /> : null}
+      {isLoading ? <Loader onComplete={handleLoaderComplete} title="Preparing your private client portal" /> : null}
+      {!isLoading && isRouteTransitioning ? (
+        <Loader
+          variant="route"
+          title="Curating your next workspace view"
+          onComplete={() => setIsRouteTransitioning(false)}
+        />
+      ) : null}
 
       <div className="app-shell">
         <ScrollToTop />
@@ -52,25 +87,51 @@ export default function App() {
           posterSrc="/videos/arelia-global-background-poster.webp"
           deferMs={2500}
         />
-        <NavigationMenu onOpenConsultation={() => setIsConsultationOpen(true)} />
-        <Suspense fallback={<div className="app-shell__route-fallback" aria-hidden="true" />}>
+        {!isDashboardPage ? <NavigationMenu onOpenConsultation={() => setIsConsultationOpen(true)} /> : null}
+        <Suspense
+          fallback={
+            <div className="app-shell__route-fallback" aria-hidden="true">
+              <div className="app-shell__routeFallbackGlass" />
+            </div>
+          }
+        >
           <div className="app-shell__content">
-            <Routes>
-              <Route
-                path="/"
-                element={<HomePage onOpenConsultation={() => setIsConsultationOpen(true)} />}
-              />
-              <Route
-                path="/about-us"
-                element={<AboutPage onOpenConsultation={() => setIsConsultationOpen(true)} />}
-              />
-              <Route
-                path="/services"
-                element={<ServicesSection onOpenConsultation={() => setIsConsultationOpen(true)} />}
-              />
-              <Route path="/contact-us" element={<ContactUsPage />} />
-            </Routes>
-            <Footer />
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={location.pathname}
+                className="app-shell__routeStage"
+                initial={{ opacity: 0, y: 18, filter: 'blur(12px)' }}
+                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                exit={{ opacity: 0, y: -12, filter: 'blur(8px)' }}
+                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <Routes location={location}>
+                  <Route
+                    path="/"
+                    element={<HomePage onOpenConsultation={() => setIsConsultationOpen(true)} />}
+                  />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <DashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/about-us"
+                    element={<AboutPage onOpenConsultation={() => setIsConsultationOpen(true)} />}
+                  />
+                  <Route
+                    path="/services"
+                    element={<ServicesSection onOpenConsultation={() => setIsConsultationOpen(true)} />}
+                  />
+                  <Route path="/contact-us" element={<ContactUsPage />} />
+                </Routes>
+              </motion.div>
+            </AnimatePresence>
+            {!isLoginPage && !isDashboardPage ? <Footer /> : null}
           </div>
         </Suspense>
         {isConsultationOpen ? (
@@ -82,7 +143,7 @@ export default function App() {
           </Suspense>
         ) : null}
         {/* Global SocialSidebar - Persists across all pages */}
-        <SocialSidebar />
+        {!isAuthenticated && !isLoginPage ? <SocialSidebar /> : null}
       </div>
     </>
   )
