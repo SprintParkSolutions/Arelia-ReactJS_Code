@@ -49,7 +49,6 @@ export default function App() {
         <ScrollToTop />
         <VideoBackground
           src="/videos/arelia-global-background-lite.mp4"
-          posterSrc="/videos/arelia-global-background-poster.webp"
           deferMs={2500}
         />
         <NavigationMenu onOpenConsultation={() => setIsConsultationOpen(true)} />
