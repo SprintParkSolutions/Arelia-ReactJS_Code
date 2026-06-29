@@ -1,31 +1,50 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { useDeferredValue, useEffect, useState, useTransition, type ReactNode } from 'react'
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  useDeferredValue,
+  useEffect,
+  useState,
+  useTransition,
+  type FormEvent,
+  type ReactNode,
+} from "react";
 import {
   FiArrowRight,
   FiBriefcase,
   FiCalendar,
+  FiCheckCircle,
+  FiChevronDown,
   FiCreditCard,
   FiDownload,
+  FiDroplet,
+  FiEdit3,
   FiFileText,
+  FiGrid,
+  FiHeadphones,
+  FiHome,
   FiImage,
+  FiLayers,
   FiLogOut,
   FiMail,
+  FiMenu,
   FiPhone,
+  FiTool,
   FiUserCheck,
-  FiUser,
   FiX,
-} from 'react-icons/fi'
-import { createPortal } from 'react-dom'
-import { useNavigate } from 'react-router-dom'
-import { LogoutModal } from '../components/auth/LogoutModal'
-import { dashboardTabs } from '../constants/dashboardTabs'
-import { useAuth } from '../context/AuthContext'
+  FiZap,
+} from "react-icons/fi";
+import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
+import { LogoutModal } from "../components/auth/LogoutModal";
+import { dashboardTabs } from "../constants/dashboardTabs";
+import { useAuth } from "../context/AuthContext";
 import {
+  createSupportCase,
   getClientPortalDetails,
   getPaymentTerms,
   getProjectByContact,
   getProjectFiles,
   getProjectStatus,
+  getVendorTasks,
   type ClientPortalResponse,
   type ContactProjectLookup,
   type PaymentTerm,
@@ -33,54 +52,192 @@ import {
   type ProjectImage,
   type ProjectStatusRecord,
   type ProjectVendor,
-} from '../services/salesforceApi'
-import './DashboardPage.css'
+  type ProjectVendorTasksResponse,
+} from "../services/salesforceApi";
+import "./DashboardPage.css";
 
 const staggerTransition = {
   staggerChildren: 0.08,
   delayChildren: 0.06,
-}
+};
 
 const fadeUpItem = {
   hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0 },
-}
+};
 
 function GlassEmptyState({ message }: { message: string }) {
-  return <div className="dashboardEmptyState">{message}</div>
+  return <div className="dashboardEmptyState">{message}</div>;
+}
+
+function getInitials(fullName?: string | null) {
+  if (!fullName) return "CL";
+  const initials = fullName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+  return initials || "CL";
+}
+
+const projectPhases = [
+  { id: "design", label: "Design & Planning", threshold: 0 },
+  { id: "procurement", label: "Procurement", threshold: 20 },
+  { id: "execution", label: "Execution", threshold: 45 },
+  { id: "audit", label: "Quality Audit", threshold: 85 },
+  { id: "handover", label: "Handover", threshold: 98 },
+] as const;
+
+function getActivePhaseIndex(completion: number) {
+  let activeIndex = 0;
+  projectPhases.forEach((phase, index) => {
+    if (completion >= phase.threshold) activeIndex = index;
+  });
+  return activeIndex;
+}
+
+function getOrdinal(position: number) {
+  const remainder = position % 100;
+  if (remainder >= 11 && remainder <= 13) return `${position}th`;
+  switch (position % 10) {
+    case 1:
+      return `${position}st`;
+    case 2:
+      return `${position}nd`;
+    case 3:
+      return `${position}rd`;
+    default:
+      return `${position}th`;
+  }
+}
+
+
+function VendorCategoryIcon({ category }: { category?: string }) {
+  const normalized = (category || "").toLowerCase();
+  if (normalized.includes("electric")) return <FiZap />;
+  if (normalized.includes("plumb") || normalized.includes("sanitary")) return <FiDroplet />;
+  if (normalized.includes("carpentry") || normalized.includes("wood")) return <FiTool />;
+  if (normalized.includes("paint")) return <FiEdit3 />;
+  if (normalized.includes("floor") || normalized.includes("til")) return <FiGrid />;
+  if (normalized.includes("ceiling") || normalized.includes("pop")) return <FiLayers />;
+  return <FiBriefcase />;
+}
+
+function formatTaskStatusKey(status?: string) {
+  return (status || "pending").toLowerCase().replace(/\s+/g, "-");
 }
 
 function isImageFileType(fileType?: string) {
-  if (!fileType) return false
-  const normalized = fileType.trim().toUpperCase()
-  return ['PNG', 'JPG', 'JPEG', 'WEBP', 'GIF', 'BMP'].includes(normalized)
-}
-
-function getFileTypeLabel(fileType?: string) {
-  if (!fileType) return 'Secure file'
-  return fileType.trim().toUpperCase()
+  if (!fileType) return false;
+  const normalized = fileType.trim().toUpperCase();
+  return ["PNG", "JPG", "JPEG", "WEBP", "GIF", "BMP"].includes(normalized);
 }
 
 function formatReadableFileMeta(file: ProjectFile) {
-  const legacyMeta = formatFileMeta(file)
-  const parts: string[] = []
-  if (file.fileType) parts.push(file.fileType)
+  const legacyMeta = formatFileMeta(file);
+  const parts: string[] = [];
+  if (file.fileType) parts.push(file.fileType);
   if (file.fileSize && file.fileSize > 0) {
-    const sizeInMb = file.fileSize / (1024 * 1024)
-    parts.push(sizeInMb >= 1 ? `${sizeInMb.toFixed(1)} MB` : `${Math.max(1, Math.round(file.fileSize / 1024))} KB`)
+    const sizeInMb = file.fileSize / (1024 * 1024);
+    parts.push(
+      sizeInMb >= 1
+        ? `${sizeInMb.toFixed(1)} MB`
+        : `${Math.max(1, Math.round(file.fileSize / 1024))} KB`,
+    );
   }
-  if (!parts.length) return legacyMeta
-  return parts.length > 0 ? parts.join(' • ') : 'Secure project file'
+  if (!parts.length) return legacyMeta;
+  return parts.length > 0 ? parts.join(" • ") : "Secure project file";
 }
 
 function formatFileMeta(file: ProjectFile) {
-  const parts: string[] = []
-  if (file.fileType) parts.push(file.fileType)
+  const parts: string[] = [];
+  if (file.fileType) parts.push(file.fileType);
   if (file.fileSize && file.fileSize > 0) {
-    const sizeInMb = file.fileSize / (1024 * 1024)
-    parts.push(sizeInMb >= 1 ? `${sizeInMb.toFixed(1)} MB` : `${Math.max(1, Math.round(file.fileSize / 1024))} KB`)
+    const sizeInMb = file.fileSize / (1024 * 1024);
+    parts.push(
+      sizeInMb >= 1
+        ? `${sizeInMb.toFixed(1)} MB`
+        : `${Math.max(1, Math.round(file.fileSize / 1024))} KB`,
+    );
   }
-  return parts.join(' • ') || 'Secure project file'
+  return parts.join(" • ") || "Secure project file";
+}
+
+function AccountMenu({
+  isOpen,
+  onToggle,
+  onClose,
+  clientName,
+  clientEmail,
+  onLogoutRequest,
+  wrapperClassName = "dashboardWorkspace__account",
+}: {
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  clientName?: string | null;
+  clientEmail?: string | null;
+  onLogoutRequest: () => void;
+  wrapperClassName?: string;
+}) {
+  const initials = getInitials(clientName);
+
+  return (
+    <div className={wrapperClassName}>
+      <button
+        type="button"
+        className="dashboardWorkspace__accountTrigger"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-label="Account menu"
+      >
+        {initials}
+      </button>
+
+      <AnimatePresence>
+        {isOpen ? (
+          <>
+            <motion.div
+              className="dashboardWorkspace__accountBackdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+            />
+            <motion.div
+              className="dashboardWorkspace__accountMenu"
+              role="menu"
+              initial={{ opacity: 0, y: -8, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="dashboardWorkspace__accountInfo">
+                <span className="dashboardWorkspace__accountAvatar" aria-hidden="true">
+                  {initials}
+                </span>
+                <div className="dashboardWorkspace__accountCopy">
+                  <strong>{clientName || "Client"}</strong>
+                  <span>{clientEmail || "Not available"}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="dashboardWorkspace__accountLogout"
+                role="menuitem"
+                onClick={onLogoutRequest}
+              >
+                <FiLogOut aria-hidden="true" />
+                <span>Logout</span>
+              </button>
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
 }
 
 function InfoCard({
@@ -88,9 +245,9 @@ function InfoCard({
   label,
   value,
 }: {
-  icon: ReactNode
-  label: string
-  value?: string | null
+  icon: ReactNode;
+  label: string;
+  value?: string | null;
 }) {
   return (
     <motion.article
@@ -99,54 +256,158 @@ function InfoCard({
       whileHover={{ y: -3, transition: { duration: 0.2 } }}
     >
       <div className="dashboardInfoCard__icon">{icon}</div>
-      <span className="dashboardInfoCard__label">{label}</span>
-      <strong className="dashboardInfoCard__value">{value || 'Not available'}</strong>
-    </motion.article>
-  )
-}
-
-function ProfileDetail({
-  icon,
-  label,
-  value,
-}: {
-  icon: ReactNode
-  label: string
-  value?: string | null
-}) {
-  return (
-    <motion.div className="dashboardProfileDetail" variants={fadeUpItem}>
-      <span className="dashboardProfileDetail__icon" aria-hidden="true">
-        {icon}
-      </span>
-      <div className="dashboardProfileDetail__copy">
-        <span className="dashboardProfileDetail__label">{label}</span>
-        <strong className="dashboardProfileDetail__value">{value || 'Not available'}</strong>
+      <div className="dashboardInfoCard__copy">
+        <span className="dashboardInfoCard__label">{label}</span>
+        <strong className="dashboardInfoCard__value">
+          {value || "Not available"}
+        </strong>
       </div>
-    </motion.div>
-  )
+    </motion.article>
+  );
 }
 
-function ProjectStatusTab({ contactId, projectId }: { contactId: string; projectId?: string }) {
-  const [statusData, setStatusData] = useState<ProjectStatusRecord | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+type QuickLinkTarget = "profile" | "status" | "vendor" | "payment" | "documents";
+
+const quickLinkDirectory: Array<{
+  target: QuickLinkTarget;
+  icon: typeof FiCalendar;
+  label: string;
+  description: string;
+}> = [
+  {
+    target: "profile",
+    icon: FiUserCheck,
+    label: "Profile & Overview",
+    description: "Back to your account snapshot",
+  },
+  {
+    target: "status",
+    icon: FiCalendar,
+    label: "Project Status",
+    description: "Review phase progress and key milestones",
+  },
+  {
+    target: "vendor",
+    icon: FiBriefcase,
+    label: "Vendor Tasks",
+    description: "Track artisan and contractor progress",
+  },
+  {
+    target: "payment",
+    icon: FiCreditCard,
+    label: "Payment Terms",
+    description: "Review your milestone payment schedule",
+  },
+  {
+    target: "documents",
+    icon: FiFileText,
+    label: "Documents & Reports",
+    description: "Browse renders, floor plans, and files",
+  },
+];
+
+function QuickLinks({
+  exclude,
+  onNavigate,
+}: {
+  exclude: QuickLinkTarget;
+  onNavigate: (tab: QuickLinkTarget) => void;
+}) {
+  const gridLinks = quickLinkDirectory.filter(
+    (link) => link.target !== exclude && link.target !== "profile",
+  );
+  const showProfileLink = exclude !== "profile";
+
+  return (
+    <div className="dashboardQuickLinksWrap">
+      <div className="dashboardQuickLinks">
+        {gridLinks.map(({ target, icon: Icon, label, description }) => (
+          <motion.button
+            key={target}
+            type="button"
+            className="dashboardQuickLinks__item"
+            variants={fadeUpItem}
+            whileHover={{ y: -2, transition: { duration: 0.2 } }}
+            onClick={() => onNavigate(target)}
+          >
+            <span className="dashboardQuickLinks__icon" aria-hidden="true">
+              <Icon />
+            </span>
+            <div className="dashboardQuickLinks__copy">
+              <strong>{label}</strong>
+              <p>{description}</p>
+            </div>
+            <FiArrowRight aria-hidden="true" />
+          </motion.button>
+        ))}
+      </div>
+
+      {showProfileLink ? (
+        <motion.button
+          type="button"
+          className="dashboardQuickLinks__profileCta"
+          variants={fadeUpItem}
+          whileHover={{ y: -2, transition: { duration: 0.2 } }}
+          onClick={() => onNavigate("profile")}
+        >
+          <span>View Profile &amp; Overview</span>
+          <FiArrowRight aria-hidden="true" />
+        </motion.button>
+      ) : null}
+    </div>
+  );
+}
+
+function ProjectStatusTab({
+  contactId,
+  projectId,
+  projects,
+  onNavigate,
+}: {
+  contactId: string;
+  projectId?: string;
+  projects: ProjectStatusRecord[];
+  onNavigate: (tab: QuickLinkTarget) => void;
+}) {
+  const [statusData, setStatusData] = useState<ProjectStatusRecord | null>(
+    null,
+  );
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadStatus() {
-      setIsLoading(true)
-      const res = await getProjectStatus(contactId, projectId)
-      if (res?.success && res.projects.length > 0) {
-        setStatusData(res.projects[0])
+      setIsLoading(true);
+
+      // The contact's full project list is already fetched once at the
+      // dashboard level — match the selected project from it directly
+      // rather than re-querying mobileProjectStatus, which doesn't
+      // reliably filter by projectId and would otherwise always return
+      // the same (first) project regardless of selection.
+      const matched = projects.find(
+        (project) => (project.id || project.projectName) === projectId,
+      );
+      if (matched) {
+        setStatusData(matched);
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(false)
+
+      const res = await getProjectStatus(contactId, projectId);
+      if (res?.success && res.projects.length > 0) {
+        setStatusData(res.projects[0]);
+      }
+      setIsLoading(false);
     }
-    void loadStatus()
-  }, [contactId, projectId])
+    void loadStatus();
+  }, [contactId, projectId, projects]);
 
-  if (isLoading) return <p className="dashboard-loading">Loading project status...</p>
-  if (!statusData) return <GlassEmptyState message="No active project status found." />
+  if (isLoading)
+    return <p className="dashboard-loading">Loading project status...</p>;
+  if (!statusData)
+    return <GlassEmptyState message="No active project status found." />;
 
-  const completion = Math.round(statusData.completionPercentage || 0)
+  const completion = Math.round(statusData.completionPercentage || 0);
+  const activePhaseIndex = getActivePhaseIndex(completion);
 
   return (
     <motion.section
@@ -160,35 +421,41 @@ function ProjectStatusTab({ contactId, projectId }: { contactId: string; project
           <p className="dashboardSection__eyebrow">Project Status</p>
           <h2 className="dashboardSection__title">{statusData.projectName}</h2>
         </div>
-        <span className="dashboardSection__chip">{statusData.projectStatus || 'Active'}</span>
+        <span className="dashboardSection__chip">
+          {statusData.projectStatus || "Active"}
+        </span>
       </div>
 
-      <div className="dashboardStatusHero">
-        <motion.article className="dashboardStatusHeroCard" variants={fadeUpItem}>
-          <div className="dashboardStatusHeroCard__progressTop" aria-hidden="true">
-            <motion.div
-              className="dashboardStatusHeroCard__progressLine"
-              initial={{ width: 0 }}
-              animate={{ width: `${completion}%` }}
-              transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-            />
-          </div>
-          <div className="dashboardStatusHeroCard__header">
-            <div>
-              <p className="dashboardSection__eyebrow">Live Snapshot</p>
-              <h3>Current phase overview</h3>
+      <div className="dashboardPhaseTimeline">
+        {projectPhases.map((phase, index) => {
+          const state =
+            index < activePhaseIndex
+              ? "done"
+              : index === activePhaseIndex
+                ? "active"
+                : "upcoming";
+          return (
+            <div
+              key={phase.id}
+              className={`dashboardPhaseTimeline__step is-${state}`}
+            >
+              <span
+                className="dashboardPhaseTimeline__dot"
+                aria-hidden="true"
+              />
+              <span className="dashboardPhaseTimeline__label">
+                {phase.label}
+              </span>
             </div>
-            <span className="dashboardStatusHeroCard__chip">{statusData.projectStatus || 'In Progress'}</span>
-          </div>
-          <div className="dashboardStatusHeroCard__body">
-            <strong>{completion}%</strong>
-            <p>Phase completion</p>
-          </div>
-        </motion.article>
+          );
+        })}
       </div>
 
       <div className="dashboardStatusLayout dashboardStatusLayout--metrics">
-        <motion.article className="dashboardSpotlightCard dashboardSpotlightCard--status" variants={fadeUpItem}>
+        <motion.article
+          className="dashboardSpotlightCard"
+          variants={fadeUpItem}
+        >
           <div className="dashboardSpotlightCard__head">
             <span>Overall Delivery Progress</span>
             <strong>{completion}%</strong>
@@ -203,46 +470,275 @@ function ProjectStatusTab({ contactId, projectId }: { contactId: string; project
           </div>
           <div className="dashboardSpotlightCard__meta">
             <span>
-              Budget: {statusData.budget ? `Rs ${statusData.budget.toLocaleString()}` : 'NA'}
+              Budget:{" "}
+              {statusData.budget
+                ? `Rs ${statusData.budget.toLocaleString()}`
+                : "Not available"}
             </span>
-            <span>Timeline reviewed in real time</span>
+            <span>Updated in real time</span>
           </div>
         </motion.article>
 
         <motion.div className="dashboardMetricGrid" variants={fadeUpItem}>
-          <InfoCard icon={<FiBriefcase />} label="Status" value={statusData.projectStatus} />
+          <InfoCard
+            icon={<FiBriefcase />}
+            label="Status"
+            value={statusData.projectStatus}
+          />
           <InfoCard
             icon={<FiCreditCard />}
             label="Estimated Budget"
-            value={statusData.budget ? `Rs ${statusData.budget.toLocaleString()}` : null}
+            value={
+              statusData.budget
+                ? `Rs ${statusData.budget.toLocaleString()}`
+                : null
+            }
           />
-          <InfoCard icon={<FiCalendar />} label="Start Date" value={formatDate(statusData.startDate)} />
-          <InfoCard icon={<FiCalendar />} label="Estimated End Date" value={formatDate(statusData.endDate)} />
+          <InfoCard
+            icon={<FiCalendar />}
+            label="Start Date"
+            value={formatDate(statusData.startDate)}
+          />
+          <InfoCard
+            icon={<FiCalendar />}
+            label="Estimated End Date"
+            value={formatDate(statusData.endDate)}
+          />
         </motion.div>
       </div>
+
+      <QuickLinks exclude="status" onNavigate={onNavigate} />
     </motion.section>
-  )
+  );
 }
 
-function VendorTasksTab({ contactId, projectId }: { contactId: string; projectId?: string }) {
-  const [vendors, setVendors] = useState<ProjectVendor[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+function VendorTaskModal({
+  vendor,
+  tasksInfo,
+  onClose,
+}: {
+  vendor: ProjectVendor | null;
+  tasksInfo: { loading: boolean; data: ProjectVendorTasksResponse | null } | undefined;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    if (!vendor) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [vendor, onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  const vendorCompletion = vendor ? Math.round(vendor.completionPercentage || 0) : 0;
+
+  return createPortal(
+    <AnimatePresence>
+      {vendor ? (
+        <motion.div
+          className="vendorTaskModal__layer"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <motion.div
+            className="vendorTaskModal__backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          />
+          <div
+            className="vendorTaskModal__viewport"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) onClose();
+            }}
+          >
+            <motion.div
+              className="vendorTaskModal"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="vendor-task-modal-title"
+              initial={{ opacity: 0, scale: 0.95, y: 18, filter: "blur(8px)" }}
+              animate={{ opacity: 1, scale: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, scale: 0.97, y: 10, filter: "blur(6px)" }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="vendorTaskModal__glow" aria-hidden="true" />
+              <button
+                type="button"
+                className="vendorTaskModal__close"
+                aria-label="Close vendor tasks"
+                onClick={onClose}
+              >
+                <FiX aria-hidden="true" />
+              </button>
+
+              <div className="vendorTaskModal__header">
+                <span className="dashboardVendorCard__avatar" aria-hidden="true">
+                  <VendorCategoryIcon category={vendor.vendorCategory} />
+                </span>
+                <div className="vendorTaskModal__headerCopy">
+                  <span className="dashboardVendorCard__badge">
+                    {vendorCompletion >= 100
+                      ? "Completed"
+                      : vendorCompletion >= 60
+                        ? "On Schedule"
+                        : vendorCompletion > 0
+                          ? "Active Phase"
+                          : "Not Started"}
+                  </span>
+                  <h2 id="vendor-task-modal-title" className="vendorTaskModal__title">
+                    {vendor.vendorCategory || "Assigned Work"}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="vendorTaskModal__progress">
+                <div className="dashboardVendorCard__progressMeta">
+                  <span>Progress</span>
+                  <strong>{vendorCompletion}%</strong>
+                </div>
+                <div className="dashboardProgressBar dashboardProgressBar--thin">
+                  <div
+                    className="dashboardProgressBar__fill dashboardProgressBar__fill--neon"
+                    style={{ width: `${vendorCompletion}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="vendorTaskModal__body">
+                {tasksInfo?.loading ? (
+                  <p className="dashboard-loading">Loading tasks...</p>
+                ) : tasksInfo?.data?.tasks.length ? (
+                  <>
+                    {tasksInfo.data.summary ? (
+                      <p className="dashboardVendorCard__tasksSummary">
+                        {tasksInfo.data.summary.completedTasks} of{" "}
+                        {tasksInfo.data.summary.totalTasks} tasks completed
+                      </p>
+                    ) : null}
+                    <ul className="dashboardVendorTaskList">
+                      {tasksInfo.data.tasks.map((task, taskIndex) => {
+                        const statusKey = formatTaskStatusKey(task.status);
+                        return (
+                          <li
+                            key={`${task.taskName}-${taskIndex}`}
+                            className="dashboardVendorTaskList__item"
+                          >
+                            <div className="dashboardVendorTaskList__row">
+                              <span
+                                className={`dashboardVendorTaskList__status is-${statusKey}`}
+                                aria-hidden="true"
+                              />
+                              <strong className="dashboardVendorTaskList__name">
+                                {task.taskName}
+                              </strong>
+                            </div>
+                            <div className="dashboardVendorTaskList__meta">
+                              <span
+                                className={`dashboardVendorTaskList__statusLabel is-${statusKey}`}
+                              >
+                                {task.status || "Not started"}
+                              </span>
+                              {task.dueDate ? (
+                                <span className="dashboardVendorTaskList__date">
+                                  Due {formatDate(task.dueDate)}
+                                </span>
+                              ) : null}
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </>
+                ) : (
+                  <p className="dashboardVendorCard__tasksEmpty">
+                    No tasks recorded for this vendor yet.
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>,
+    document.body,
+  );
+}
+
+function VendorTasksTab({
+  contactId,
+  projectId,
+  projectName,
+  projects,
+  onNavigate,
+}: {
+  contactId: string;
+  projectId?: string;
+  projectName?: string;
+  projects: ProjectStatusRecord[];
+  onNavigate: (tab: QuickLinkTarget) => void;
+}) {
+  const [vendors, setVendors] = useState<ProjectVendor[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeVendor, setActiveVendor] = useState<string | null>(null);
+  const [taskState, setTaskState] = useState<
+    Record<string, { loading: boolean; data: ProjectVendorTasksResponse | null }>
+  >({});
 
   useEffect(() => {
     async function loadVendors() {
-      setIsLoading(true)
-      const res = await getProjectStatus(contactId, projectId)
-      if (res?.success && res.projects.length > 0) {
-        setVendors(res.projects[0].vendors || [])
-      }
-      setIsLoading(false)
-    }
-    void loadVendors()
-  }, [contactId, projectId])
+      setIsLoading(true);
+      setActiveVendor(null);
+      setTaskState({});
 
-  if (isLoading) return <p className="dashboard-loading">Loading vendor tracking...</p>
+      const matched = projects.find(
+        (project) => (project.id || project.projectName) === projectId,
+      );
+      if (matched) {
+        setVendors(matched.vendors || []);
+        setIsLoading(false);
+        return;
+      }
+
+      const res = await getProjectStatus(contactId, projectId);
+      if (res?.success && res.projects.length > 0) {
+        setVendors(res.projects[0].vendors || []);
+      }
+      setIsLoading(false);
+    }
+    void loadVendors();
+  }, [contactId, projectId, projects]);
+
+  const openVendorTasks = (vendorName: string) => {
+    setActiveVendor(vendorName);
+
+    if (!taskState[vendorName] && projectId) {
+      setTaskState((prev) => ({ ...prev, [vendorName]: { loading: true, data: null } }));
+      void getVendorTasks(projectId, vendorName).then((res) => {
+        setTaskState((prev) => ({ ...prev, [vendorName]: { loading: false, data: res } }));
+      });
+    }
+  };
+
+  const closeVendorTasks = () => setActiveVendor(null);
+
+  if (isLoading)
+    return <p className="dashboard-loading">Loading vendor tracking...</p>;
   if (vendors.length === 0) {
-    return <GlassEmptyState message="No vendors are currently assigned to this project." />
+    return (
+      <GlassEmptyState message="No vendors are currently assigned to this project." />
+    );
   }
 
   return (
@@ -254,98 +750,169 @@ function VendorTasksTab({ contactId, projectId }: { contactId: string; projectId
     >
       <div className="dashboardSection__heading">
         <div>
-          <p className="dashboardSection__eyebrow">Active Site Operations</p>
-          <h2 className="dashboardSection__title">Vendor Execution Timeline</h2>
+          <p className="dashboardSection__eyebrow">On-Site Progress</p>
+          <h2 className="dashboardSection__title">
+            Vendor tasks and on-site progress
+          </h2>
           <p className="dashboardSection__lead">
-            Real-time progress tracking for specialized artisans and contractors across active work streams.
+            Real-time progress tracking for every artisan and contractor
+            working on your project.
           </p>
         </div>
+        {projectName ? (
+          <span className="dashboardSection__chip">{projectName}</span>
+        ) : null}
       </div>
 
       <div className="dashboardVendorGrid">
         {vendors.map((vendor, index) => {
-          const vendorCompletion = Math.round(vendor.completionPercentage || 0)
-          const initials = vendor.vendorName
-            .split(' ')
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0])
-            .join('')
-            .toUpperCase()
+          const vendorCompletion = Math.round(vendor.completionPercentage || 0);
 
           return (
             <motion.article
               key={`${vendor.vendorName}-${index}`}
-              className="dashboardVendorCard dashboardVendorCard--static"
+              className="dashboardVendorCard"
               variants={fadeUpItem}
             >
-              <div className="dashboardVendorCard__content">
-                <div className="dashboardVendorCard__top">
-                  <span className="dashboardVendorCard__avatar">{initials || 'VN'}</span>
-                  <div>
-                    <h3>{vendor.vendorName}</h3>
-                    <p>{vendor.vendorCategory || 'Assigned Vendor'}</p>
+              <button
+                type="button"
+                className="dashboardVendorCard__trigger"
+                onClick={() => openVendorTasks(vendor.vendorName)}
+                aria-haspopup="dialog"
+              >
+                <div className="dashboardVendorCard__content">
+                  <div className="dashboardVendorCard__top">
+                    <span className="dashboardVendorCard__avatar" aria-hidden="true">
+                      <VendorCategoryIcon category={vendor.vendorCategory} />
+                    </span>
+                    <span className="dashboardVendorCard__badge">
+                      {vendorCompletion >= 100
+                        ? "Completed"
+                        : vendorCompletion >= 60
+                          ? "On Schedule"
+                          : vendorCompletion > 0
+                            ? "Active Phase"
+                            : "Not Started"}
+                    </span>
                   </div>
-                  <span className="dashboardVendorCard__badge">
-                    {vendorCompletion >= 100
-                      ? 'Completed'
-                      : vendorCompletion >= 60
-                        ? 'On Schedule'
-                        : vendorCompletion > 0
-                          ? 'Active Phase'
-                          : 'Not Started'}
+
+                  <h3 className="dashboardVendorCard__title">
+                    {vendor.vendorCategory || "Assigned Work"}
+                  </h3>
+
+                  <div className="dashboardVendorCard__progress">
+                    <div className="dashboardVendorCard__progressMeta">
+                      <span>Progress</span>
+                      <strong>{vendorCompletion}%</strong>
+                    </div>
+                    <div className="dashboardProgressBar dashboardProgressBar--thin">
+                      <motion.div
+                        className="dashboardProgressBar__fill dashboardProgressBar__fill--neon"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${vendorCompletion}%` }}
+                        transition={{
+                          duration: 0.9,
+                          delay: index * 0.08,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      />
+                    </div>
+                    <div className="dashboardVendorCard__footer">
+                      <span>Completion status</span>
+                      <strong>
+                        {vendorCompletion >= 100 ? "Completed" : "In progress"}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <span className="dashboardVendorCard__toggleHint">
+                    <span>View tasks</span>
+                    <FiArrowRight aria-hidden="true" />
                   </span>
                 </div>
-
-                <div className="dashboardVendorCard__progress">
-                  <div className="dashboardVendorCard__progressMeta">
-                    <span>{vendor.vendorCategory || 'Current progress'}</span>
-                    <strong>{vendorCompletion}%</strong>
-                  </div>
-                  <div className="dashboardProgressBar dashboardProgressBar--thin">
-                    <motion.div
-                      className="dashboardProgressBar__fill dashboardProgressBar__fill--neon"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${vendorCompletion}%` }}
-                      transition={{ duration: 0.9, delay: index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                    />
-                  </div>
-                  <div className="dashboardVendorCard__footer">
-                    <span>Completion status</span>
-                    <strong>{vendorCompletion >= 100 ? 'Completed' : 'In progress'}</strong>
-                  </div>
-                </div>
-              </div>
+              </button>
             </motion.article>
-          )
+          );
         })}
       </div>
+
+      <VendorTaskModal
+        vendor={vendors.find((vendor) => vendor.vendorName === activeVendor) || null}
+        tasksInfo={activeVendor ? taskState[activeVendor] : undefined}
+        onClose={closeVendorTasks}
+      />
+
+      <QuickLinks exclude="vendor" onNavigate={onNavigate} />
     </motion.section>
-  )
+  );
 }
 
-function PaymentTermsTab({ projectName }: { projectName?: string }) {
-  const [terms, setTerms] = useState<PaymentTerm[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+function PaymentTermsTab({
+  projectName,
+  fallbackProjectName,
+  contractBudget,
+  onNavigate,
+}: {
+  projectName?: string;
+  fallbackProjectName?: string;
+  contractBudget?: number;
+  onNavigate: (tab: QuickLinkTarget) => void;
+}) {
+  const [terms, setTerms] = useState<PaymentTerm[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function loadTerms() {
       if (!projectName) {
-        setIsLoading(false)
-        return
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(true)
-      const res = await getPaymentTerms(projectName)
-      if (Array.isArray(res)) setTerms(res)
-      setIsLoading(false)
-    }
-    void loadTerms()
-  }, [projectName])
+      setIsLoading(true);
 
-  if (isLoading) return <p className="dashboard-loading">Loading payment terms...</p>
-  if (terms.length === 0) {
-    return <GlassEmptyState message="No payment terms found for this project." />
+      const res = await getPaymentTerms(projectName);
+      if (Array.isArray(res) && res.length > 0) {
+        setTerms(res);
+        setIsLoading(false);
+        return;
+      }
+
+      // Salesforce's dashboard summary and project status endpoints can
+      // format the same project's name slightly differently. Retry with
+      // that alternate name before concluding there's really no schedule.
+      if (fallbackProjectName && fallbackProjectName !== projectName) {
+        const fallbackRes = await getPaymentTerms(fallbackProjectName);
+        if (Array.isArray(fallbackRes) && fallbackRes.length > 0) {
+          setTerms(fallbackRes);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      setTerms(Array.isArray(res) ? res : []);
+      setIsLoading(false);
+    }
+    void loadTerms();
+  }, [projectName, fallbackProjectName]);
+
+  if (isLoading)
+    return <p className="dashboard-loading">Loading payment terms...</p>;
+  if (!projectName) {
+    return (
+      <GlassEmptyState message="Select a project to view its payment terms." />
+    );
   }
+  if (terms.length === 0) {
+    return (
+      <GlassEmptyState
+        message={`No payment terms have been added for "${projectName}" yet. Check back once your milestone schedule is set up.`}
+      />
+    );
+  }
+
+  const paidPercentage = terms
+    .filter((term) => term.paymentReceived)
+    .reduce((sum, term) => sum + (term.percentage ?? 0), 0);
+  const paidCount = terms.filter((term) => term.paymentReceived).length;
 
   return (
     <motion.section
@@ -357,80 +924,173 @@ function PaymentTermsTab({ projectName }: { projectName?: string }) {
       <div className="dashboardSection__heading">
         <div>
           <p className="dashboardSection__eyebrow">Financial Schedule</p>
-          <h2 className="dashboardSection__title">Payment schedule and milestone release</h2>
+          <h2 className="dashboardSection__title">
+            Payment schedule and milestone release
+          </h2>
           <p className="dashboardSection__lead">
-            Your bespoke payment structure with transparent milestone release across execution phases.
+            Your bespoke payment structure with transparent milestone release
+            across execution phases.
           </p>
         </div>
+        {projectName ? (
+          <span className="dashboardSection__chip">{projectName}</span>
+        ) : null}
       </div>
+
+      <motion.article className="dashboardSpotlightCard" variants={fadeUpItem}>
+        <div className="dashboardSpotlightCard__head">
+          <span>Contract Paid to Date</span>
+          <strong>{Math.round(paidPercentage)}%</strong>
+        </div>
+
+        <div className="dashboardPaymentSummaryBar__labels">
+          {terms.map((term, index) => {
+            const width = term.percentage ?? 0;
+            return (
+              <span
+                key={`label-${term.label || term.name || index}`}
+                className="dashboardPaymentSummaryBar__label"
+                style={{ width: `${width}%` }}
+              >
+                {getOrdinal(index + 1)} · {width}%
+              </span>
+            );
+          })}
+        </div>
+
+        <div className="dashboardPaymentSummaryBar">
+          {terms.map((term, index) => {
+            const width = term.percentage ?? 0;
+            return (
+              <motion.div
+                key={`segment-${term.label || term.name || index}`}
+                className={`dashboardPaymentSummaryBar__segment ${term.paymentReceived ? "is-paid" : "is-pending"}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${width}%` }}
+                transition={{
+                  duration: 0.9,
+                  delay: index * 0.1,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                title={`${getOrdinal(index + 1)} installment — ${width}% ${term.paymentReceived ? "received" : "pending"}`}
+              />
+            );
+          })}
+        </div>
+
+        <div className="dashboardSpotlightCard__meta">
+          <span>
+            {paidCount} of {terms.length} milestones received
+          </span>
+          <span>{Math.round(100 - paidPercentage)}% remaining</span>
+        </div>
+      </motion.article>
+
+      <h3 className="dashboardPaymentTimeline__heading">Milestone Details</h3>
 
       <div className="dashboardPaymentTimeline">
-        {terms.map((term, index) => (
-          <motion.div
-            key={`${term.label || term.name || 'term'}-${index}`}
-            className="dashboardPaymentTimeline__row"
-            variants={fadeUpItem}
-          >
-            <div className={`dashboardPaymentTimeline__node ${term.paymentReceived ? 'is-paid' : 'is-pending'}`} />
-            <motion.article
-              className={`dashboardPaymentCard ${term.paymentReceived ? 'is-paid' : 'is-pending'}`}
-              whileHover={{ y: -3, transition: { duration: 0.2 } }}
+        {terms.map((term, index) => {
+          const ordinal = getOrdinal(index + 1);
+          const amount =
+            contractBudget != null && term.percentage != null
+              ? `₹ ${Math.round((contractBudget * term.percentage) / 100).toLocaleString("en-IN")}`
+              : "—";
+
+          return (
+            <motion.div
+              key={`${term.label || term.name || "term"}-${index}`}
+              className="dashboardPaymentTimeline__row"
+              variants={fadeUpItem}
             >
-              <div className="dashboardPaymentCard__head">
-                <div>
+              <div
+                className={`dashboardPaymentTimeline__node ${term.paymentReceived ? "is-paid" : "is-pending"}`}
+              >
+                <span className="dashboardPaymentTimeline__ordinal">
+                  {ordinal}
+                </span>
+              </div>
+              <motion.article
+                className={`dashboardPaymentCard ${term.paymentReceived ? "is-paid" : "is-pending"}`}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              >
+                <div className="dashboardPaymentCard__main">
                   <span
-                    className={`dashboardPaymentCard__status ${term.paymentReceived ? 'is-paid' : 'is-pending'}`}
+                    className={`dashboardPaymentCard__phase ${term.paymentReceived ? "is-paid" : "is-pending"}`}
                   >
-                    {term.paymentReceived ? 'Received' : 'Pending'}
+                    {term.paymentReceived ? "Completed" : "Pending"}
                   </span>
                   <h3>{term.label || term.name}</h3>
-                  <p className="dashboardPaymentCard__microcopy">
-                    {index === 0
-                      ? 'Initial design and procurement release.'
-                      : index === 1
-                        ? 'Mid-project execution milestone.'
-                        : 'Final delivery and handover release.'}
+                  <p className="dashboardPaymentCard__subtitle">
+                    {term.percentage ?? 0}% of contract value
                   </p>
                 </div>
-                <div className="dashboardPaymentCard__aside">
-                  <span>Due Date</span>
-                  <strong>{term.paymentReceived ? 'Paid' : formatDate(term.dueDate) || 'Pending'}</strong>
-                </div>
-              </div>
 
-              <div className="dashboardPaymentCard__body">
-                <strong>{term.percentage ?? 0}% of contract</strong>
-              </div>
-            </motion.article>
-          </motion.div>
-        ))}
+                <div className="dashboardPaymentCard__columns">
+                  <div className="dashboardPaymentCard__col">
+                    <span>Due Date</span>
+                    <strong>
+                      <FiCalendar aria-hidden="true" />
+                      {formatDate(term.dueDate) || "Not set"}
+                    </strong>
+                  </div>
+                  <div className="dashboardPaymentCard__col">
+                    <span>Amount</span>
+                    <strong>{amount}</strong>
+                  </div>
+                  <div className="dashboardPaymentCard__col">
+                    <span>Status</span>
+                    <span
+                      className={`dashboardPaymentCard__status ${term.paymentReceived ? "is-paid" : "is-pending"}`}
+                    >
+                      {term.paymentReceived ? "Received" : "Upcoming"}
+                    </span>
+                  </div>
+                </div>
+              </motion.article>
+            </motion.div>
+          );
+        })}
       </div>
+
+      <QuickLinks exclude="payment" onNavigate={onNavigate} />
     </motion.section>
-  )
+  );
 }
 
-function DocumentsTab({ projectId }: { projectId?: string }) {
-  const [files, setFiles] = useState<ProjectFile[]>([])
-  const [images, setImages] = useState<ProjectImage[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [selectedPreview, setSelectedPreview] = useState<
-    | { type: 'file'; title: string; subtitle?: string; href: string; meta?: string; actionLabel?: string }
-    | { type: 'image'; title: string; subtitle?: string; href: string; meta?: string; actionLabel?: string }
-    | null
-  >(null)
+function DocumentsTab({
+  projectId,
+  projectName,
+  onNavigate,
+}: {
+  projectId?: string;
+  projectName?: string;
+  onNavigate: (tab: QuickLinkTarget) => void;
+}) {
+  const [files, setFiles] = useState<ProjectFile[]>([]);
+  const [images, setImages] = useState<ProjectImage[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeMediaTab, setActiveMediaTab] = useState<"photos" | "documents">(
+    "photos",
+  );
+  const [selectedPreview, setSelectedPreview] = useState<{
+    title: string;
+    subtitle?: string;
+    href: string;
+    meta?: string;
+  } | null>(null);
 
   useEffect(() => {
     async function loadMedia() {
       if (!projectId) {
-        setIsLoading(false)
-        return
+        setIsLoading(false);
+        return;
       }
-      setIsLoading(true)
+      setIsLoading(true);
 
-      const filesRes = await getProjectFiles(projectId)
+      const filesRes = await getProjectFiles(projectId);
 
       if (Array.isArray(filesRes)) {
-        setFiles(filesRes)
+        setFiles(filesRes.filter((file) => !isImageFileType(file.fileType)));
         setImages(
           filesRes
             .filter((file) => isImageFileType(file.fileType))
@@ -441,38 +1101,50 @@ function DocumentsTab({ projectId }: { projectId?: string }) {
               imageUrl: file.downloadUrl,
               previewUrl: file.previewUrl || file.downloadUrl,
             })),
-        )
+        );
       } else {
-        setFiles([])
-        setImages([])
+        setFiles([]);
+        setImages([]);
       }
 
-      setIsLoading(false)
+      setIsLoading(false);
     }
-    void loadMedia()
-  }, [projectId])
+    void loadMedia();
+  }, [projectId]);
 
   useEffect(() => {
-    if (!selectedPreview) return undefined
+    if (!selectedPreview) return undefined;
 
-    const originalOverflow = document.body.style.overflow
+    const originalOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelectedPreview(null)
-    }
+      if (event.key === "Escape") setSelectedPreview(null);
+    };
 
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', handleKeyDown)
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = originalOverflow
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [selectedPreview])
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [selectedPreview]);
 
-  if (isLoading) return <p className="dashboard-loading">Loading project media...</p>
+  if (isLoading)
+    return <p className="dashboard-loading">Loading project media...</p>;
   if (files.length === 0 && images.length === 0) {
-    return <GlassEmptyState message="No files or images have been uploaded to this project yet." />
+    return (
+      <GlassEmptyState message="No files or images have been uploaded to this project yet." />
+    );
   }
+
+  const hasPhotos = images.length > 0;
+  const hasDocuments = files.length > 0;
+  const effectiveTab: "photos" | "documents" =
+    hasPhotos && hasDocuments
+      ? activeMediaTab
+      : hasPhotos
+        ? "photos"
+        : "documents";
 
   return (
     <>
@@ -485,293 +1157,346 @@ function DocumentsTab({ projectId }: { projectId?: string }) {
         <div className="dashboardSection__heading">
           <div>
             <p className="dashboardSection__eyebrow">Project Archive</p>
-            <h2 className="dashboardSection__title">Documents, reports, and visual references</h2>
+            <h2 className="dashboardSection__title">
+              Documents, reports, and visual references
+            </h2>
             <p className="dashboardSection__lead">
-              Secure access to current-phase renders, floor plans, material studies, and client documentation.
+              Secure access to current-phase renders, floor plans, material
+              studies, and client documentation.
             </p>
           </div>
+          {projectName ? (
+            <span className="dashboardSection__chip">{projectName}</span>
+          ) : null}
         </div>
 
-        {images.length > 0 ? (
-          <div className="dashboardMediaBlock">
-            <div className="dashboardSection__subhead">
-              <h3>Project Photos</h3>
-              <span>{images.length} items</span>
-            </div>
-            <div className="dashboardImageGrid">
-              {images.map((img, index) => (
-                <motion.button
-                  key={`${img.imageUrl}-${index}`}
-                  type="button"
-                  className="dashboardImageCard"
-                  variants={fadeUpItem}
-                  whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                  onClick={() =>
-                    setSelectedPreview({
-                      type: 'image',
-                      title: img.title,
-                      href: img.imageUrl,
-                      subtitle: 'Project image',
-                      meta: 'Private archive image',
-                      actionLabel: 'Open full size',
-                    })
-                  }
-                >
-                  <div className="dashboardImageCard__preview">
-                    <img src={img.imageUrl} alt={img.title} loading="lazy" />
-                    <div className="dashboardImageCard__overlay">
-                      <span className="dashboardImageCard__tag">Private Archive</span>
-                      <strong>{img.title}</strong>
-                    </div>
-                  </div>
-                  <div className="dashboardImageCard__body">
-                    <span className="dashboardImageCard__icon">
-                      <FiImage />
-                    </span>
-                    <div>
-                      <strong>{img.title}</strong>
-                      <p>Click to preview</p>
-                    </div>
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {files.length > 0 ? (
-          <div className="dashboardMediaBlock">
-            <div className="dashboardSection__subhead">
-              <h3>Project Documents</h3>
-              <span>{files.length} items</span>
-            </div>
-            <div className="dashboardDocumentGrid">
-              {files.map((file, index) => (
-                <motion.article
-                  key={`${file.downloadUrl}-${index}`}
-                  className="dashboardDocumentCard"
-                  variants={fadeUpItem}
-                  whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                >
-                  <div className="dashboardDocumentCard__icon">
-                    <FiFileText />
-                  </div>
-                  <div className="dashboardDocumentCard__body">
-                    <strong>{file.title}</strong>
-                    <p>{formatReadableFileMeta(file)}</p>
-                  </div>
-                  <div className="dashboardDocumentCard__actions">
-                    <button
-                      type="button"
-                      className="dashboardDocumentCard__button"
-                      onClick={() =>
-                        setSelectedPreview({
-                          type: 'file',
-                          title: file.title,
-                          href: file.downloadUrl,
-                          subtitle: getFileTypeLabel(file.fileType),
-                          meta: formatReadableFileMeta(file),
-                          actionLabel: 'Open secure file',
-                        })
-                      }
-                    >
-                      Preview
-                    </button>
-                    <a
-                      href={file.downloadUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={file.title}
-                      className="dashboardDocumentCard__download"
-                    >
-                      <FiDownload />
-                    </a>
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </motion.section>
-
-      {typeof document !== 'undefined' ? createPortal(<AnimatePresence>
-        {selectedPreview ? (
-          <motion.div
-            className="dashboardPreviewLayer"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="dashboardPreview__backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setSelectedPreview(null)}
-            />
-            <motion.div
-              className="dashboardPreview__shell"
-              initial={{ opacity: 0, y: 16, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.985 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+        {hasPhotos && hasDocuments ? (
+          <div className="dashboardMediaToggle" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={effectiveTab === "photos"}
+              className={`dashboardMediaToggle__btn${effectiveTab === "photos" ? " is-active" : ""}`}
+              onClick={() => setActiveMediaTab("photos")}
             >
-              <div
-                className="dashboardPreview"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="dashboard-preview-title"
-                aria-describedby="dashboard-preview-subtitle"
-                onClick={(event) => event.stopPropagation()}
+              <span>Project Photos</span>
+              <span className="dashboardMediaToggle__count">
+                {images.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={effectiveTab === "documents"}
+              className={`dashboardMediaToggle__btn${effectiveTab === "documents" ? " is-active" : ""}`}
+              onClick={() => setActiveMediaTab("documents")}
+            >
+              <span>Project Documents</span>
+              <span className="dashboardMediaToggle__count">
+                {files.length}
+              </span>
+            </button>
+          </div>
+        ) : null}
+
+        {effectiveTab === "photos" ? (
+          <div className="dashboardImageGrid">
+            {images.map((img, index) => (
+              <motion.button
+                key={`${img.imageUrl}-${index}`}
+                type="button"
+                className="dashboardImageCard"
+                variants={fadeUpItem}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+                onClick={() =>
+                  setSelectedPreview({
+                    title: img.title,
+                    href: img.imageUrl,
+                    subtitle: "Project image",
+                    meta: "Private archive image",
+                  })
+                }
               >
-                <div className="dashboardPreview__header">
-                <div className="dashboardPreview__headerCopy">
-                  <p className="dashboardPreview__eyebrow">
-                    {selectedPreview.type === 'image' ? 'Image Preview' : 'File Preview'}
-                  </p>
-                  <h3 id="dashboard-preview-title">{selectedPreview.title}</h3>
-                  <p id="dashboard-preview-subtitle">{selectedPreview.subtitle}</p>
-                </div>
-                <button
-                  type="button"
-                  className="dashboardPreview__close"
-                  aria-label="Close preview"
-                  onClick={() => setSelectedPreview(null)}
-                >
-                  ×
-                  <FiX aria-hidden="true" />
-                </button>
-              </div>
-
-              {selectedPreview.type === 'image' ? (
-                <div className="dashboardPreview__stage dashboardPreview__stage--image">
-                  <div className="dashboardPreview__metaBar">
-                    <span>{selectedPreview.title}</span>
-                    <span>{selectedPreview.meta || 'Private archive image'}</span>
-                  </div>
-                  <div className="dashboardPreview__image">
-                    <img src={selectedPreview.href} alt={selectedPreview.title} />
-                  </div>
-                </div>
-              ) : (
-                <div className="dashboardPreview__stage dashboardPreview__stage--file">
-                  <div className="dashboardPreview__metaBar">
-                    <span>{selectedPreview.title}</span>
-                    <span>{selectedPreview.meta || selectedPreview.subtitle || 'Secure file'}</span>
-                  </div>
-                  <div className="dashboardPreview__file">
-                    <span className="dashboardPreview__fileIcon" aria-hidden="true">
-                      <FiFileText />
+                <div className="dashboardImageCard__preview">
+                  <img src={img.imageUrl} alt={img.title} loading="lazy" />
+                  <div className="dashboardImageCard__overlay">
+                    <span className="dashboardImageCard__tag">
+                      Private Archive
                     </span>
-                    <div className="dashboardPreview__fileCopy">
-                      <strong>{selectedPreview.subtitle || 'Secure file'}</strong>
-                      <p>This document opens in a separate secure tab for detailed review or download.</p>
-                    </div>
+                    <strong>{img.title}</strong>
                   </div>
                 </div>
-              )}
-
-              <div className="dashboardPreview__footer">
-                <div>
-                  <strong>{selectedPreview.title}</strong>
-                  <p>{selectedPreview.meta || selectedPreview.subtitle}</p>
+                <div className="dashboardImageCard__body">
+                  <span className="dashboardImageCard__icon">
+                    <FiImage />
+                  </span>
+                  <p>Click to preview</p>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        ) : (
+          <div className="dashboardDocumentGrid">
+            {files.map((file, index) => (
+              <motion.article
+                key={`${file.downloadUrl}-${index}`}
+                className="dashboardDocumentCard"
+                variants={fadeUpItem}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              >
+                <div className="dashboardDocumentCard__icon">
+                  <FiFileText />
+                </div>
+                <div className="dashboardDocumentCard__body">
+                  <strong>{file.title}</strong>
+                  <p>{formatReadableFileMeta(file)}</p>
                 </div>
                 <a
-                  href={selectedPreview.href}
+                  href={file.downloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="dashboardPreview__cta"
+                  download={file.title}
+                  className="dashboardDocumentCard__download"
                 >
-                  {selectedPreview.actionLabel || 'Open'}
+                  <FiDownload aria-hidden="true" />
+                  <span>Download</span>
                 </a>
-              </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>, document.body) : null}
+              </motion.article>
+            ))}
+          </div>
+        )}
+
+        <QuickLinks exclude="documents" onNavigate={onNavigate} />
+      </motion.section>
+
+      {typeof document !== "undefined"
+        ? createPortal(
+            <AnimatePresence>
+              {selectedPreview ? (
+                <motion.div
+                  className="dashboardPreviewLayer"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <motion.div
+                    className="dashboardPreview__backdrop"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setSelectedPreview(null)}
+                  />
+                  <motion.div
+                    className="dashboardPreview__shell"
+                    initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.985 }}
+                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <div
+                      className="dashboardPreview"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="dashboard-preview-title"
+                      aria-describedby="dashboard-preview-subtitle"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <div className="dashboardPreview__header">
+                        <div className="dashboardPreview__headerCopy">
+                          <p className="dashboardPreview__eyebrow">
+                            Image Preview
+                          </p>
+                          <h3 id="dashboard-preview-title">
+                            {selectedPreview.title}
+                          </h3>
+                          <p id="dashboard-preview-subtitle">
+                            {selectedPreview.subtitle}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          className="dashboardPreview__close"
+                          aria-label="Close preview"
+                          onClick={() => setSelectedPreview(null)}
+                        >
+                          <FiX aria-hidden="true" />
+                        </button>
+                      </div>
+
+                      <div className="dashboardPreview__stage dashboardPreview__stage--image">
+                        <div className="dashboardPreview__metaBar">
+                          <span>{selectedPreview.title}</span>
+                          <span>
+                            {selectedPreview.meta || "Private archive image"}
+                          </span>
+                        </div>
+                        <div className="dashboardPreview__image">
+                          <img
+                            src={selectedPreview.href}
+                            alt={selectedPreview.title}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="dashboardPreview__footer">
+                        <div>
+                          <strong>{selectedPreview.title}</strong>
+                          <p>{selectedPreview.meta}</p>
+                        </div>
+                        <a
+                          href={selectedPreview.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={selectedPreview.title}
+                          className="dashboardPreview__cta"
+                        >
+                          Download
+                        </a>
+                      </div>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>,
+            document.body,
+          )
+        : null}
     </>
-  )
+  );
 }
 
 export function DashboardPage() {
-  const navigate = useNavigate()
-  const { activeDashboardTab, client: authClient, logout, setActiveDashboardTab } = useAuth()
-  const deferredDashboardTab = useDeferredValue(activeDashboardTab)
-  const [isTabPending, startTabTransition] = useTransition()
-  const [portalData, setPortalData] = useState<ClientPortalResponse | null>(null)
-  const [resolvedProject, setResolvedProject] = useState<ContactProjectLookup | null>(null)
-  const [featuredProjectImage, setFeaturedProjectImage] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+  const navigate = useNavigate();
+  const {
+    activeDashboardTab,
+    client: authClient,
+    logout,
+    setActiveDashboardTab,
+  } = useAuth();
+  const deferredDashboardTab = useDeferredValue(activeDashboardTab);
+  const [isTabPending, startTabTransition] = useTransition();
+  const [portalData, setPortalData] = useState<ClientPortalResponse | null>(
+    null,
+  );
+  const [resolvedProject, setResolvedProject] =
+    useState<ContactProjectLookup | null>(null);
+  const [contactProjects, setContactProjects] = useState<
+    ProjectStatusRecord[]
+  >([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) setIsMobileMenuOpen(false);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsProfileMenuOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isProfileMenuOpen]);
 
   useEffect(() => {
     async function loadDashboard() {
-      const contactId = authClient?.contactId || localStorage.getItem('contactId')
-      const leadId = authClient?.leadId || localStorage.getItem('leadId')
-      const email = authClient?.email || null
-      const lookupTargetId = contactId || leadId
+      const contactId =
+        authClient?.contactId || localStorage.getItem("contactId");
+      const leadId = authClient?.leadId || localStorage.getItem("leadId");
+      const email = authClient?.email || null;
+      const lookupTargetId = contactId || leadId;
 
-      const [response, projectLookup] = await Promise.all([
+      const [response, projectLookup, statusRes] = await Promise.all([
         getClientPortalDetails({ contactId, leadId, email }),
-        lookupTargetId ? getProjectByContact(lookupTargetId, email) : Promise.resolve(null),
-      ])
+        lookupTargetId
+          ? getProjectByContact(lookupTargetId, email)
+          : Promise.resolve(null),
+        // Projects list must come from the contact's own record only — a
+        // leadId/email lookup can't be trusted to return the full set.
+        contactId ? getProjectStatus(contactId) : Promise.resolve(null),
+      ]);
 
-      setResolvedProject(projectLookup)
+      setResolvedProject(projectLookup);
+      setContactProjects(statusRes?.success ? statusRes.projects : []);
 
       if (response.success) {
-        setPortalData(response)
-        setError('')
+        setPortalData(response);
+        setError("");
       } else {
-        setError(response.message || 'Unable to load your dashboard.')
+        console.error("Dashboard load failed:", response.message);
+        setError(
+          "We couldn't load your dashboard right now. Please refresh the page or contact support if this continues.",
+        );
       }
-      setIsLoading(false)
+      setIsLoading(false);
     }
 
-    void loadDashboard()
-  }, [authClient?.contactId, authClient?.email, authClient?.leadId])
+    void loadDashboard();
+  }, [authClient?.contactId, authClient?.email, authClient?.leadId]);
 
-  const client = portalData?.client
-  const projects = portalData?.projects || []
-  const firstProject = projects[0]
-  const activeProjectId = firstProject?.id || resolvedProject?.id
-  const activeProjectName = firstProject?.name || resolvedProject?.name
-  const contactId = authClient?.contactId || localStorage.getItem('contactId') || ''
+  const client = portalData?.client;
+  const projects =
+    contactProjects.length > 0
+      ? contactProjects.map((project) => ({
+          id: project.id || project.projectName,
+          name: project.projectName,
+          status: project.projectStatus,
+          startDate: project.startDate,
+          endDate: project.endDate,
+          completionPercentage: project.completionPercentage,
+        }))
+      : (portalData?.projects || []).map((project) => ({
+          ...project,
+          completionPercentage: undefined as number | undefined,
+        }));
+  const activeProject =
+    projects.find((project) => project.id === selectedProjectId) ||
+    projects[0];
+  const activeProjectId = activeProject?.id || resolvedProject?.id;
+  const activeProjectName = activeProject?.name || resolvedProject?.name;
+  // mobileProjectStatus and the /mobile/dashboard summary can format the
+  // same project's name slightly differently in Salesforce. Payment terms
+  // are matched by exact name, so keep the dashboard summary's version
+  // around as a fallback candidate if the primary name finds nothing.
+  const dashboardProjectName = portalData?.projects?.[0]?.name;
+  const activeProjectBudget = contactProjects.find(
+    (project) => (project.id || project.projectName) === activeProjectId,
+  )?.budget;
+  const contactId =
+    authClient?.contactId || localStorage.getItem("contactId") || "";
+
   const desktopNavItems = [
-    { id: 'profile', label: 'Profile & Overview', icon: FiUserCheck },
-    { id: 'status', label: 'Project Status', icon: FiCalendar },
-    { id: 'vendor', label: 'Vendor Tasks', icon: FiBriefcase },
-    { id: 'payment', label: 'Payment Terms', icon: FiCreditCard },
-    { id: 'documents', label: 'Documents & Reports', icon: FiFileText },
-  ] as const
+    { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
+    { id: "status", label: "Project Status", icon: FiCalendar },
+    { id: "vendor", label: "Vendor Tasks", icon: FiBriefcase },
+    { id: "payment", label: "Payment Terms", icon: FiCreditCard },
+    { id: "documents", label: "Documents & Reports", icon: FiFileText },
+  ] as const;
 
   const handleLogout = () => {
-    setShowLogoutConfirm(false)
-    logout()
-    navigate('/login', { replace: true })
-  }
+    setShowLogoutConfirm(false);
+    logout();
+    navigate("/login", { replace: true });
+  };
 
-  const handleTabChange = (tabId: (typeof desktopNavItems)[number]['id']) => {
+  const handleTabChange = (tabId: (typeof desktopNavItems)[number]["id"]) => {
     startTabTransition(() => {
-      setActiveDashboardTab(tabId)
-    })
-  }
-
-  useEffect(() => {
-    async function loadFeaturedProjectImage() {
-      if (!activeProjectId) {
-        setFeaturedProjectImage(null)
-        return
-      }
-
-      const files = await getProjectFiles(activeProjectId)
-      const firstImage = Array.isArray(files) ? files.find((file) => isImageFileType(file.fileType)) : null
-      setFeaturedProjectImage(firstImage?.downloadUrl || firstImage?.previewUrl || null)
-    }
-
-    void loadFeaturedProjectImage()
-  }, [activeProjectId])
+      setActiveDashboardTab(tabId);
+    });
+    setIsMobileMenuOpen(false);
+  };
 
   return (
     <main className="dashboardPage">
@@ -779,6 +1504,13 @@ export function DashboardPage() {
         isOpen={showLogoutConfirm}
         onCancel={() => setShowLogoutConfirm(false)}
         onConfirm={handleLogout}
+      />
+
+      <SupportCaseModal
+        isOpen={isSupportModalOpen}
+        contactId={contactId}
+        projectId={activeProjectId}
+        onClose={() => setIsSupportModalOpen(false)}
       />
 
       <div className="dashboardPage__ambient" aria-hidden="true">
@@ -789,64 +1521,193 @@ export function DashboardPage() {
 
       <section className="dashboardShell">
         <header className="dashboardMobileBar">
-          <button type="button" className="dashboardMobileBar__brand" onClick={() => handleTabChange('profile')}>
-            <img src="/images/Logos/Arelia.png" alt="Arelia logo" className="dashboardMobileBar__brandLogo" />
-            <span>ARELIA</span>
+          <button
+            type="button"
+            className="dashboardMobileBar__menuToggle"
+            onClick={() => setIsMobileMenuOpen((value) => !value)}
+            aria-expanded={isMobileMenuOpen}
+            aria-label="Toggle navigation menu"
+          >
+            {isMobileMenuOpen ? <FiX /> : <FiMenu />}
           </button>
-          <div className="dashboardMobileBar__actions">
-            <span className="dashboardMobileBar__clientLabel">Client</span>
-            <button type="button" className="dashboardMobileBar__logout" onClick={() => setShowLogoutConfirm(true)}>
-              <FiLogOut />
-            </button>
-          </div>
+
+          <button
+            type="button"
+            className="dashboardMobileBar__brand"
+            onClick={() => handleTabChange("profile")}
+          >
+            <img
+              src="/images/Logos/Arelia.png"
+              alt="Arelia logo"
+              className="dashboardMobileBar__brandLogo"
+            />
+            <span className="dashboardMobileBar__brandText">
+              <strong>ARELIA</strong>
+              <small>Client Portal</small>
+            </span>
+          </button>
+
+          <AccountMenu
+            wrapperClassName="dashboardMobileBar__account"
+            isOpen={isProfileMenuOpen}
+            onToggle={() => setIsProfileMenuOpen((value) => !value)}
+            onClose={() => setIsProfileMenuOpen(false)}
+            clientName={client?.name}
+            clientEmail={client?.email}
+            onLogoutRequest={() => {
+              setIsProfileMenuOpen(false);
+              setShowLogoutConfirm(true);
+            }}
+          />
         </header>
+
+        <AnimatePresence>
+          {isMobileMenuOpen ? (
+            <>
+              <motion.div
+                className="dashboardMobileDrawer__backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsMobileMenuOpen(false)}
+              />
+              <motion.nav
+                className="dashboardMobileDrawer"
+                aria-label="Client portal sections"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {desktopNavItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeDashboardTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`dashboardMobileDrawer__link${isActive ? " is-active" : ""}`}
+                      onClick={() => handleTabChange(item.id)}
+                    >
+                      <Icon />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  className="dashboardMobileDrawer__link"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsSupportModalOpen(true);
+                  }}
+                >
+                  <FiHeadphones />
+                  <span>Contact Support</span>
+                </button>
+                <button
+                  type="button"
+                  className="dashboardMobileDrawer__link dashboardMobileDrawer__link--logout"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setShowLogoutConfirm(true);
+                  }}
+                >
+                  <FiLogOut />
+                  <span>Logout</span>
+                </button>
+              </motion.nav>
+            </>
+          ) : null}
+        </AnimatePresence>
 
         <aside className="dashboardRail">
           <div className="dashboardRail__brandWrap">
-            <button type="button" className="dashboardRail__brand" onClick={() => handleTabChange('profile')}>
-              <strong className="dashboardRail__brandTitle">ARELIA</strong>
-              <span className="dashboardRail__brandSubtitle">Client Portal</span>
+            <button
+              type="button"
+              className="dashboardRail__brand"
+              onClick={() => handleTabChange("profile")}
+            >
+              <img
+                src="/images/Logos/Arelia.png"
+                alt="Arelia logo"
+                className="dashboardRail__brandLogo"
+              />
+              <span className="dashboardRail__brandText">
+                <strong className="dashboardRail__brandTitle">ARELIA</strong>
+                <span className="dashboardRail__brandSubtitle">
+                  Client Portal
+                </span>
+              </span>
             </button>
           </div>
 
-          <nav className="dashboardRail__nav" aria-label="Client portal sections">
+          <nav
+            className="dashboardRail__nav"
+            aria-label="Client portal sections"
+          >
             {desktopNavItems.map((item) => {
-              const Icon = item.icon
-              const isActive = activeDashboardTab === item.id
+              const Icon = item.icon;
+              const isActive = activeDashboardTab === item.id;
               return (
                 <button
                   key={item.id}
                   type="button"
-                  className={`dashboardRail__link${isActive ? ' is-active' : ''}`}
+                  className={`dashboardRail__link${isActive ? " is-active" : ""}`}
                   onClick={() => handleTabChange(item.id)}
                 >
                   <Icon />
                   <span>{item.label}</span>
                 </button>
-              )
+              );
             })}
           </nav>
 
-          <div className="dashboardRail__footer">
-            <button type="button" className="dashboardRail__footerAction" onClick={() => setShowLogoutConfirm(true)}>
-              <FiLogOut />
-              <span>Logout</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="dashboardRail__support"
+            onClick={() => setIsSupportModalOpen(true)}
+          >
+            <span className="dashboardRail__supportIcon" aria-hidden="true">
+              <FiHeadphones />
+            </span>
+            <strong>Need help?</strong>
+            <p>Our team is here to assist</p>
+            <span className="dashboardRail__supportCta">Contact Support</span>
+          </button>
         </aside>
 
         <div className="dashboardWorkspace">
           <header className="dashboardWorkspace__topbar">
             <div className="dashboardWorkspace__topbarCopy">
               <p className="dashboardWorkspace__eyebrow">
-                {dashboardTabs.find((tab) => tab.id === deferredDashboardTab)?.label || 'Client Portal'}
+                {dashboardTabs.find((tab) => tab.id === deferredDashboardTab)
+                  ?.label || "Client Portal"}
               </p>
             </div>
+
+            <AccountMenu
+              isOpen={isProfileMenuOpen}
+              onToggle={() => setIsProfileMenuOpen((value) => !value)}
+              onClose={() => setIsProfileMenuOpen(false)}
+              clientName={client?.name}
+              clientEmail={client?.email}
+              onLogoutRequest={() => {
+                setIsProfileMenuOpen(false);
+                setShowLogoutConfirm(true);
+              }}
+            />
           </header>
 
-          {isLoading ? <div className="dashboardState">Loading your portal...</div> : null}
-          {!isLoading && error ? <div className="dashboardError">{error}</div> : null}
-          {!isLoading && !error && isTabPending ? <div className="dashboardState">Loading section...</div> : null}
+          {isLoading ? (
+            <div className="dashboardState">Loading your portal...</div>
+          ) : null}
+          {!isLoading && error ? (
+            <div className="dashboardError">{error}</div>
+          ) : null}
+          {!isLoading && !error && isTabPending ? (
+            <div className="dashboardState">Loading section...</div>
+          ) : null}
 
           {!isLoading && !error ? (
             <AnimatePresence mode="wait">
@@ -858,26 +1719,88 @@ export function DashboardPage() {
                 exit={{ opacity: 0, y: -14 }}
                 transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
               >
-                {deferredDashboardTab === 'profile' ? (
+                {deferredDashboardTab === "profile" ? (
                   <>
                     <motion.header
-                      className="dashboardHero"
+                      className="dashboardHero dashboardHero--profile"
                       initial={{ opacity: 0, y: 24 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                     >
-                      <div className="dashboardHero__lighting" aria-hidden="true" />
-                      <div className="dashboardHero__imageMask" aria-hidden="true" />
-                      <div className="dashboardHero__copy dashboardHero__copy--minimal">
-                        <p className="dashboardHero__eyebrow">Client Portal</p>
-                        <h1 className="dashboardHero__title">
-                          {client?.name ? `Welcome back, ${client.name}` : 'Welcome back'}
-                        </h1>
-                        <p className="dashboardHero__subtitle">
-                          Your private Arelia workspace for refined project oversight, milestones,
-                          and concierge-level project communication.
-                        </p>
+                      <div
+                        className="dashboardHero__lighting"
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="dashboardHero__streak dashboardHero__streak--one"
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="dashboardHero__streak dashboardHero__streak--two"
+                        aria-hidden="true"
+                      />
+                      <span
+                        className="dashboardHero__streak dashboardHero__streak--three"
+                        aria-hidden="true"
+                      />
+
+                      <div className="dashboardHero__identity">
+                        <span
+                          className="dashboardHero__avatar"
+                          aria-hidden="true"
+                        >
+                          {getInitials(client?.name)}
+                        </span>
+                        <div className="dashboardHero__copy dashboardHero__copy--minimal">
+                          <p className="dashboardHero__eyebrow">
+                            Client Portal
+                          </p>
+                          <h1 className="dashboardHero__title">
+                            Welcome back
+                            {client?.name ? (
+                              <>
+                                ,
+                                <span className="dashboardHero__titleName">
+                                  {client.name}
+                                </span>
+                              </>
+                            ) : null}
+                          </h1>
+                          <p className="dashboardHero__subtitle">
+                            Your private Arelia workspace for refined project
+                            oversight, milestones, and concierge-level project
+                            communication.
+                          </p>
+                        </div>
                       </div>
+
+                      {client ? (
+                        <div className="dashboardHero__contactRow">
+                          <div className="dashboardHero__contactItem">
+                            <FiMail aria-hidden="true" />
+                            <div>
+                              <span>Email</span>
+                              <strong>{client.email || "Not available"}</strong>
+                            </div>
+                          </div>
+                          <div className="dashboardHero__contactItem">
+                            <FiPhone aria-hidden="true" />
+                            <div>
+                              <span>Phone</span>
+                              <strong>{client.phone || "Not available"}</strong>
+                            </div>
+                          </div>
+                          <div className="dashboardHero__contactItem">
+                            <FiBriefcase aria-hidden="true" />
+                            <div>
+                              <span>Company</span>
+                              <strong>
+                                {client.company || "Not available"}
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                     </motion.header>
 
                     <motion.section
@@ -888,105 +1811,573 @@ export function DashboardPage() {
                     >
                       <div className="dashboardSection__heading dashboardSection__heading--profile">
                         <div>
-                          <p className="dashboardSection__eyebrow">Verified Details</p>
+                          <p className="dashboardSection__eyebrow">
+                            Project Snapshot
+                          </p>
                           <h2 className="dashboardSection__title dashboardSection__title--profile">
-                            Your private workspace
+                            {projects.length > 1
+                              ? "Your projects"
+                              : "Your current project"}
                           </h2>
                         </div>
+                        {projects.length > 1 ? (
+                          <span className="dashboardSection__chip">
+                            {projects.length} active projects
+                          </span>
+                        ) : null}
                       </div>
 
-                      <div className="dashboardOverviewStack">
-                        {client ? (
-                          <motion.div className="dashboardProfileCard" variants={fadeUpItem}>
-                            <div className="dashboardSection__subhead dashboardSection__subhead--split">
-                              <div>
-                                <div className="dashboardSection__ruleHeading">
+                      <div className="dashboardProjectRow">
+                        <div className="dashboardProjectList">
+                          {projects.length > 0 ? (
+                            projects.map((project) => {
+                              const isActive = project.id === activeProjectId;
+                              const completion =
+                                project.completionPercentage != null
+                                  ? Math.round(project.completionPercentage)
+                                  : null;
+                              return (
+                                <motion.button
+                                  key={project.id}
+                                  type="button"
+                                  className={`dashboardProjectSpotlight${
+                                    isActive ? " is-active" : ""
+                                  }`}
+                                  variants={fadeUpItem}
+                                  whileHover={{
+                                    x: 3,
+                                    transition: { duration: 0.2 },
+                                  }}
+                                  onClick={() => {
+                                    setSelectedProjectId(project.id);
+                                    handleTabChange("status");
+                                  }}
+                                >
+                                  <span
+                                    className="dashboardProjectSpotlight__icon"
+                                    aria-hidden="true"
+                                  >
+                                    <FiHome />
+                                  </span>
+                                  <div className="dashboardProjectSpotlight__copy">
+                                    <div className="dashboardSection__ruleHeading dashboardSection__ruleHeading--inverse">
+                                      <p>Project Overview</p>
+                                      <span />
+                                    </div>
+                                    <div className="dashboardProjectSpotlight__titleRow">
+                                      <h3>{project.name}</h3>
+                                      <span className="dashboardProjectSpotlight__badge">
+                                        {isActive
+                                          ? "Selected"
+                                          : project.status || "Active"}
+                                      </span>
+                                    </div>
+                                    <p className="dashboardProjectSpotlight__description">
+                                      Access live progress, budget
+                                      checkpoints, milestone updates, and the
+                                      private project archive.
+                                    </p>
+                                    {completion != null ? (
+                                      <div className="dashboardProjectSpotlight__progress">
+                                        <span>Completion</span>
+                                        <strong>
+                                          {completion >= 100
+                                            ? "Completed"
+                                            : "Ongoing"}
+                                        </strong>
+                                        <div className="dashboardProjectSpotlight__progressBarRow">
+                                          <div className="dashboardProgressBar">
+                                            <motion.div
+                                              className="dashboardProgressBar__fill"
+                                              initial={{ width: 0 }}
+                                              animate={{
+                                                width: `${completion}%`,
+                                              }}
+                                              transition={{
+                                                duration: 1,
+                                                ease: [0.22, 1, 0.36, 1],
+                                              }}
+                                            />
+                                          </div>
+                                          <span className="dashboardProjectSpotlight__percent">
+                                            {completion}%
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="dashboardProjectSpotlight__meta">
+                                        <span>Completion</span>
+                                        <strong>Ongoing</strong>
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.button>
+                              );
+                            })
+                          ) : (
+                            <motion.button
+                              type="button"
+                              className="dashboardProjectSpotlight"
+                              variants={fadeUpItem}
+                              whileHover={{ x: 3, transition: { duration: 0.2 } }}
+                              onClick={() => handleTabChange("status")}
+                            >
+                              <span
+                                className="dashboardProjectSpotlight__icon"
+                                aria-hidden="true"
+                              >
+                                <FiHome />
+                              </span>
+                              <div className="dashboardProjectSpotlight__copy">
+                                <div className="dashboardSection__ruleHeading dashboardSection__ruleHeading--inverse">
+                                  <p>Project Access</p>
                                   <span />
-                                  <p>Verified Details</p>
                                 </div>
-                                <h3>Client Profile</h3>
-                                <p className="dashboardProfileCard__intro">
-                                  Your verified contact details and workspace identity.
+                                <div className="dashboardProjectSpotlight__titleRow">
+                                  <h3>
+                                    {resolvedProject?.name ||
+                                      "View Project Status"}
+                                  </h3>
+                                  <span className="dashboardProjectSpotlight__badge">
+                                    Active Phase
+                                  </span>
+                                </div>
+                                <p className="dashboardProjectSpotlight__description">
+                                  Access live progress, budget checkpoints,
+                                  milestone updates, and the private project
+                                  archive.
                                 </p>
+                                <div className="dashboardProjectSpotlight__meta">
+                                  <span>Completion</span>
+                                  <strong>
+                                    {resolvedProject?.id
+                                      ? "Ongoing"
+                                      : "No project"}
+                                  </strong>
+                                </div>
+                              </div>
+                            </motion.button>
+                          )}
+                        </div>
+
+                        <motion.div
+                          className="dashboardProjectAside"
+                          variants={fadeUpItem}
+                        >
+                          <div className="dashboardProjectAside__card">
+                            <div className="dashboardProjectAside__row">
+                              <span
+                                className="dashboardProjectAside__icon"
+                                aria-hidden="true"
+                              >
+                                <FiHome />
+                              </span>
+                              <div className="dashboardProjectAside__copy">
+                                <strong>Stay informed</strong>
+                                <p>Real-time document access in one place.</p>
+                                {activeProjectName ? (
+                                  <span className="dashboardProjectAside__scope">
+                                    For {activeProjectName}
+                                  </span>
+                                ) : null}
                               </div>
                             </div>
-                            <div className="dashboardProfileGrid">
-                              <ProfileDetail icon={<FiUser />} label="Name" value={client.name} />
-                              <ProfileDetail icon={<FiMail />} label="Email" value={client.email} />
-                              <ProfileDetail icon={<FiPhone />} label="Phone" value={client.phone} />
-                              <ProfileDetail icon={<FiBriefcase />} label="Company" value={client.company} />
-                            </div>
-                          </motion.div>
-                        ) : null}
 
-                        <motion.button
-                          type="button"
-                          className="dashboardProjectsPanel dashboardProjectsPanel--nav"
-                          variants={fadeUpItem}
-                          whileHover={{ y: -2, transition: { duration: 0.2 } }}
-                          onClick={() => handleTabChange('status')}
-                        >
-                          <div className="dashboardProjectsPanel__media" aria-hidden="true">
-                            {featuredProjectImage ? (
-                              <img src={featuredProjectImage} alt="" />
-                            ) : (
-                              <div className="dashboardProjectsPanel__placeholder" />
-                            )}
-                            <div className="dashboardProjectsPanel__scrim" />
-                            <span className="dashboardProjectsPanel__badge">Active Phase</span>
+                            <button
+                              type="button"
+                              className="dashboardProjectAside__link"
+                              onClick={() => handleTabChange("documents")}
+                            >
+                              <span>View all Documents</span>
+                              <FiArrowRight aria-hidden="true" />
+                            </button>
+
+                            <div
+                              className="dashboardProjectAside__divider"
+                              aria-hidden="true"
+                            />
+
+                            <button
+                              type="button"
+                              className="dashboardProjectSpotlight__cta"
+                              onClick={() => handleTabChange("status")}
+                            >
+                              <span>View Project Status</span>
+                              <FiArrowRight aria-hidden="true" />
+                            </button>
                           </div>
-                          <div className="dashboardProjectsPanel__copy">
-                            <div className="dashboardSection__ruleHeading dashboardSection__ruleHeading--inverse">
-                              <p>Project Access</p>
-                              <span />
-                            </div>
-                            <h3>{activeProjectName || 'View Project Status'}</h3>
-                            <div className="dashboardProjectsPanel__meta">
-                              <span>Completion</span>
-                              <strong>{projects.length || resolvedProject?.id ? 'Active project' : 'No project'}</strong>
-                            </div>
-                            <p className="dashboardProjectsPanel__description">
-                              Access live progress, budget checkpoints, milestone updates, and the private project archive.
-                            </p>
-                          </div>
-                          <span className="dashboardProjectsPanel__cta" aria-hidden="true">
-                            <FiArrowRight />
-                          </span>
-                        </motion.button>
+                        </motion.div>
                       </div>
                     </motion.section>
                   </>
                 ) : null}
 
-                {deferredDashboardTab === 'status' ? (
-                  <ProjectStatusTab contactId={contactId} projectId={activeProjectId} />
+                {deferredDashboardTab === "status" ? (
+                  <ProjectStatusTab
+                    contactId={contactId}
+                    projectId={activeProjectId}
+                    projects={contactProjects}
+                    onNavigate={handleTabChange}
+                  />
                 ) : null}
-                {deferredDashboardTab === 'vendor' ? (
-                  <VendorTasksTab contactId={contactId} projectId={activeProjectId} />
+                {deferredDashboardTab === "vendor" ? (
+                  <VendorTasksTab
+                    contactId={contactId}
+                    projectId={activeProjectId}
+                    projectName={activeProjectName}
+                    projects={contactProjects}
+                    onNavigate={handleTabChange}
+                  />
                 ) : null}
-                {deferredDashboardTab === 'payment' ? (
-                  <PaymentTermsTab projectName={activeProjectName} />
+                {deferredDashboardTab === "payment" ? (
+                  <PaymentTermsTab
+                    projectName={activeProjectName}
+                    fallbackProjectName={dashboardProjectName}
+                    contractBudget={activeProjectBudget}
+                    onNavigate={handleTabChange}
+                  />
                 ) : null}
-                {deferredDashboardTab === 'documents' ? (
-                  <DocumentsTab projectId={activeProjectId} />
+                {deferredDashboardTab === "documents" ? (
+                  <DocumentsTab
+                    projectId={activeProjectId}
+                    projectName={activeProjectName}
+                    onNavigate={handleTabChange}
+                  />
                 ) : null}
               </motion.div>
             </AnimatePresence>
           ) : null}
         </div>
       </section>
-
     </main>
-  )
+  );
+}
+
+function FormSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="dashboardSupportForm__field dashboardSupportForm__select">
+      <span>{label}</span>
+      <button
+        type="button"
+        className="dashboardSupportForm__selectTrigger"
+        onClick={() => setIsOpen((current) => !current)}
+        aria-expanded={isOpen}
+      >
+        <span>{value}</span>
+        <FiChevronDown
+          aria-hidden="true"
+          className={isOpen ? "is-open" : ""}
+        />
+      </button>
+
+      <AnimatePresence>
+        {isOpen ? (
+          <>
+            <motion.div
+              className="dashboardSupportForm__selectBackdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+            />
+            <motion.div
+              className="dashboardSupportForm__selectMenu"
+              initial={{ opacity: 0, y: -6, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {options.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  className={`dashboardSupportForm__selectOption${option === value ? " is-active" : ""}`}
+                  onClick={() => {
+                    onChange(option);
+                    setIsOpen(false);
+                  }}
+                >
+                  {option}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function SupportCaseModal({
+  isOpen,
+  contactId,
+  projectId,
+  onClose,
+}: {
+  isOpen: boolean;
+  contactId: string;
+  projectId?: string;
+  onClose: () => void;
+}) {
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState("Medium");
+  const [category, setCategory] = useState("General");
+  const [otherCategory, setOtherCategory] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [caseId, setCaseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  const resetAndClose = () => {
+    setSubject("");
+    setDescription("");
+    setPriority("Medium");
+    setCategory("General");
+    setOtherCategory("");
+    setError("");
+    setCaseId(null);
+    onClose();
+  };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!subject.trim() || !description.trim()) {
+      setError("Please fill in both subject and description.");
+      return;
+    }
+    if (category === "Other" && !otherCategory.trim()) {
+      setError("Please describe the category.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError("");
+
+    const res = await createSupportCase({
+      contactId,
+      projectId,
+      subject: subject.trim(),
+      description: description.trim(),
+      priority,
+      category,
+      otherCategory: category === "Other" ? otherCategory.trim() : undefined,
+    });
+
+    setIsSubmitting(false);
+
+    if (res.success) {
+      setCaseId(res.caseId || "submitted");
+    } else {
+      console.error("Support case submission failed:", res.message);
+      setError(
+        "We couldn't submit your request right now. Please try again, or email us directly if this continues.",
+      );
+    }
+  };
+
+  return typeof document !== "undefined"
+    ? createPortal(
+        <AnimatePresence>
+          {isOpen ? (
+            <motion.div
+              className="dashboardPreviewLayer"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="dashboardPreview__backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={resetAndClose}
+              />
+              <motion.div
+                className="dashboardPreview__shell"
+                initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.985 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div
+                  className="dashboardPreview dashboardSupportModal"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="support-modal-title"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="dashboardPreview__header">
+                    <div className="dashboardPreview__headerCopy">
+                      <p className="dashboardPreview__eyebrow">
+                        Client Support
+                      </p>
+                      <h3 id="support-modal-title">Contact Support</h3>
+                    </div>
+                    <button
+                      type="button"
+                      className="dashboardPreview__close"
+                      aria-label="Close"
+                      onClick={resetAndClose}
+                    >
+                      <FiX aria-hidden="true" />
+                    </button>
+                  </div>
+
+                  <div className="dashboardSupportModal__body">
+                    {caseId ? (
+                      <div className="dashboardSupportModal__success">
+                        <span
+                          className="dashboardSupportModal__successIcon"
+                          aria-hidden="true"
+                        >
+                          <FiCheckCircle />
+                        </span>
+                        <h4>Request submitted</h4>
+                        <p>
+                          Our team will get back to you shortly.
+                        </p>
+                        {caseId !== "submitted" ? (
+                          <div className="dashboardSupportModal__caseCard">
+                            <span>Reference Number</span>
+                            <strong className="dashboardSupportModal__caseId">
+                              {caseId}
+                            </strong>
+                          </div>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="dashboardProjectSpotlight__cta"
+                          onClick={resetAndClose}
+                        >
+                          <span>Done</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <form
+                        className="dashboardSupportForm"
+                        onSubmit={handleSubmit}
+                      >
+                        <label className="dashboardSupportForm__field">
+                          <span>Subject</span>
+                          <input
+                            type="text"
+                            value={subject}
+                            onChange={(event) =>
+                              setSubject(event.target.value)
+                            }
+                            placeholder="Briefly describe your issue"
+                            required
+                          />
+                        </label>
+
+                        <div className="dashboardSupportForm__row">
+                          <FormSelect
+                            label="Category"
+                            value={category}
+                            options={[
+                              "General",
+                              "Billing",
+                              "Technical",
+                              "Project",
+                              "Other",
+                            ]}
+                            onChange={setCategory}
+                          />
+
+                          <FormSelect
+                            label="Priority"
+                            value={priority}
+                            options={["Low", "Medium", "High"]}
+                            onChange={setPriority}
+                          />
+                        </div>
+
+                        {category === "Other" ? (
+                          <label className="dashboardSupportForm__field">
+                            <span>Please specify</span>
+                            <input
+                              type="text"
+                              value={otherCategory}
+                              onChange={(event) =>
+                                setOtherCategory(event.target.value)
+                              }
+                              placeholder="What is this about?"
+                            />
+                          </label>
+                        ) : null}
+
+                        <label className="dashboardSupportForm__field">
+                          <span>Description</span>
+                          <textarea
+                            value={description}
+                            onChange={(event) =>
+                              setDescription(event.target.value)
+                            }
+                            placeholder="Tell us more about how we can help"
+                            rows={4}
+                            required
+                          />
+                        </label>
+
+                        {error ? (
+                          <p className="dashboardSupportForm__error">
+                            {error}
+                          </p>
+                        ) : null}
+
+                        <button
+                          type="submit"
+                          className="dashboardProjectSpotlight__cta"
+                          disabled={isSubmitting}
+                        >
+                          <span>
+                            {isSubmitting
+                              ? "Submitting..."
+                              : "Submit Request"}
+                          </span>
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )
+    : null;
 }
 
 function formatDate(value?: string) {
-  if (!value) return undefined
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return value
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(date)
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(date);
 }
