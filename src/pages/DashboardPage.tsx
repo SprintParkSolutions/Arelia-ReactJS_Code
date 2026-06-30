@@ -243,7 +243,9 @@ function buildNotificationSnapshot(
     if (key) paymentTerms[key] = Boolean(term.paymentReceived);
   });
 
-  const documentKeys = files.map((file) => file.documentId || file.title);
+  const documentKeys = files
+    .map((file) => file.documentId || file.title)
+    .filter(Boolean) as string[];
 
   return {
     projectStatus: project?.projectStatus,
@@ -289,7 +291,7 @@ function diffNotificationSnapshots(
   Object.entries(next.vendors).forEach(([vendorName, completion]) => {
     const prevCompletion = previous.vendors[vendorName];
     if (prevCompletion == null || prevCompletion === completion) return;
-    const displayLabel = next.vendorCategories[vendorName] || vendorName;
+    const displayLabel = (next.vendorCategories ?? {})[vendorName] || vendorName;
     entries.push({
       type: "vendor",
       message:
@@ -309,13 +311,16 @@ function diffNotificationSnapshots(
   });
 
   const previousDocs = new Set(previous.documentKeys);
-  next.documentKeys.forEach((key) => {
-    if (previousDocs.has(key)) return;
+  const newDocCount = next.documentKeys.filter((key) => !previousDocs.has(key)).length;
+  if (newDocCount > 0) {
     entries.push({
       type: "documents",
-      message: "A new file was added to Documents & Reports.",
+      message:
+        newDocCount === 1
+          ? "A new file was added to Documents & Reports."
+          : `${newDocCount} new files were added to Documents & Reports.`,
     });
-  });
+  }
 
   return entries;
 }
@@ -764,6 +769,19 @@ function ProjectStatusTab({
               transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             />
           </div>
+
+          {statusData.projectType ? (
+            <motion.div
+              className="dashboardSpotlightCard__projectType"
+              initial={{ opacity: 0, scale: 0.85, y: 6 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: 0.75, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <FiHome aria-hidden="true" />
+              <span>{statusData.projectType}</span>
+            </motion.div>
+          ) : null}
+
           <div className="dashboardSpotlightCard__meta">
             <span>
               Budget:{" "}

@@ -94,6 +94,7 @@ export type ProjectStatusRecord = {
   id?: string
   projectName: string
   projectStatus?: string
+  projectType?: string
   budget?: number
   startDate?: string
   endDate?: string
@@ -273,6 +274,13 @@ function normalizeProjectStatusRecord(rawProject: unknown): ProjectStatusRecord 
     id: asString(project.id || project.Id || project.projectId || project.ProjectId) || projectName,
     projectName,
     projectStatus: asString(project.projectStatus || project.status || project.Status),
+    projectType: asString(
+      project.projectType ||
+      project.typeOfProject ||
+      project.Type_Of_Project__c ||
+      project.interiorProjectType ||
+      project.Interior_Project_Type__c,
+    ),
     budget: asNumber(project.budget || project.Budget),
     startDate: asString(project.startDate || project.StartDate),
     endDate: asString(project.endDate || project.EndDate),
