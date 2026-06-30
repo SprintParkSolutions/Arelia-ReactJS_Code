@@ -1344,12 +1344,13 @@ function PaymentTermsTab({
                     {term.paymentReceived ? "Completed" : "Pending"}
                   </span>
                   <h3>{term.label || term.name}</h3>
-                  <p className="dashboardPaymentCard__subtitle">
-                    {term.percentage ?? 0}% of contract value
-                  </p>
                 </div>
 
                 <div className="dashboardPaymentCard__columns">
+                  <div className="dashboardPaymentCard__col">
+                    <span>Percentage</span>
+                    <strong>{term.percentage ?? 0}%</strong>
+                  </div>
                   <div className="dashboardPaymentCard__col">
                     <span>Due Date</span>
                     <strong>
