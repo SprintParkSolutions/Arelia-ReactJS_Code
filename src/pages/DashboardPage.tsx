@@ -9,10 +9,12 @@ import {
 } from "react";
 import {
   FiArrowRight,
+  FiBell,
   FiBriefcase,
   FiCalendar,
   FiCheckCircle,
   FiChevronDown,
+  FiClock,
   FiCreditCard,
   FiDownload,
   FiDroplet,
@@ -163,6 +165,292 @@ function formatFileMeta(file: ProjectFile) {
     );
   }
   return parts.join(" • ") || "Secure project file";
+}
+
+type PortalNotificationType = "status" | "vendor" | "payment" | "paymentDue" | "documents";
+
+type PortalNotification = {
+  id: string;
+  type: PortalNotificationType;
+  message: string;
+  timestamp: number;
+  read: boolean;
+};
+
+type NotificationSnapshot = {
+  projectStatus?: string;
+  completionPercentage?: number;
+  vendors: Record<string, number>;
+  vendorCategories: Record<string, string>;
+  paymentTerms: Record<string, boolean>;
+  documentKeys: string[];
+};
+
+const NOTIFICATION_POLL_INTERVAL_MS = 3 * 60 * 1000;
+const MAX_STORED_NOTIFICATIONS = 30;
+
+function getNotificationStorageKeys(contactId: string) {
+  return {
+    snapshot: `portalNotifSnapshot:${contactId}`,
+    list: `portalNotifications:${contactId}`,
+  };
+}
+
+function readNotificationSnapshot(key: string): NotificationSnapshot | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as NotificationSnapshot) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeNotificationSnapshot(key: string, snapshot: NotificationSnapshot) {
+  window.localStorage.setItem(key, JSON.stringify(snapshot));
+}
+
+function readStoredNotifications(key: string): PortalNotification[] {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as PortalNotification[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredNotifications(key: string, notifications: PortalNotification[]) {
+  window.localStorage.setItem(
+    key,
+    JSON.stringify(notifications.slice(0, MAX_STORED_NOTIFICATIONS)),
+  );
+}
+
+function buildNotificationSnapshot(
+  project: ProjectStatusRecord | undefined,
+  terms: PaymentTerm[],
+  files: ProjectFile[],
+): NotificationSnapshot {
+  const vendors: Record<string, number> = {};
+  const vendorCategories: Record<string, string> = {};
+  project?.vendors.forEach((vendor) => {
+    vendors[vendor.vendorName] = Math.round(vendor.completionPercentage || 0);
+    if (vendor.vendorCategory) vendorCategories[vendor.vendorName] = vendor.vendorCategory;
+  });
+
+  const paymentTerms: Record<string, boolean> = {};
+  terms.forEach((term) => {
+    const key = term.label || term.name;
+    if (key) paymentTerms[key] = Boolean(term.paymentReceived);
+  });
+
+  const documentKeys = files.map((file) => file.documentId || file.title);
+
+  return {
+    projectStatus: project?.projectStatus,
+    completionPercentage:
+      project?.completionPercentage != null
+        ? Math.round(project.completionPercentage)
+        : undefined,
+    vendors,
+    vendorCategories,
+    paymentTerms,
+    documentKeys,
+  };
+}
+
+function diffNotificationSnapshots(
+  previous: NotificationSnapshot,
+  next: NotificationSnapshot,
+): Array<{ type: PortalNotificationType; message: string }> {
+  const entries: Array<{ type: PortalNotificationType; message: string }> = [];
+
+  if (
+    next.completionPercentage != null &&
+    previous.completionPercentage != null &&
+    next.completionPercentage !== previous.completionPercentage
+  ) {
+    entries.push({
+      type: "status",
+      message: `Project progress updated to ${next.completionPercentage}%.`,
+    });
+  }
+
+  if (
+    next.projectStatus &&
+    previous.projectStatus &&
+    next.projectStatus !== previous.projectStatus
+  ) {
+    entries.push({
+      type: "status",
+      message: `Project status changed to "${next.projectStatus}".`,
+    });
+  }
+
+  Object.entries(next.vendors).forEach(([vendorName, completion]) => {
+    const prevCompletion = previous.vendors[vendorName];
+    if (prevCompletion == null || prevCompletion === completion) return;
+    const displayLabel = next.vendorCategories[vendorName] || vendorName;
+    entries.push({
+      type: "vendor",
+      message:
+        completion >= 100
+          ? `${displayLabel} finished all assigned tasks.`
+          : `${displayLabel} progress updated to ${completion}%.`,
+    });
+  });
+
+  Object.entries(next.paymentTerms).forEach(([label, received]) => {
+    const prevReceived = previous.paymentTerms[label];
+    if (prevReceived === undefined || prevReceived === received || !received) return;
+    entries.push({
+      type: "payment",
+      message: `Payment received for "${label}".`,
+    });
+  });
+
+  const previousDocs = new Set(previous.documentKeys);
+  next.documentKeys.forEach((key) => {
+    if (previousDocs.has(key)) return;
+    entries.push({
+      type: "documents",
+      message: "A new file was added to Documents & Reports.",
+    });
+  });
+
+  return entries;
+}
+
+function formatRelativeTime(timestamp: number) {
+  const diffMin = Math.round((Date.now() - timestamp) / 60000);
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
+function NotificationBell({
+  notifications,
+  isOpen,
+  onToggle,
+  onClose,
+  onNotificationClick,
+  onMarkAllRead,
+  onClearAll,
+  wrapperClassName = "dashboardWorkspace__notifications",
+}: {
+  notifications: PortalNotification[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  onNotificationClick: (notification: PortalNotification) => void;
+  onMarkAllRead: () => void;
+  onClearAll: () => void;
+  wrapperClassName?: string;
+}) {
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
+  return (
+    <div className={wrapperClassName}>
+      <button
+        type="button"
+        className="dashboardWorkspace__notificationsTrigger"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        aria-label="Notifications"
+      >
+        <FiBell aria-hidden="true" />
+        {unreadCount > 0 ? (
+          <span className="dashboardWorkspace__notificationsBadge">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        ) : null}
+      </button>
+
+      <AnimatePresence>
+        {isOpen ? (
+          <>
+            <motion.div
+              className="dashboardWorkspace__accountBackdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+            />
+            <motion.div
+              className="dashboardWorkspace__notificationsMenu"
+              role="menu"
+              initial={{ opacity: 0, y: -8, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="dashboardWorkspace__notificationsHeader">
+                <strong>Notifications</strong>
+                {notifications.length > 0 ? (
+                  <div className="dashboardWorkspace__notificationsActions">
+                    {unreadCount > 0 ? (
+                      <button
+                        type="button"
+                        className="dashboardWorkspace__notificationsMarkAll"
+                        onClick={onMarkAllRead}
+                      >
+                        Mark all read
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="dashboardWorkspace__notificationsClear"
+                      onClick={onClearAll}
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {notifications.length === 0 ? (
+                <p className="dashboardWorkspace__notificationsEmpty">
+                  You're all caught up.
+                </p>
+              ) : (
+                <ul className="dashboardWorkspace__notificationsList">
+                  {notifications.map((notification) => (
+                    <li key={notification.id}>
+                      <button
+                        type="button"
+                        className={`dashboardWorkspace__notificationItem${
+                          notification.read ? "" : " is-unread"
+                        }`}
+                        onClick={() => onNotificationClick(notification)}
+                      >
+                        <span className="dashboardWorkspace__notificationIcon" aria-hidden="true">
+                          <NotificationTypeIcon type={notification.type} />
+                        </span>
+                        <span className="dashboardWorkspace__notificationCopy">
+                          <span>{notification.message}</span>
+                          <small>{formatRelativeTime(notification.timestamp)}</small>
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </motion.div>
+          </>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function NotificationTypeIcon({ type }: { type: PortalNotificationType }) {
+  if (type === "vendor") return <FiBriefcase />;
+  if (type === "payment") return <FiCreditCard />;
+  if (type === "paymentDue") return <FiClock />;
+  if (type === "documents") return <FiFileText />;
+  return <FiCalendar />;
 }
 
 function AccountMenu({
@@ -408,6 +696,14 @@ function ProjectStatusTab({
 
   const completion = Math.round(statusData.completionPercentage || 0);
   const activePhaseIndex = getActivePhaseIndex(completion);
+  const totalProjectDays = getTotalProjectDays(
+    statusData.startDate,
+    statusData.endDate,
+  );
+  const remainingDaysLabel = getRemainingDaysLabel(
+    statusData.endDate,
+    completion >= 100,
+  );
 
   return (
     <motion.section
@@ -503,6 +799,16 @@ function ProjectStatusTab({
             icon={<FiCalendar />}
             label="Estimated End Date"
             value={formatDate(statusData.endDate)}
+          />
+          <InfoCard
+            icon={<FiCalendar />}
+            label="Total Project Days"
+            value={totalProjectDays}
+          />
+          <InfoCard
+            icon={<FiClock />}
+            label="Remaining Days Pending"
+            value={remainingDaysLabel}
           />
         </motion.div>
       </div>
@@ -1389,6 +1695,14 @@ export function DashboardPage() {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const [notifications, setNotifications] = useState<PortalNotification[]>(() => {
+    const initialContactId =
+      authClient?.contactId || localStorage.getItem("contactId") || "";
+    return initialContactId
+      ? readStoredNotifications(getNotificationStorageKeys(initialContactId).list)
+      : [];
+  });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -1402,13 +1716,16 @@ export function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!isProfileMenuOpen) return undefined;
+    if (!isProfileMenuOpen && !isNotificationPanelOpen) return undefined;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsProfileMenuOpen(false);
+      if (event.key === "Escape") {
+        setIsProfileMenuOpen(false);
+        setIsNotificationPanelOpen(false);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isProfileMenuOpen]);
+  }, [isProfileMenuOpen, isNotificationPanelOpen]);
 
   useEffect(() => {
     async function loadDashboard() {
@@ -1477,6 +1794,99 @@ export function DashboardPage() {
   const contactId =
     authClient?.contactId || localStorage.getItem("contactId") || "";
 
+  // Polls the same data the individual tabs already fetch on their own, so a
+  // status/vendor/payment/document change is surfaced as a notification even
+  // if the client never visits that tab during this session.
+  useEffect(() => {
+    if (!contactId || !activeProjectId) return undefined;
+
+    const keys = getNotificationStorageKeys(contactId);
+
+    async function checkForUpdates() {
+      const [statusRes, terms, files] = await Promise.all([
+        getProjectStatus(contactId),
+        activeProjectName ? getPaymentTerms(activeProjectName) : Promise.resolve(null),
+        activeProjectId ? getProjectFiles(activeProjectId) : Promise.resolve(null),
+      ]);
+
+      const project = statusRes?.success
+        ? statusRes.projects.find(
+            (candidate) => (candidate.id || candidate.projectName) === activeProjectId,
+          )
+        : undefined;
+
+      const termsList = Array.isArray(terms) ? terms : [];
+      const filesList = Array.isArray(files) ? files : [];
+
+      const nextSnapshot = buildNotificationSnapshot(project, termsList, filesList);
+      const previousSnapshot = readNotificationSnapshot(keys.snapshot);
+      writeNotificationSnapshot(keys.snapshot, nextSnapshot);
+
+      // Change-based notifications (only when previous snapshot exists to compare against)
+      const diffs = previousSnapshot
+        ? diffNotificationSnapshots(previousSnapshot, nextSnapshot)
+        : [];
+
+      // Payment due-date notifications: fire once per calendar day per payment term
+      const PAYMENT_DUE_DAYS = 30;
+      const today = new Date().toISOString().slice(0, 10);
+      const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}`;
+      let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
+      try {
+        const raw = window.localStorage.getItem(paymentDueSeenKey);
+        if (raw) seenData = JSON.parse(raw) as { date: string; seen: string[] };
+      } catch { /* ignore parse errors */ }
+      const seenToday = seenData.date === today ? seenData.seen : [];
+      const paymentDueEntries: Array<{ type: PortalNotificationType; message: string }> = [];
+
+      termsList.forEach((term) => {
+        if (!term.dueDate || term.paymentReceived) return;
+        const daysUntilDue = Math.ceil(
+          (new Date(term.dueDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000),
+        );
+        if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
+        const alertKey = `${term.label || term.name}:${term.dueDate}`;
+        if (seenToday.includes(alertKey)) return;
+        seenToday.push(alertKey);
+        const label = term.label || term.name || "Payment";
+        const message =
+          daysUntilDue === 0
+            ? `"${label}" payment is due today.`
+            : daysUntilDue === 1
+              ? `"${label}" payment is due tomorrow.`
+              : `"${label}" payment is due in ${daysUntilDue} days.`;
+        paymentDueEntries.push({ type: "paymentDue", message });
+      });
+
+      if (paymentDueEntries.length > 0) {
+        window.localStorage.setItem(
+          paymentDueSeenKey,
+          JSON.stringify({ date: today, seen: seenToday }),
+        );
+      }
+
+      const allEntries = [...diffs, ...paymentDueEntries];
+      if (allEntries.length === 0) return;
+
+      setNotifications((prev) => {
+        const newEntries: PortalNotification[] = allEntries.map((entry, index) => ({
+          id: `${Date.now()}-${index}`,
+          type: entry.type,
+          message: entry.message,
+          timestamp: Date.now(),
+          read: false,
+        }));
+        const merged = [...newEntries, ...prev].slice(0, MAX_STORED_NOTIFICATIONS);
+        writeStoredNotifications(keys.list, merged);
+        return merged;
+      });
+    }
+
+    void checkForUpdates();
+    const interval = window.setInterval(checkForUpdates, NOTIFICATION_POLL_INTERVAL_MS);
+    return () => window.clearInterval(interval);
+  }, [contactId, activeProjectId, activeProjectName]);
+
   const desktopNavItems = [
     { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
     { id: "status", label: "Project Status", icon: FiCalendar },
@@ -1496,6 +1906,37 @@ export function DashboardPage() {
       setActiveDashboardTab(tabId);
     });
     setIsMobileMenuOpen(false);
+  };
+
+  const handleNotificationClick = (notification: PortalNotification) => {
+    setNotifications((prev) => {
+      const updated = prev.map((item) =>
+        item.id === notification.id ? { ...item, read: true } : item,
+      );
+      if (contactId) {
+        writeStoredNotifications(getNotificationStorageKeys(contactId).list, updated);
+      }
+      return updated;
+    });
+    setIsNotificationPanelOpen(false);
+    handleTabChange(notification.type === "paymentDue" ? "payment" : notification.type);
+  };
+
+  const handleMarkAllNotificationsRead = () => {
+    setNotifications((prev) => {
+      const updated = prev.map((item) => ({ ...item, read: true }));
+      if (contactId) {
+        writeStoredNotifications(getNotificationStorageKeys(contactId).list, updated);
+      }
+      return updated;
+    });
+  };
+
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+    if (contactId) {
+      writeStoredNotifications(getNotificationStorageKeys(contactId).list, []);
+    }
   };
 
   return (
@@ -1547,18 +1988,31 @@ export function DashboardPage() {
             </span>
           </button>
 
-          <AccountMenu
-            wrapperClassName="dashboardMobileBar__account"
-            isOpen={isProfileMenuOpen}
-            onToggle={() => setIsProfileMenuOpen((value) => !value)}
-            onClose={() => setIsProfileMenuOpen(false)}
-            clientName={client?.name}
-            clientEmail={client?.email}
-            onLogoutRequest={() => {
-              setIsProfileMenuOpen(false);
-              setShowLogoutConfirm(true);
-            }}
-          />
+          <div className="dashboardMobileBar__actions">
+            <NotificationBell
+              wrapperClassName="dashboardMobileBar__notifications"
+              notifications={notifications}
+              isOpen={isNotificationPanelOpen}
+              onToggle={() => setIsNotificationPanelOpen((value) => !value)}
+              onClose={() => setIsNotificationPanelOpen(false)}
+              onNotificationClick={handleNotificationClick}
+              onMarkAllRead={handleMarkAllNotificationsRead}
+              onClearAll={handleClearAllNotifications}
+            />
+
+            <AccountMenu
+              wrapperClassName="dashboardMobileBar__account"
+              isOpen={isProfileMenuOpen}
+              onToggle={() => setIsProfileMenuOpen((value) => !value)}
+              onClose={() => setIsProfileMenuOpen(false)}
+              clientName={client?.name}
+              clientEmail={client?.email}
+              onLogoutRequest={() => {
+                setIsProfileMenuOpen(false);
+                setShowLogoutConfirm(true);
+              }}
+            />
+          </div>
         </header>
 
         <AnimatePresence>
@@ -1686,17 +2140,29 @@ export function DashboardPage() {
               </p>
             </div>
 
-            <AccountMenu
-              isOpen={isProfileMenuOpen}
-              onToggle={() => setIsProfileMenuOpen((value) => !value)}
-              onClose={() => setIsProfileMenuOpen(false)}
-              clientName={client?.name}
-              clientEmail={client?.email}
-              onLogoutRequest={() => {
-                setIsProfileMenuOpen(false);
-                setShowLogoutConfirm(true);
-              }}
-            />
+            <div className="dashboardWorkspace__topbarActions">
+              <NotificationBell
+                notifications={notifications}
+                isOpen={isNotificationPanelOpen}
+                onToggle={() => setIsNotificationPanelOpen((value) => !value)}
+                onClose={() => setIsNotificationPanelOpen(false)}
+                onNotificationClick={handleNotificationClick}
+                onMarkAllRead={handleMarkAllNotificationsRead}
+                onClearAll={handleClearAllNotifications}
+              />
+
+              <AccountMenu
+                isOpen={isProfileMenuOpen}
+                onToggle={() => setIsProfileMenuOpen((value) => !value)}
+                onClose={() => setIsProfileMenuOpen(false)}
+                clientName={client?.name}
+                clientEmail={client?.email}
+                onLogoutRequest={() => {
+                  setIsProfileMenuOpen(false);
+                  setShowLogoutConfirm(true);
+                }}
+              />
+            </div>
           </header>
 
           {isLoading ? (
@@ -2380,4 +2846,34 @@ function formatDate(value?: string) {
     month: "short",
     year: "numeric",
   }).format(date);
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+function pluralizeDays(count: number) {
+  return `${count} day${count === 1 ? "" : "s"}`;
+}
+
+function getTotalProjectDays(startDate?: string, endDate?: string) {
+  if (!startDate || !endDate) return undefined;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return undefined;
+  return pluralizeDays(Math.max(0, Math.round((end.getTime() - start.getTime()) / MS_PER_DAY)));
+}
+
+function getRemainingDaysLabel(endDate?: string, isCompleted?: boolean) {
+  if (isCompleted) return "Completed";
+  if (!endDate) return undefined;
+  const end = new Date(endDate);
+  if (Number.isNaN(end.getTime())) return undefined;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((end.getTime() - today.getTime()) / MS_PER_DAY);
+  if (diffDays < 0) return `Overdue by ${pluralizeDays(Math.abs(diffDays))}`;
+  if (diffDays === 0) return "Due today";
+  return `${pluralizeDays(diffDays)} left`;
 }

@@ -1,4 +1,5 @@
 export {
+  confirmPasswordReset,
   generateOTP,
   getClientPortalDetails,
   getProjectFiles,
@@ -8,8 +9,10 @@ export {
   getVendorTasks,
   loginClient,
   registerLead,
+  requestPasswordResetOtp,
   sendOtp,
   type ClientPortalResponse,
+  type ForgotPasswordResponse,
   type LoginClientResponse,
   type PaymentTerm,
   type PortalClientRecord,

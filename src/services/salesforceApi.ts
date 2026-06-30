@@ -6,6 +6,7 @@ const SITE_PATH = rawSitePath ? `/${rawSitePath.replace(/^\/+|\/+$/g, '')}` : ''
 
 const REGISTRATION_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/registration`
 const LOGIN_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileLogin`
+const FORGOT_PASSWORD_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileForgotPassword`
 
 export type LoginClientResponse = {
   success: boolean
@@ -13,6 +14,11 @@ export type LoginClientResponse = {
   contactId?: string
   leadId?: string
   name?: string
+}
+
+export type ForgotPasswordResponse = {
+  success: boolean
+  message?: string
 }
 
 export type PortalClientRecord = { 
@@ -438,6 +444,56 @@ export async function loginClient(email: string, password: string): Promise<Logi
     }
   } catch (error) {
     console.error('Error logging in:', error)
+    return {
+      success: false,
+      message: 'We could not reach our servers. Please check your connection and try again.',
+    }
+  }
+}
+
+export async function requestPasswordResetOtp(email: string): Promise<ForgotPasswordResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+
+  try {
+    const response = await fetch(`${FORGOT_PASSWORD_BASE_URL}/sendOtp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim() }),
+    })
+    const data = asRecord(await parseResponse(response))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error requesting password reset code:', error)
+    return {
+      success: false,
+      message: 'We could not reach our servers. Please check your connection and try again.',
+    }
+  }
+}
+
+export async function confirmPasswordReset(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<ForgotPasswordResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+
+  try {
+    const response = await fetch(`${FORGOT_PASSWORD_BASE_URL}/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword }),
+    })
+    const data = asRecord(await parseResponse(response))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error resetting password:', error)
     return {
       success: false,
       message: 'We could not reach our servers. Please check your connection and try again.',

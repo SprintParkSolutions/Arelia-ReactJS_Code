@@ -351,8 +351,13 @@
   color: #f3d8a7;
 }
 
-.loginForm__forgotMessage {
-  overflow: hidden;
+.loginForm__forgotPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.loginForm__forgotIntro {
   margin: 0;
   padding: 0.85rem 1rem;
   border: 1px solid rgba(200, 169, 126, 0.18);
@@ -361,6 +366,13 @@
   color: rgba(248, 246, 242, 0.78);
   font-size: 0.78rem;
   line-height: 1.55;
+}
+
+.loginForm__forgotActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .loginForm__error {
