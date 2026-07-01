@@ -11,6 +11,7 @@ export {
   registerLead,
   requestPasswordResetOtp,
   sendOtp,
+  verifyPasswordResetOtp,
   type ClientPortalResponse,
   type ForgotPasswordResponse,
   type LoginClientResponse,

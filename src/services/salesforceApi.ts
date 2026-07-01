@@ -482,6 +482,32 @@ export async function requestPasswordResetOtp(email: string): Promise<ForgotPass
   }
 }
 
+export async function verifyPasswordResetOtp(
+  email: string,
+  otp: string,
+): Promise<ForgotPasswordResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+
+  try {
+    const response = await fetch(`${FORGOT_PASSWORD_BASE_URL}/verifyOtp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), otp: otp.trim() }),
+    })
+    const data = asRecord(await parseResponse(response))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error verifying reset code:', error)
+    return {
+      success: false,
+      message: 'We could not reach our servers. Please check your connection and try again.',
+    }
+  }
+}
+
 export async function confirmPasswordReset(
   email: string,
   otp: string,

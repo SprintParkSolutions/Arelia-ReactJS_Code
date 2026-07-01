@@ -3,7 +3,12 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { FiArrowLeft, FiArrowRight, FiEye, FiEyeOff, FiLock, FiMail } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
-import { confirmPasswordReset, loginClient, requestPasswordResetOtp } from '../api.ts'
+import {
+  confirmPasswordReset,
+  loginClient,
+  requestPasswordResetOtp,
+  verifyPasswordResetOtp,
+} from '../api.ts'
 import { useAuth } from '../context/AuthContext'
 import './Login.css'
 
@@ -13,13 +18,13 @@ const MIN_PASSWORD_LENGTH = 8
 type ForgotPasswordStep = 'closed' | 'request' | 'sent' | 'newPassword' | 'done'
 
 export function Login() {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(() => localStorage.getItem('rememberedEmail') ?? '')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [shake, setShake] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [rememberMe, setRememberMe] = useState(() => Boolean(localStorage.getItem('rememberedEmail')))
   const [forgotStep, setForgotStep] = useState<ForgotPasswordStep>('closed')
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotOtp, setForgotOtp] = useState('')
@@ -39,14 +44,6 @@ export function Login() {
       navigate('/dashboard', { replace: true })
     }
   }, [isAuthenticated, navigate])
-
-  useEffect(() => {
-    const rememberedEmail = localStorage.getItem('rememberedEmail')
-    if (rememberedEmail) {
-      setEmail(rememberedEmail)
-      setRememberMe(true)
-    }
-  }, [])
 
   const validate = () => {
     if (!email.trim() || !password.trim()) {
@@ -118,16 +115,26 @@ export function Login() {
     setForgotLoading(false)
   }
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     if (forgotOtp.length !== 6) {
       setForgotError('Please enter the 6-digit code from your email.')
       return
     }
 
+    setForgotLoading(true)
     setForgotError('')
-    setForgotNewPassword('')
-    setForgotConfirmPassword('')
-    setForgotStep('newPassword')
+
+    const response = await verifyPasswordResetOtp(forgotEmail.trim(), forgotOtp)
+
+    if (response.success) {
+      setForgotNewPassword('')
+      setForgotConfirmPassword('')
+      setForgotStep('newPassword')
+    } else {
+      setForgotError(response.message || 'That code is invalid or has expired.')
+    }
+
+    setForgotLoading(false)
   }
 
   const handleSetNewPassword = async () => {
@@ -167,7 +174,7 @@ export function Login() {
       return
     }
     if (forgotStep === 'sent') {
-      handleVerifyOtp()
+      await handleVerifyOtp()
       return
     }
     if (forgotStep === 'newPassword') {
