@@ -6,6 +6,7 @@ const SITE_PATH = rawSitePath ? `/${rawSitePath.replace(/^\/+|\/+$/g, '')}` : ''
 
 const REGISTRATION_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/registration`
 const LOGIN_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileLogin`
+const FORGOT_PASSWORD_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileForgotPassword`
 
 export type LoginClientResponse = {
   success: boolean
@@ -13,6 +14,11 @@ export type LoginClientResponse = {
   contactId?: string
   leadId?: string
   name?: string
+}
+
+export type ForgotPasswordResponse = {
+  success: boolean
+  message?: string
 }
 
 export type PortalClientRecord = { 
@@ -63,18 +69,32 @@ export type VendorTaskMediaItem = {
 }
 
 export type ProjectVendorTask = {
-  id: string
-  title: string
+  taskName: string
   status?: string
-  description?: string
-  completionPercentage?: number
   dueDate?: string
-  media?: VendorTaskMediaItem[]
+  startDate?: string
+  completedDate?: string
+  assignedPercentage?: number
+}
+
+export type ProjectVendorTaskSummary = {
+  totalTasks: number
+  completedTasks: number
+  incompleteTasks: number
+}
+
+export type ProjectVendorTasksResponse = {
+  success: boolean
+  message?: string
+  tasks: ProjectVendorTask[]
+  summary?: ProjectVendorTaskSummary
 }
 
 export type ProjectStatusRecord = {
+  id?: string
   projectName: string
   projectStatus?: string
+  projectType?: string
   budget?: number
   startDate?: string
   endDate?: string
@@ -93,6 +113,22 @@ export type PaymentTerm = {
   percentage?: number
   paymentReceived?: boolean
   dueDate?: string
+}
+
+export type SupportCasePayload = {
+  contactId: string
+  projectId?: string
+  subject: string
+  description: string
+  priority: string
+  category: string
+  otherCategory?: string
+}
+
+export type SupportCaseResponse = {
+  success: boolean
+  caseId?: string
+  message?: string
 }
 
 export type ProjectFile = {
@@ -173,7 +209,8 @@ function roundPercentage(value: unknown): number | undefined {
 }
 
 function getMissingConfigMessage() {
-  return 'Salesforce site URL is not configured. Set VITE_SALESFORCE_SITE_URL in your .env.local file.'
+  console.error('VITE_SALESFORCE_SITE_URL is not configured.')
+  return 'We are unable to connect right now. Please try again shortly or contact support.'
 }
 
 function absolutizeSalesforceUrl(value: unknown): string | undefined {
@@ -234,8 +271,16 @@ function normalizeProjectStatusRecord(rawProject: unknown): ProjectStatusRecord 
   if (!projectName) return undefined
 
   return {
+    id: asString(project.id || project.Id || project.projectId || project.ProjectId) || projectName,
     projectName,
     projectStatus: asString(project.projectStatus || project.status || project.Status),
+    projectType: asString(
+      project.projectType ||
+      project.typeOfProject ||
+      project.Type_Of_Project__c ||
+      project.interiorProjectType ||
+      project.Interior_Project_Type__c,
+    ),
     budget: asNumber(project.budget || project.Budget),
     startDate: asString(project.startDate || project.StartDate),
     endDate: asString(project.endDate || project.EndDate),
@@ -350,20 +395,29 @@ function normalizeVendorTask(rawTask: unknown): ProjectVendorTask | undefined {
   const task = asRecord(rawTask)
   if (!task) return undefined
 
-  const id = asString(task.taskId || task.id || task.Id || task.recordId)
-  const title = asString(task.taskName || task.title || task.subject || task.Name)
-  if (!id || !title) return undefined
+  const taskName = asString(task.taskName || task.title || task.subject || task.Name)
+  if (!taskName) return undefined
 
   return {
-    id,
-    title,
+    taskName,
     status: asString(task.status || task.taskStatus || task.StageName),
-    description: asString(task.description || task.taskDescription || task.details),
-    completionPercentage: roundPercentage(
-      task.completionPercentage || task.progress || task.percentComplete,
+    dueDate: asString(task.dueDate || task.activityDate),
+    startDate: asString(task.startDate),
+    completedDate: asString(task.completedDate),
+    assignedPercentage: roundPercentage(
+      task.assignedPercentage ?? task.completionPercentage ?? task.progress,
     ),
-    dueDate: asString(task.dueDate || task.activityDate || task.endDate),
-    media: asArray(task.media).map(normalizeVendorTaskMediaItem).filter(Boolean) as VendorTaskMediaItem[],
+  }
+}
+
+function normalizeVendorTaskSummary(rawSummary: unknown): ProjectVendorTaskSummary | undefined {
+  const summary = asRecord(rawSummary)
+  if (!summary) return undefined
+
+  return {
+    totalTasks: asNumber(summary.totalTasks) ?? 0,
+    completedTasks: asNumber(summary.completedTasks) ?? 0,
+    incompleteTasks: asNumber(summary.incompleteTasks) ?? 0,
   }
 }
 
@@ -379,9 +433,10 @@ export async function loginClient(email: string, password: string): Promise<Logi
 
     if (!response.ok) {
       const errorData = asRecord(await parseResponse(response))
+      console.error(`Login request failed: HTTP ${response.status}`, errorData?.message)
       return {
         success: false,
-        message: asString(errorData?.message) || `Unable to authenticate. HTTP ${response.status}.`,
+        message: asString(errorData?.message) || 'Unable to log in right now. Please try again.',
       }
     }
 
@@ -399,8 +454,83 @@ export async function loginClient(email: string, password: string): Promise<Logi
     console.error('Error logging in:', error)
     return {
       success: false,
-      message:
-        'Could not reach Salesforce. Check the org URL, site path, CORS, and guest user API access.',
+      message: 'We could not reach our servers. Please check your connection and try again.',
+    }
+  }
+}
+
+export async function requestPasswordResetOtp(email: string): Promise<ForgotPasswordResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+
+  try {
+    const response = await fetch(`${FORGOT_PASSWORD_BASE_URL}/sendOtp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim() }),
+    })
+    const data = asRecord(await parseResponse(response))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error requesting password reset code:', error)
+    return {
+      success: false,
+      message: 'We could not reach our servers. Please check your connection and try again.',
+    }
+  }
+}
+
+export async function verifyPasswordResetOtp(
+  email: string,
+  otp: string,
+): Promise<ForgotPasswordResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+
+  try {
+    const response = await fetch(`${FORGOT_PASSWORD_BASE_URL}/verifyOtp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), otp: otp.trim() }),
+    })
+    const data = asRecord(await parseResponse(response))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error verifying reset code:', error)
+    return {
+      success: false,
+      message: 'We could not reach our servers. Please check your connection and try again.',
+    }
+  }
+}
+
+export async function confirmPasswordReset(
+  email: string,
+  otp: string,
+  newPassword: string,
+): Promise<ForgotPasswordResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+
+  try {
+    const response = await fetch(`${FORGOT_PASSWORD_BASE_URL}/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), otp: otp.trim(), newPassword }),
+    })
+    const data = asRecord(await parseResponse(response))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error resetting password:', error)
+    return {
+      success: false,
+      message: 'We could not reach our servers. Please check your connection and try again.',
     }
   }
 }
@@ -505,7 +635,7 @@ export async function getClientPortalDetails({
     console.error('Error loading portal details:', error)
     return {
       success: false,
-      message: 'Could not reach Salesforce endpoints. Check CORS and network connection.',
+      message: 'We could not load your dashboard right now. Please try again in a moment.',
       projects: [],
     }
   }
@@ -565,31 +695,39 @@ export async function getProjectStatus(
 export async function getVendorTasks(
   projectId: string,
   vendorName: string,
-): Promise<ProjectVendorTask[] | null> {
+): Promise<ProjectVendorTasksResponse | null> {
   try {
     const response = await fetch(`${BASE_URL}${SITE_PATH}/services/apexrest/mobileVendorTasksV2`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectId, vendorName }),
     })
-    const data = await parseResponse(response)
-    const root = asRecord(data)
-    const taskList = root?.tasks || root?.vendorTasks || root?.data || data
-    return asArray(taskList).map(normalizeVendorTask).filter(Boolean) as ProjectVendorTask[]
+    const data = asRecord(await parseResponse(response))
+
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+      tasks: asArray(data?.tasks).map(normalizeVendorTask).filter(Boolean) as ProjectVendorTask[],
+      summary: normalizeVendorTaskSummary(data?.summary),
+    }
   } catch (error) {
     console.error('Error fetching vendor tasks:', error)
     return null
   }
 }
 
-export async function getVendorTaskSummary(projectId: string, vendorName: string) {
+export async function getVendorTaskSummary(
+  projectId: string,
+  vendorName: string,
+): Promise<ProjectVendorTaskSummary | null> {
   try {
     const response = await fetch(`${BASE_URL}${SITE_PATH}/services/apexrest/mobileVendorTasksV2`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectId, vendorName, summaryOnly: true }),
     })
-    return await parseResponse(response)
+    const data = asRecord(await parseResponse(response))
+    return normalizeVendorTaskSummary(data?.summary) ?? null
   } catch (error) {
     console.error('Error fetching vendor task summary:', error)
     return null
@@ -612,7 +750,7 @@ export async function getProjectTimeline(contactId: string, projectId: string) {
 
 export async function getPaymentTerms(projectName: string): Promise<PaymentTerm[] | null> {
   try {
-    const encoded = encodeURIComponent(projectName)
+    const encoded = encodeURIComponent(projectName.trim())
     const response = await fetch(
       `${BASE_URL}${SITE_PATH}/services/apexrest/payment-terms?projectName=${encoded}`,
       {
@@ -722,25 +860,28 @@ export async function askChatbot(question: string, contactId: string) {
   }
 }
 
-export async function createSupportCase(params: {
-  contactId: string
-  projectId: string
-  subject: string
-  description: string
-  category: string
-  priority: string
-  otherCategory?: string
-}) {
+export async function createSupportCase(
+  payload: SupportCasePayload,
+): Promise<SupportCaseResponse> {
   try {
     const response = await fetch(`${BASE_URL}${SITE_PATH}/services/apexrest/mobileSupportCase`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify(payload),
     })
     const data = asRecord(await parseResponse(response))
-    return data?.success === true
-  } catch {
-    return false
+
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      caseId: asString(data?.caseId),
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error creating support case:', error)
+    return {
+      success: false,
+      message: 'Could not reach Salesforce. Please check your connection and try again.',
+    }
   }
 }
 
