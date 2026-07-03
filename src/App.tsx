@@ -12,44 +12,17 @@ import { VideoBackground } from './components/videoBackground/VideoBackground'
 import { useAuth } from './context/AuthContext'
 
 import { Footer } from './pages/Footer'
+import { HomePage } from './pages/HomePage'
+import { AboutPage } from './pages/AboutPage'
+import ServicesSection from './pages/ServicesSection'
+import { ContactUsPage } from './pages/ContactUsPage'
+import { Login as LoginPage } from './pages/Login'
+import { DashboardPage } from './pages/DashboardPage'
 
 // FIX: Added `.then()` to handle the named export for your ConsultationModal
 const ConsultationModal = lazy(() =>
   import('./components/consultation/ConsultationModal').then((module) => ({
     default: module.ConsultationModal,
-  })),
-)
-
-const HomePage = lazy(() =>
-  import('./pages/HomePage').then((module) => ({
-    default: module.HomePage,
-  })),
-)
-
-const AboutPage = lazy(() =>
-  import('./pages/AboutPage').then((module) => ({
-    default: module.AboutPage,
-  })),
-)
-
-// FIX: Simplified the lazy load for ServicesSection (it uses default export)
-const ServicesSection = lazy(() => import('./pages/ServicesSection'))
-
-const ContactUsPage = lazy(() =>
-  import('./pages/ContactUsPage').then((module) => ({
-    default: module.ContactUsPage,
-  })),
-)
-
-const LoginPage = lazy(() =>
-  import('./pages/Login').then((module) => ({
-    default: module.Login,
-  })),
-)
-
-const DashboardPage = lazy(() =>
-  import('./pages/DashboardPage').then((module) => ({
-    default: module.DashboardPage,
   })),
 )
 
@@ -80,6 +53,14 @@ export default function App() {
   const isDashboardPage =
     location.pathname === '/dashboard' && isAuthenticated
 
+  useEffect(() => {
+    window.dataLayer = window.dataLayer || []
+    window.dataLayer.push({
+      event: 'page_view',
+      page_path: location.pathname,
+    })
+  }, [location.pathname])
+
   const handleLoaderComplete = () => {
     setIsLoading(false)
   }
@@ -93,12 +74,13 @@ export default function App() {
         />
       ) : null}
 
-      <div className="app-shell">
+      <div className={`app-shell${isLoginPage ? ' app-shell--login' : ''}`}>
         <ScrollToTop />
 
         {/* FIX: Changed 'videoSrc' to 'src' to match your interface */}
         <VideoBackground
           src="/videos/arelia-global-background-lite.mp4"
+          posterSrc="/videos/arelia-global-background-poster.webp"
           deferMs={2500}
         />
 
@@ -110,102 +92,95 @@ export default function App() {
           />
         ) : null}
 
-        <Suspense
-          fallback={
-            <div
-              className="app-shell__route-fallback"
-              aria-hidden="true"
+        <div className="app-shell__content">
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={location.pathname}
+              className="app-shell__routeStage"
+              initial={{
+                opacity: 0,
+                y: 18,
+                filter: 'blur(12px)',
+              }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                filter: 'blur(0px)',
+              }}
+              exit={{
+                opacity: 0,
+                y: -12,
+                filter: 'blur(8px)',
+                transition: {
+                  duration: 0.16,
+                  ease: 'easeIn',
+                },
+              }}
+              transition={{
+                duration: 0.42,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             >
-              <div className="app-shell__routeFallbackGlass" />
-            </div>
-          }
-        >
-          <div className="app-shell__content">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={location.pathname}
-                className="app-shell__routeStage"
-                initial={{
-                  opacity: 0,
-                  y: 18,
-                  filter: 'blur(12px)',
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                  filter: 'blur(0px)',
-                }}
-                exit={{
-                  opacity: 0,
-                  y: -12,
-                  filter: 'blur(8px)',
-                }}
-                transition={{
-                  duration: 0.42,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-              >
-                <Routes location={location}>
-                  <Route
-                    path="/"
-                    element={
-                      <HomePage
-                        onOpenConsultation={() =>
-                          setIsConsultationOpen(true)
-                        }
-                      />
-                    }
-                  />
+              <Routes location={location}>
+                <Route
+                  path="/"
+                  element={
+                    <HomePage
+                      onOpenConsultation={() =>
+                        setIsConsultationOpen(true)
+                      }
+                    />
+                  }
+                />
 
-                  <Route
-                    path="/about-us"
-                    element={
-                      <AboutPage
-                        onOpenConsultation={() =>
-                          setIsConsultationOpen(true)
-                        }
-                      />
-                    }
-                  />
+                <Route
+                  path="/about-us"
+                  element={
+                    <AboutPage
+                      onOpenConsultation={() =>
+                        setIsConsultationOpen(true)
+                      }
+                    />
+                  }
+                />
 
-                  <Route
-                    path="/services"
-                    element={
-                      <ServicesSection
-                        onOpenConsultation={() =>
-                          setIsConsultationOpen(true)
-                        }
-                      />
-                    }
-                  />
+                <Route
+                  path="/services"
+                  element={
+                    <ServicesSection
+                      onOpenConsultation={() =>
+                        setIsConsultationOpen(true)
+                      }
+                    />
+                  }
+                />
 
-                  <Route
-                    path="/contact-us"
-                    element={<ContactUsPage />}
-                  />
+                <Route
+                  path="/contact-us"
+                  element={<ContactUsPage />}
+                />
 
-                  <Route
-                    path="/login"
-                    element={<LoginPage />}
-                  />
+                <Route
+                  path="/login"
+                  element={<LoginPage />}
+                />
 
-                  <Route
-                    path="/dashboard"
-                    element={
-                      <ProtectedRoute>
-                        <DashboardPage />
-                      </ProtectedRoute>
-                    }
-                  />
-                </Routes>
-              </motion.div>
-            </AnimatePresence>
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </motion.div>
+          </AnimatePresence>
 
-            {!isLoginPage && !isDashboardPage ? (
-              <Footer />
-            ) : null}
-          </div>
-        </Suspense>
+          {!isLoginPage && !isDashboardPage ? (
+            <Footer />
+          ) : null}
+        </div>
 
         {!isAuthenticated && !isLoginPage ? (
           <SocialSidebar />

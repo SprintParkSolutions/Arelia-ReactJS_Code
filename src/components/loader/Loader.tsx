@@ -8,7 +8,7 @@ type LoaderProps = {
 }
 
 const LOADER_DURATION_MS = 900
-const LOADER_EXIT_DELAY_MS = 250
+const LOADER_EXIT_DELAY_MS = 800
 
 function easeInOutCubic(progress: number) {
   return progress < 0.5
@@ -57,7 +57,11 @@ export function Loader({ onComplete, variant = 'boot', title = 'Loading private 
   const roundedProgress = useMemo(() => Math.round(progress), [progress])
 
   return (
-    <div className={`loader loader--${variant}${isComplete ? ' loader--complete' : ''}`} aria-live="polite">
+    <div
+      className={`loader loader--${variant}${isComplete ? ' loader--complete' : ''}`}
+      aria-live="polite"
+      aria-label={title}
+    >
       <div className="loader__grain" aria-hidden="true" />
       <div className="loader__content">
         <div className="loader__logo-container">
@@ -69,11 +73,6 @@ export function Loader({ onComplete, variant = 'boot', title = 'Loading private 
             fetchPriority="high"
           />
           <div className="loader__logo-glow" style={{ opacity: progress / 100 }} />
-        </div>
-
-        <div className="loader__copy">
-          <p className="loader__eyebrow">ARELIA CLIENT PORTAL</p>
-          <p className="loader__title">{title}</p>
         </div>
 
         <div className="loader__bar-container">

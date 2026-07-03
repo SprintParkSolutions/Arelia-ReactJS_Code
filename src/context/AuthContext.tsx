@@ -10,11 +10,15 @@ import {
 import type { DashboardTabId } from '../constants/dashboardTabs'
 import {
   AUTH_STORAGE_KEYS,
+  clearStoredAuth,
   getDefaultDashboardTab,
+  isSessionExpired,
   readStoredClient,
   readStoredTab,
   type StoredAuthClient,
 } from './authStorage'
+
+const SESSION_EXPIRY_CHECK_INTERVAL_MS = 60_000
 
 type AuthClient = StoredAuthClient
 
@@ -57,6 +61,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [])
 
+  // Covers the case where a tab is left open for the full 12 hours without
+  // a refresh or storage event ever firing to re-check the session.
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      if (!isSessionExpired()) return
+
+      clearStoredAuth()
+      setClient(null)
+      setActiveDashboardTabState(defaultActiveTab)
+      window.dispatchEvent(new Event('client-auth-change'))
+    }, SESSION_EXPIRY_CHECK_INTERVAL_MS)
+
+    return () => window.clearInterval(interval)
+  }, [])
+
   const login = (nextClient: AuthClient) => {
     const normalizedClient = {
       contactId: nextClient.contactId || undefined,
@@ -72,6 +91,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     window.localStorage.setItem(AUTH_STORAGE_KEYS.leadId, normalizedClient.leadId || '')
     window.localStorage.setItem(AUTH_STORAGE_KEYS.name, normalizedClient.name || '')
     window.localStorage.setItem(AUTH_STORAGE_KEYS.activeTab, defaultActiveTab)
+    window.localStorage.setItem(AUTH_STORAGE_KEYS.loginAt, String(Date.now()))
 
     setClient(normalizedClient)
     setActiveDashboardTabState(defaultActiveTab)
@@ -79,12 +99,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }
 
   const logout = () => {
-    window.localStorage.removeItem(AUTH_STORAGE_KEYS.token)
-    window.localStorage.removeItem(AUTH_STORAGE_KEYS.data)
-    window.localStorage.removeItem(AUTH_STORAGE_KEYS.contactId)
-    window.localStorage.removeItem(AUTH_STORAGE_KEYS.leadId)
-    window.localStorage.removeItem(AUTH_STORAGE_KEYS.name)
-    window.localStorage.removeItem(AUTH_STORAGE_KEYS.activeTab)
+    clearStoredAuth()
 
     setClient(null)
     setActiveDashboardTabState(defaultActiveTab)

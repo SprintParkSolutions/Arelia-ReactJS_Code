@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { LayoutGroup, motion, type Variants } from "framer-motion";
 import "./SocialSidebar.css";
 
@@ -76,13 +75,6 @@ const socialLinks = [
 ];
 
 export const SocialSidebar = () => {
-  const [showItems, setShowItems] = useState(false);
-
-  useEffect(() => {
-    const itemsTimer = setTimeout(() => setShowItems(true), 1250);
-    return () => clearTimeout(itemsTimer);
-  }, []);
-
   const staggerContainer: Variants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.1 } }
@@ -115,7 +107,7 @@ export const SocialSidebar = () => {
           className="flex flex-col gap-4 items-center justify-center z-10" // Always column now since it's bottom right
           variants={staggerContainer}
           initial="hidden"
-          animate={showItems ? "visible" : "hidden"}
+          animate="visible"
         >
           {socialLinks.map((link) => (
             <motion.div
