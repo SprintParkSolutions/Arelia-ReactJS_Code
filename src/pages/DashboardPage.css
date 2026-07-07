@@ -2999,34 +2999,6 @@
   line-height: 1.55;
 }
 
-.dashboardSupportModal__caseCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0.6rem 0 0.4rem;
-  padding: 0.85rem 1.6rem;
-  border: 1px solid rgba(233, 193, 118, 0.25);
-  border-radius: 0.85rem;
-  background: rgba(233, 193, 118, 0.06);
-}
-
-.dashboardSupportModal__caseCard span {
-  color: rgba(248, 246, 242, 0.5);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.dashboardSupportModal__caseId {
-  color: #e9c176;
-  font-family: var(--font-sans);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-}
-
 .dashboardSupportModal__success .dashboardProjectSpotlight__cta {
   margin-top: 0.5rem;
 }
@@ -3436,13 +3408,4 @@
     font-size: 1.6rem;
   }
 
-  .dashboardSupportModal__caseCard {
-    width: 100%;
-    padding: 0.85rem 1rem;
-  }
-
-  .dashboardSupportModal__caseId {
-    font-size: 0.88rem;
-    word-break: break-all;
-  }
 }

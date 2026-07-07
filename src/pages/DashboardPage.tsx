@@ -5,8 +5,8 @@ import {
   useRef,
   useState,
   useTransition,
-  type FormEvent,
   type ReactNode,
+  type SubmitEvent,
 } from "react";
 import {
   FiArrowRight,
@@ -3130,7 +3130,7 @@ function SupportCaseModal({
     onClose();
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!subject.trim() || !description.trim()) {
@@ -3225,15 +3225,10 @@ function SupportCaseModal({
                           <FiCheckCircle />
                         </span>
                         <h4>Request submitted</h4>
-                        <p>Our team will get back to you shortly.</p>
-                        {caseId !== "submitted" ? (
-                          <div className="dashboardSupportModal__caseCard">
-                            <span>Reference Number</span>
-                            <strong className="dashboardSupportModal__caseId">
-                              {caseId}
-                            </strong>
-                          </div>
-                        ) : null}
+                        <p>
+                          Check your email for confirmation - our team will
+                          contact you soon.
+                        </p>
                         <button
                           type="button"
                           className="dashboardProjectSpotlight__cta"
