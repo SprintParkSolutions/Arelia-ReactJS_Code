@@ -224,13 +224,42 @@ type NotificationSnapshot = {
 const NOTIFICATION_POLL_INTERVAL_MS = 3 * 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
 
-// Builds the per-contact localStorage keys used to persist the last-seen
-// snapshot (for diffing) and the notification list itself.
-function getNotificationStorageKeys(contactId: string) {
+// Builds the per-contact-per-project localStorage keys used to persist the
+// last-seen snapshot (for diffing) and the notification list itself. Scoping
+// by project keeps a multi-project contact's notifications from bleeding
+// between projects when they switch.
+function getNotificationStorageKeys(contactId: string, projectId: string) {
   return {
-    snapshot: `portalNotifSnapshot:${contactId}`,
-    list: `portalNotifications:${contactId}`,
+    snapshot: `portalNotifSnapshot:${contactId}:${projectId}`,
+    list: `portalNotifications:${contactId}:${projectId}`,
   };
+}
+
+const SELECTED_PROJECT_STORAGE_PREFIX = "dashboardSelectedProjectId";
+
+// Reads the last project a contact had selected, so a reload doesn't silently
+// snap the dashboard back to their first project.
+function readStoredSelectedProjectId(contactId: string): string | null {
+  try {
+    return window.localStorage.getItem(
+      `${SELECTED_PROJECT_STORAGE_PREFIX}:${contactId}`,
+    );
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSelectedProjectId(
+  contactId: string,
+  projectId: string | null,
+) {
+  try {
+    const key = `${SELECTED_PROJECT_STORAGE_PREFIX}:${contactId}`;
+    if (projectId) window.localStorage.setItem(key, projectId);
+    else window.localStorage.removeItem(key);
+  } catch {
+    /* ignore storage errors (private browsing, quota, etc.) */
+  }
 }
 
 // Reads the last-seen notification snapshot for a contact, if any.
@@ -320,6 +349,17 @@ function buildNotificationSnapshot(
     documents,
     cases,
   };
+}
+
+// Unions two document lists by key, keeping every previously-seen document
+// even if this poll's fetch didn't return it, so it can never look "new" again.
+function mergeNotificationDocuments(
+  previous: NotificationDocument[],
+  fresh: NotificationDocument[],
+): NotificationDocument[] {
+  const byKey = new Map(previous.map((doc) => [doc.key, doc]));
+  fresh.forEach((doc) => byKey.set(doc.key, doc));
+  return Array.from(byKey.values());
 }
 
 type NotificationEntry = {
@@ -2144,16 +2184,39 @@ export function DashboardPage() {
     () => {
       const initialContactId =
         authClient?.contactId || localStorage.getItem("contactId") || "";
-      return initialContactId
+      if (!initialContactId) return [];
+      const initialProjectId = readStoredSelectedProjectId(initialContactId);
+      // Without a previously-selected project we don't yet know which
+      // project's notifications to show (the project list is still loading),
+      // so start empty rather than guessing — the poll effect fills this in
+      // once the active project resolves.
+      return initialProjectId
         ? readStoredNotifications(
-            getNotificationStorageKeys(initialContactId).list,
+            getNotificationStorageKeys(initialContactId, initialProjectId)
+              .list,
           )
         : [];
     },
   );
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
-  );
+  const [selectedProjectId, setSelectedProjectIdState] = useState<
+    string | null
+  >(() => {
+    const initialContactId =
+      authClient?.contactId || localStorage.getItem("contactId") || "";
+    return initialContactId
+      ? readStoredSelectedProjectId(initialContactId)
+      : null;
+  });
+  // Persists the chosen project so a page reload keeps showing it instead of
+  // silently falling back to the contact's first project.
+  const setSelectedProjectId = (projectId: string | null) => {
+    setSelectedProjectIdState(projectId);
+    const currentContactId =
+      authClient?.contactId || localStorage.getItem("contactId") || "";
+    if (currentContactId) {
+      writeStoredSelectedProjectId(currentContactId, projectId);
+    }
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -2247,7 +2310,7 @@ export function DashboardPage() {
   useEffect(() => {
     if (!contactId || !activeProjectId) return undefined;
 
-    const keys = getNotificationStorageKeys(contactId);
+    const keys = getNotificationStorageKeys(contactId, activeProjectId);
 
     async function checkForUpdates() {
       const [statusRes, terms, files, supportCases] = await Promise.all([
@@ -2272,13 +2335,44 @@ export function DashboardPage() {
       const filesList = Array.isArray(files) ? files : [];
       const casesList = Array.isArray(supportCases) ? supportCases : [];
 
-      const nextSnapshot = buildNotificationSnapshot(
+      const previousSnapshot = readNotificationSnapshot(keys.snapshot);
+      const freshSnapshot = buildNotificationSnapshot(
         project,
         termsList,
         filesList,
         casesList,
       );
-      const previousSnapshot = readNotificationSnapshot(keys.snapshot);
+
+      // Salesforce's file/case list endpoints can return an incomplete
+      // result for a single poll (a slow related-list query, a flaky
+      // endpoint, a project still resolving) even though nothing actually
+      // changed. If we replaced the snapshot outright with that poll's
+      // fetch, an entry missing from just one poll would vanish from the
+      // baseline and then look brand new the next time the API returned it
+      // — reviving notifications the client had already cleared. Instead we
+      // merge each poll's fresh data into the running baseline: fresh values
+      // win when present, but nothing already seen is ever dropped, so a
+      // vendor/payment/document/case can only be flagged "new" once, ever.
+      const nextSnapshot: NotificationSnapshot = {
+        projectStatus: freshSnapshot.projectStatus ?? previousSnapshot?.projectStatus,
+        completionPercentage:
+          freshSnapshot.completionPercentage ??
+          previousSnapshot?.completionPercentage,
+        vendors: { ...(previousSnapshot?.vendors || {}), ...freshSnapshot.vendors },
+        vendorCategories: {
+          ...(previousSnapshot?.vendorCategories || {}),
+          ...freshSnapshot.vendorCategories,
+        },
+        paymentTerms: {
+          ...(previousSnapshot?.paymentTerms || {}),
+          ...freshSnapshot.paymentTerms,
+        },
+        documents: mergeNotificationDocuments(
+          previousSnapshot?.documents || [],
+          freshSnapshot.documents,
+        ),
+        cases: { ...(previousSnapshot?.cases || {}), ...freshSnapshot.cases },
+      };
       writeNotificationSnapshot(keys.snapshot, nextSnapshot);
 
       // Change-based notifications (only when previous snapshot exists to compare against)
@@ -2289,7 +2383,7 @@ export function DashboardPage() {
       // Payment due-date notifications: fire once per calendar day per payment term
       const PAYMENT_DUE_DAYS = 30;
       const today = new Date().toISOString().slice(0, 10);
-      const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}`;
+      const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${activeProjectId}`;
       let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
       try {
         const raw = window.localStorage.getItem(paymentDueSeenKey);
@@ -2359,6 +2453,22 @@ export function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [contactId, activeProjectId, activeProjectName]);
 
+  // Notifications are scoped per project. Whenever the active project
+  // resolves for the first time or the client switches to a different
+  // project, swap the in-memory list for that project's own stored list
+  // instead of leaving the previous project's notifications on screen.
+  useEffect(() => {
+    if (!contactId || !activeProjectId) {
+      setNotifications([]);
+      return;
+    }
+    setNotifications(
+      readStoredNotifications(
+        getNotificationStorageKeys(contactId, activeProjectId).list,
+      ),
+    );
+  }, [contactId, activeProjectId]);
+
   const desktopNavItems = [
     { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
     { id: "status", label: "Project Status", icon: FiCalendar },
@@ -2386,9 +2496,9 @@ export function DashboardPage() {
       const updated = prev.map((item) =>
         item.id === notification.id ? { ...item, read: true } : item,
       );
-      if (contactId) {
+      if (contactId && activeProjectId) {
         writeStoredNotifications(
-          getNotificationStorageKeys(contactId).list,
+          getNotificationStorageKeys(contactId, activeProjectId).list,
           updated,
         );
       }
@@ -2413,9 +2523,9 @@ export function DashboardPage() {
   const handleMarkAllNotificationsRead = () => {
     setNotifications((prev) => {
       const updated = prev.map((item) => ({ ...item, read: true }));
-      if (contactId) {
+      if (contactId && activeProjectId) {
         writeStoredNotifications(
-          getNotificationStorageKeys(contactId).list,
+          getNotificationStorageKeys(contactId, activeProjectId).list,
           updated,
         );
       }
@@ -2425,8 +2535,11 @@ export function DashboardPage() {
 
   const handleClearAllNotifications = () => {
     setNotifications([]);
-    if (contactId) {
-      writeStoredNotifications(getNotificationStorageKeys(contactId).list, []);
+    if (contactId && activeProjectId) {
+      writeStoredNotifications(
+        getNotificationStorageKeys(contactId, activeProjectId).list,
+        [],
+      );
     }
   };
 
