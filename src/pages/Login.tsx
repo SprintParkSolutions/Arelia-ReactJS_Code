@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type SubmitEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { FiArrowLeft, FiArrowRight, FiEye, FiEyeOff, FiLock, FiMail } from 'react-icons/fi'
 import { useNavigate } from 'react-router-dom'
@@ -166,7 +166,7 @@ export function Login() {
     setForgotLoading(false)
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     if (forgotStep === 'request') {
@@ -195,7 +195,7 @@ export function Login() {
 
     const response = await loginClient(email, password)
 
-    if (response.success) {
+    if (response.success && (response.contactId || response.leadId)) {
       if (rememberMe) {
         localStorage.setItem('rememberedEmail', email.trim())
       } else {
@@ -210,7 +210,11 @@ export function Login() {
       })
       navigate('/dashboard')
     } else {
-      setError(response.message || 'Unable to authenticate.')
+      setError(
+        response.success
+          ? 'We could not verify your account. Please try again or contact support.'
+          : response.message || 'Unable to authenticate.',
+      )
       triggerErrorAnimation()
     }
 

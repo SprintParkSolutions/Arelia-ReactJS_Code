@@ -44,6 +44,17 @@ export type ContactProjectLookup = {
   name?: string
 }
 
+export type SupportCaseRecord = {
+  caseId: string
+  caseNumber?: string
+  subject: string
+  description?: string
+  status?: string
+  priority?: string
+  category?: string
+  createdDate?: string
+}
+
 export type ClientPortalResponse = {
   success: boolean
   message: string
@@ -244,6 +255,26 @@ function normalizeClientRecord(rawClient: unknown): PortalClientRecord | undefin
     email,
     phone,
     company,
+  }
+}
+
+function normalizeSupportCaseRecord(rawCase: unknown): SupportCaseRecord | undefined {
+  const item = asRecord(rawCase)
+  if (!item) return undefined
+
+  const caseId = asString(item.caseId || item.Id)
+  const subject = asString(item.subject || item.Subject)
+  if (!caseId || !subject) return undefined
+
+  return {
+    caseId,
+    caseNumber: asString(item.caseNumber || item.CaseNumber),
+    subject,
+    description: asString(item.description || item.Description),
+    status: asString(item.status || item.Status),
+    priority: asString(item.priority || item.Priority),
+    category: asString(item.category || item.Type),
+    createdDate: asString(item.createdDate || item.CreatedDate),
   }
 }
 
@@ -640,6 +671,29 @@ export async function getClientPortalDetails({
       message: 'We could not load your dashboard right now. Please try again in a moment.',
       projects: [],
     }
+  }
+}
+
+export async function getSupportCases(contactId: string): Promise<SupportCaseRecord[] | null> {
+  try {
+    const params = new URLSearchParams()
+    params.set('contactId', contactId)
+
+    const response = await fetch(
+      `${BASE_URL}${SITE_PATH}/services/apexrest/mobileSupportCase?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      },
+    )
+
+    const data = asRecord(await parseResponse(response))
+    if (!(data?.success ?? response.ok)) return null
+
+    return asArray(data?.cases).map(normalizeSupportCaseRecord).filter(Boolean) as SupportCaseRecord[]
+  } catch (error) {
+    console.error('Error fetching support cases:', error)
+    return null
   }
 }
 

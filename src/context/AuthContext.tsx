@@ -41,11 +41,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     readStoredTab(),
   )
 
-  const isAuthenticated = Boolean(
-    client?.contactId ||
-      client?.leadId ||
-      (typeof window !== 'undefined' && window.localStorage.getItem(AUTH_STORAGE_KEYS.token)),
-  )
+  const isAuthenticated = Boolean(client?.contactId || client?.leadId)
 
   useEffect(() => {
     const syncFromStorage = () => {
@@ -83,7 +79,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
       name: nextClient.name || undefined,
       email: nextClient.email || undefined,
     }
-    const token = normalizedClient.contactId || normalizedClient.leadId || normalizedClient.email || 'authenticated'
+
+    // contactId/leadId are the identifiers every downstream API call relies
+    // on - without one of them there is nothing to authenticate against, so
+    // refuse to fabricate a session rather than falling back to a fixed
+    // 'authenticated' token that would mark the user as logged in anyway.
+    if (!normalizedClient.contactId && !normalizedClient.leadId) {
+      console.error('login() called without a contactId or leadId; refusing to start a session.')
+      return
+    }
+
+    const token = normalizedClient.contactId || normalizedClient.leadId || ''
 
     window.localStorage.setItem(AUTH_STORAGE_KEYS.token, token)
     window.localStorage.setItem(AUTH_STORAGE_KEYS.data, JSON.stringify(normalizedClient))

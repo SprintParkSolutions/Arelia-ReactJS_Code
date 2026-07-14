@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import type { ChangeEvent, SubmitEvent } from 'react'
 import './ConsultationForm.css'
 import { registerLead, sendOtp, generateOTP } from '../../services/salesforceApi'
 import { OtpVerification } from './OtpVerification'
@@ -105,7 +105,7 @@ export function ConsultationForm({
     setStatusMessage('')
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const nextErrors = validate(values)
     setErrors(nextErrors)

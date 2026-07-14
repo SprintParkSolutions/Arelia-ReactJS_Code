@@ -2,10 +2,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   useDeferredValue,
   useEffect,
+  useRef,
   useState,
   useTransition,
-  type FormEvent,
   type ReactNode,
+  type SubmitEvent,
 } from "react";
 import {
   FiArrowRight,
@@ -46,6 +47,7 @@ import {
   getProjectByContact,
   getProjectFiles,
   getProjectStatus,
+  getSupportCases,
   getVendorTasks,
   type ClientPortalResponse,
   type ContactProjectLookup,
@@ -55,6 +57,7 @@ import {
   type ProjectStatusRecord,
   type ProjectVendor,
   type ProjectVendorTasksResponse,
+  type SupportCaseRecord,
 } from "../services/salesforceApi";
 import { AUTH_STORAGE_KEYS } from "../context/authStorage";
 import "./DashboardPage.css";
@@ -69,10 +72,12 @@ const fadeUpItem = {
   visible: { opacity: 1, y: 0 },
 };
 
+// Centered placeholder shown when a tab has no data to display yet.
 function GlassEmptyState({ message }: { message: string }) {
   return <div className="dashboardEmptyState">{message}</div>;
 }
 
+// Derives up to two uppercase initials from a client's full name for avatar badges.
 function getInitials(fullName?: string | null) {
   if (!fullName) return "CL";
   const initials = fullName
@@ -93,6 +98,7 @@ const projectPhases = [
   { id: "handover", label: "Handover", threshold: 98 },
 ] as const;
 
+// Maps a completion percentage to the current step in the project phase timeline.
 function getActivePhaseIndex(completion: number) {
   let activeIndex = 0;
   projectPhases.forEach((phase, index) => {
@@ -101,6 +107,7 @@ function getActivePhaseIndex(completion: number) {
   return activeIndex;
 }
 
+// Formats a 1-based position as an ordinal string (1st, 2nd, 3rd, 4th, ...).
 function getOrdinal(position: number) {
   const remainder = position % 100;
   if (remainder >= 11 && remainder <= 13) return `${position}th`;
@@ -116,28 +123,35 @@ function getOrdinal(position: number) {
   }
 }
 
-
+// Picks an icon representing a vendor's trade from its free-text category label.
 function VendorCategoryIcon({ category }: { category?: string }) {
   const normalized = (category || "").toLowerCase();
   if (normalized.includes("electric")) return <FiZap />;
-  if (normalized.includes("plumb") || normalized.includes("sanitary")) return <FiDroplet />;
-  if (normalized.includes("carpentry") || normalized.includes("wood")) return <FiTool />;
+  if (normalized.includes("plumb") || normalized.includes("sanitary"))
+    return <FiDroplet />;
+  if (normalized.includes("carpentry") || normalized.includes("wood"))
+    return <FiTool />;
   if (normalized.includes("paint")) return <FiEdit3 />;
-  if (normalized.includes("floor") || normalized.includes("til")) return <FiGrid />;
-  if (normalized.includes("ceiling") || normalized.includes("pop")) return <FiLayers />;
+  if (normalized.includes("floor") || normalized.includes("til"))
+    return <FiGrid />;
+  if (normalized.includes("ceiling") || normalized.includes("pop"))
+    return <FiLayers />;
   return <FiBriefcase />;
 }
 
+// Normalizes a vendor task status into a CSS-safe modifier key (e.g. "In Progress" -> "in-progress").
 function formatTaskStatusKey(status?: string) {
   return (status || "pending").toLowerCase().replace(/\s+/g, "-");
 }
 
+// Determines whether a file's type should render in the image gallery vs the document list.
 function isImageFileType(fileType?: string) {
   if (!fileType) return false;
   const normalized = fileType.trim().toUpperCase();
   return ["PNG", "JPG", "JPEG", "WEBP", "GIF", "BMP"].includes(normalized);
 }
 
+// Builds the "type • size" caption shown under a document card, falling back to formatFileMeta.
 function formatReadableFileMeta(file: ProjectFile) {
   const legacyMeta = formatFileMeta(file);
   const parts: string[] = [];
@@ -154,6 +168,7 @@ function formatReadableFileMeta(file: ProjectFile) {
   return parts.length > 0 ? parts.join(" • ") : "Secure project file";
 }
 
+// Original "type • size" caption formatter, kept as formatReadableFileMeta's fallback.
 function formatFileMeta(file: ProjectFile) {
   const parts: string[] = [];
   if (file.fileType) parts.push(file.fileType);
@@ -168,7 +183,13 @@ function formatFileMeta(file: ProjectFile) {
   return parts.join(" • ") || "Secure project file";
 }
 
-type PortalNotificationType = "status" | "vendor" | "payment" | "paymentDue" | "documents";
+type PortalNotificationType =
+  | "status"
+  | "vendor"
+  | "payment"
+  | "paymentDue"
+  | "documents"
+  | "cases";
 
 type PortalNotification = {
   id: string;
@@ -176,6 +197,19 @@ type PortalNotification = {
   message: string;
   timestamp: number;
   read: boolean;
+  documentUrl?: string;
+  caseId?: string;
+};
+
+type NotificationDocument = {
+  key: string;
+  title: string;
+  downloadUrl: string;
+};
+
+type NotificationCase = {
+  subject: string;
+  status?: string;
 };
 
 type NotificationSnapshot = {
@@ -184,19 +218,52 @@ type NotificationSnapshot = {
   vendors: Record<string, number>;
   vendorCategories: Record<string, string>;
   paymentTerms: Record<string, boolean>;
-  documentKeys: string[];
+  documents: NotificationDocument[];
+  cases: Record<string, NotificationCase>;
 };
 
 const NOTIFICATION_POLL_INTERVAL_MS = 3 * 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
 
-function getNotificationStorageKeys(contactId: string) {
+// Builds the per-contact-per-project localStorage keys used to persist the
+// last-seen snapshot (for diffing) and the notification list itself. Scoping
+// by project keeps a multi-project contact's notifications from bleeding
+// between projects when they switch.
+function getNotificationStorageKeys(contactId: string, projectId: string) {
   return {
-    snapshot: `portalNotifSnapshot:${contactId}`,
-    list: `portalNotifications:${contactId}`,
+    snapshot: `portalNotifSnapshot:${contactId}:${projectId}`,
+    list: `portalNotifications:${contactId}:${projectId}`,
   };
 }
 
+const SELECTED_PROJECT_STORAGE_PREFIX = "dashboardSelectedProjectId";
+
+// Reads the last project a contact had selected, so a reload doesn't silently
+// snap the dashboard back to their first project.
+function readStoredSelectedProjectId(contactId: string): string | null {
+  try {
+    return window.localStorage.getItem(
+      `${SELECTED_PROJECT_STORAGE_PREFIX}:${contactId}`,
+    );
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSelectedProjectId(
+  contactId: string,
+  projectId: string | null,
+) {
+  try {
+    const key = `${SELECTED_PROJECT_STORAGE_PREFIX}:${contactId}`;
+    if (projectId) window.localStorage.setItem(key, projectId);
+    else window.localStorage.removeItem(key);
+  } catch {
+    /* ignore storage errors (private browsing, quota, etc.) */
+  }
+}
+
+// Reads the last-seen notification snapshot for a contact, if any.
 function readNotificationSnapshot(key: string): NotificationSnapshot | null {
   try {
     const raw = window.localStorage.getItem(key);
@@ -206,10 +273,15 @@ function readNotificationSnapshot(key: string): NotificationSnapshot | null {
   }
 }
 
-function writeNotificationSnapshot(key: string, snapshot: NotificationSnapshot) {
+// Persists the latest notification snapshot so the next poll can diff against it.
+function writeNotificationSnapshot(
+  key: string,
+  snapshot: NotificationSnapshot,
+) {
   window.localStorage.setItem(key, JSON.stringify(snapshot));
 }
 
+// Reads a contact's stored notification list from localStorage.
 function readStoredNotifications(key: string): PortalNotification[] {
   try {
     const raw = window.localStorage.getItem(key);
@@ -219,23 +291,32 @@ function readStoredNotifications(key: string): PortalNotification[] {
   }
 }
 
-function writeStoredNotifications(key: string, notifications: PortalNotification[]) {
+// Persists a contact's notification list, capped to MAX_STORED_NOTIFICATIONS.
+function writeStoredNotifications(
+  key: string,
+  notifications: PortalNotification[],
+) {
   window.localStorage.setItem(
     key,
     JSON.stringify(notifications.slice(0, MAX_STORED_NOTIFICATIONS)),
   );
 }
 
+// Flattens the current project/vendor/payment/document/case state into a
+// comparable snapshot; diffNotificationSnapshots compares two of these to
+// decide which notifications to raise on the next poll.
 function buildNotificationSnapshot(
   project: ProjectStatusRecord | undefined,
   terms: PaymentTerm[],
   files: ProjectFile[],
+  supportCases: SupportCaseRecord[],
 ): NotificationSnapshot {
   const vendors: Record<string, number> = {};
   const vendorCategories: Record<string, string> = {};
   project?.vendors.forEach((vendor) => {
     vendors[vendor.vendorName] = Math.round(vendor.completionPercentage || 0);
-    if (vendor.vendorCategory) vendorCategories[vendor.vendorName] = vendor.vendorCategory;
+    if (vendor.vendorCategory)
+      vendorCategories[vendor.vendorName] = vendor.vendorCategory;
   });
 
   const paymentTerms: Record<string, boolean> = {};
@@ -244,9 +325,18 @@ function buildNotificationSnapshot(
     if (key) paymentTerms[key] = Boolean(term.paymentReceived);
   });
 
-  const documentKeys = files
-    .map((file) => file.documentId || file.title)
-    .filter(Boolean) as string[];
+  const documents: NotificationDocument[] = files
+    .map((file) => {
+      const key = file.documentId || file.title;
+      if (!key) return undefined;
+      return { key, title: file.title, downloadUrl: file.downloadUrl };
+    })
+    .filter(Boolean) as NotificationDocument[];
+
+  const cases: Record<string, NotificationCase> = {};
+  supportCases.forEach((item) => {
+    cases[item.caseId] = { subject: item.subject, status: item.status };
+  });
 
   return {
     projectStatus: project?.projectStatus,
@@ -257,15 +347,37 @@ function buildNotificationSnapshot(
     vendors,
     vendorCategories,
     paymentTerms,
-    documentKeys,
+    documents,
+    cases,
   };
 }
 
+// Unions two document lists by key, keeping every previously-seen document
+// even if this poll's fetch didn't return it, so it can never look "new" again.
+function mergeNotificationDocuments(
+  previous: NotificationDocument[],
+  fresh: NotificationDocument[],
+): NotificationDocument[] {
+  const byKey = new Map(previous.map((doc) => [doc.key, doc]));
+  fresh.forEach((doc) => byKey.set(doc.key, doc));
+  return Array.from(byKey.values());
+}
+
+type NotificationEntry = {
+  type: PortalNotificationType;
+  message: string;
+  documentUrl?: string;
+  caseId?: string;
+};
+
+// Compares two notification snapshots and produces one notification entry
+// per meaningful change: progress/status updates, vendor progress, payments
+// received, new documents, and new/updated support cases.
 function diffNotificationSnapshots(
   previous: NotificationSnapshot,
   next: NotificationSnapshot,
-): Array<{ type: PortalNotificationType; message: string }> {
-  const entries: Array<{ type: PortalNotificationType; message: string }> = [];
+): NotificationEntry[] {
+  const entries: NotificationEntry[] = [];
 
   if (
     next.completionPercentage != null &&
@@ -274,7 +386,7 @@ function diffNotificationSnapshots(
   ) {
     entries.push({
       type: "status",
-      message: `Project progress updated to ${next.completionPercentage}%.`,
+      message: `Project progress updated from ${previous.completionPercentage}% to ${next.completionPercentage}%.`,
     });
   }
 
@@ -285,47 +397,76 @@ function diffNotificationSnapshots(
   ) {
     entries.push({
       type: "status",
-      message: `Project status changed to "${next.projectStatus}".`,
+      message: `Project status changed from "${previous.projectStatus}" to "${next.projectStatus}".`,
     });
   }
 
   Object.entries(next.vendors).forEach(([vendorName, completion]) => {
     const prevCompletion = previous.vendors[vendorName];
     if (prevCompletion == null || prevCompletion === completion) return;
-    const displayLabel = (next.vendorCategories ?? {})[vendorName] || vendorName;
+    const displayLabel =
+      (next.vendorCategories ?? {})[vendorName] || vendorName;
     entries.push({
       type: "vendor",
       message:
         completion >= 100
           ? `${displayLabel} finished all assigned tasks.`
-          : `${displayLabel} progress updated to ${completion}%.`,
+          : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%.`,
     });
   });
 
   Object.entries(next.paymentTerms).forEach(([label, received]) => {
     const prevReceived = previous.paymentTerms[label];
-    if (prevReceived === undefined || prevReceived === received || !received) return;
+    if (prevReceived === undefined || prevReceived === received || !received)
+      return;
     entries.push({
       type: "payment",
       message: `Payment received for "${label}".`,
     });
   });
 
-  const previousDocs = new Set(previous.documentKeys);
-  const newDocCount = next.documentKeys.filter((key) => !previousDocs.has(key)).length;
-  if (newDocCount > 0) {
+  const previousDocKeys = new Set(previous.documents.map((doc) => doc.key));
+  const newDocs = next.documents.filter((doc) => !previousDocKeys.has(doc.key));
+  if (newDocs.length === 1) {
     entries.push({
       type: "documents",
-      message:
-        newDocCount === 1
-          ? "A new file was added to Documents & Reports."
-          : `${newDocCount} new files were added to Documents & Reports.`,
+      message: `"${newDocs[0].title}" was added to Documents & Reports.`,
+      documentUrl: newDocs[0].downloadUrl,
+    });
+  } else if (newDocs.length > 1) {
+    entries.push({
+      type: "documents",
+      message: `${newDocs.length} new files were added to Documents & Reports: ${newDocs
+        .map((doc) => doc.title)
+        .join(", ")}.`,
     });
   }
+
+  Object.entries(next.cases).forEach(([caseId, caseInfo]) => {
+    const prevCase = previous.cases[caseId];
+    if (!prevCase) {
+      entries.push({
+        type: "cases",
+        message: caseInfo.status
+          ? `New case "${caseInfo.subject}" was created (Status: ${caseInfo.status}).`
+          : `New case "${caseInfo.subject}" was created.`,
+        caseId,
+      });
+      return;
+    }
+    if (caseInfo.status && prevCase.status !== caseInfo.status) {
+      entries.push({
+        type: "cases",
+        message: `Case "${caseInfo.subject}" status changed from "${prevCase.status || "Unknown"}" to "${caseInfo.status}".`,
+        caseId,
+      });
+    }
+  });
 
   return entries;
 }
 
+// Formats a timestamp as "Just now" / "Xm ago" / "Xh ago" / "Xd ago" for the notification list.
 function formatRelativeTime(timestamp: number) {
   const diffMin = Math.round((Date.now() - timestamp) / 60000);
   if (diffMin < 1) return "Just now";
@@ -336,6 +477,7 @@ function formatRelativeTime(timestamp: number) {
   return `${diffDay}d ago`;
 }
 
+// Bell trigger + dropdown panel listing notifications, with mark-all-read and clear-all actions.
 function NotificationBell({
   notifications,
   isOpen,
@@ -355,7 +497,9 @@ function NotificationBell({
   onClearAll: () => void;
   wrapperClassName?: string;
 }) {
-  const unreadCount = notifications.filter((notification) => !notification.read).length;
+  const unreadCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
 
   return (
     <div className={wrapperClassName}>
@@ -431,12 +575,17 @@ function NotificationBell({
                         }`}
                         onClick={() => onNotificationClick(notification)}
                       >
-                        <span className="dashboardWorkspace__notificationIcon" aria-hidden="true">
+                        <span
+                          className="dashboardWorkspace__notificationIcon"
+                          aria-hidden="true"
+                        >
                           <NotificationTypeIcon type={notification.type} />
                         </span>
                         <span className="dashboardWorkspace__notificationCopy">
                           <span>{notification.message}</span>
-                          <small>{formatRelativeTime(notification.timestamp)}</small>
+                          <small>
+                            {formatRelativeTime(notification.timestamp)}
+                          </small>
                         </span>
                       </button>
                     </li>
@@ -451,14 +600,17 @@ function NotificationBell({
   );
 }
 
+// Picks the icon shown next to a notification based on its type.
 function NotificationTypeIcon({ type }: { type: PortalNotificationType }) {
   if (type === "vendor") return <FiBriefcase />;
   if (type === "payment") return <FiCreditCard />;
   if (type === "paymentDue") return <FiClock />;
   if (type === "documents") return <FiFileText />;
+  if (type === "cases") return <FiHeadphones />;
   return <FiCalendar />;
 }
 
+// Avatar trigger + dropdown with client name/email and a logout action.
 function AccountMenu({
   isOpen,
   onToggle,
@@ -509,7 +661,10 @@ function AccountMenu({
               transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="dashboardWorkspace__accountInfo">
-                <span className="dashboardWorkspace__accountAvatar" aria-hidden="true">
+                <span
+                  className="dashboardWorkspace__accountAvatar"
+                  aria-hidden="true"
+                >
                   {initials}
                 </span>
                 <div className="dashboardWorkspace__accountCopy">
@@ -534,6 +689,7 @@ function AccountMenu({
   );
 }
 
+// Small icon + label/value tile used on the Profile & Overview tab.
 function InfoCard({
   icon,
   label,
@@ -560,7 +716,13 @@ function InfoCard({
   );
 }
 
-type QuickLinkTarget = "profile" | "status" | "vendor" | "payment" | "documents";
+type QuickLinkTarget =
+  | "profile"
+  | "status"
+  | "vendor"
+  | "payment"
+  | "documents"
+  | "cases";
 
 const quickLinkDirectory: Array<{
   target: QuickLinkTarget;
@@ -598,8 +760,15 @@ const quickLinkDirectory: Array<{
     label: "Documents & Reports",
     description: "Browse renders, floor plans, and files",
   },
+  {
+    target: "cases",
+    icon: FiHeadphones,
+    label: "Support Cases",
+    description: "Track the status of requests you've raised",
+  },
 ];
 
+// Row of shortcut buttons to the other dashboard tabs, shown at the bottom of each tab (minus the current one).
 function QuickLinks({
   exclude,
   onNavigate,
@@ -652,6 +821,7 @@ function QuickLinks({
   );
 }
 
+// Project Status tab: phase timeline, completion percentage, and vendor summary for the active project.
 function ProjectStatusTab({
   contactId,
   projectId,
@@ -776,7 +946,11 @@ function ProjectStatusTab({
               className="dashboardSpotlightCard__projectType"
               initial={{ opacity: 0, scale: 0.85, y: 6 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ delay: 0.75, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+              transition={{
+                delay: 0.75,
+                duration: 0.4,
+                ease: [0.22, 1, 0.36, 1],
+              }}
             >
               <FiHome aria-hidden="true" />
               <span>{statusData.projectType}</span>
@@ -837,13 +1011,16 @@ function ProjectStatusTab({
   );
 }
 
+// Modal listing a single vendor's tasks and task-level media (photos/videos/files).
 function VendorTaskModal({
   vendor,
   tasksInfo,
   onClose,
 }: {
   vendor: ProjectVendor | null;
-  tasksInfo: { loading: boolean; data: ProjectVendorTasksResponse | null } | undefined;
+  tasksInfo:
+    | { loading: boolean; data: ProjectVendorTasksResponse | null }
+    | undefined;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -865,7 +1042,9 @@ function VendorTaskModal({
 
   if (typeof document === "undefined") return null;
 
-  const vendorCompletion = vendor ? Math.round(vendor.completionPercentage || 0) : 0;
+  const vendorCompletion = vendor
+    ? Math.round(vendor.completionPercentage || 0)
+    : 0;
 
   return createPortal(
     <AnimatePresence>
@@ -909,7 +1088,10 @@ function VendorTaskModal({
               </button>
 
               <div className="vendorTaskModal__header">
-                <span className="dashboardVendorCard__avatar" aria-hidden="true">
+                <span
+                  className="dashboardVendorCard__avatar"
+                  aria-hidden="true"
+                >
                   <VendorCategoryIcon category={vendor.vendorCategory} />
                 </span>
                 <div className="vendorTaskModal__headerCopy">
@@ -922,7 +1104,10 @@ function VendorTaskModal({
                           ? "Active Phase"
                           : "Not Started"}
                   </span>
-                  <h2 id="vendor-task-modal-title" className="vendorTaskModal__title">
+                  <h2
+                    id="vendor-task-modal-title"
+                    className="vendorTaskModal__title"
+                  >
                     {vendor.vendorCategory || "Assigned Work"}
                   </h2>
                 </div>
@@ -1001,6 +1186,7 @@ function VendorTaskModal({
   );
 }
 
+// Vendor Tasks tab: grid of vendor cards, each opening a VendorTaskModal for task detail.
 function VendorTasksTab({
   contactId,
   projectId,
@@ -1018,7 +1204,10 @@ function VendorTasksTab({
   const [isLoading, setIsLoading] = useState(true);
   const [activeVendor, setActiveVendor] = useState<string | null>(null);
   const [taskState, setTaskState] = useState<
-    Record<string, { loading: boolean; data: ProjectVendorTasksResponse | null }>
+    Record<
+      string,
+      { loading: boolean; data: ProjectVendorTasksResponse | null }
+    >
   >({});
 
   useEffect(() => {
@@ -1049,9 +1238,15 @@ function VendorTasksTab({
     setActiveVendor(vendorName);
 
     if (!taskState[vendorName] && projectId) {
-      setTaskState((prev) => ({ ...prev, [vendorName]: { loading: true, data: null } }));
+      setTaskState((prev) => ({
+        ...prev,
+        [vendorName]: { loading: true, data: null },
+      }));
       void getVendorTasks(projectId, vendorName).then((res) => {
-        setTaskState((prev) => ({ ...prev, [vendorName]: { loading: false, data: res } }));
+        setTaskState((prev) => ({
+          ...prev,
+          [vendorName]: { loading: false, data: res },
+        }));
       });
     }
   };
@@ -1080,8 +1275,8 @@ function VendorTasksTab({
             Vendor tasks and on-site progress
           </h2>
           <p className="dashboardSection__lead">
-            Real-time progress tracking for every artisan and contractor
-            working on your project.
+            Real-time progress tracking for every artisan and contractor working
+            on your project.
           </p>
         </div>
         {projectName ? (
@@ -1107,7 +1302,10 @@ function VendorTasksTab({
               >
                 <div className="dashboardVendorCard__content">
                   <div className="dashboardVendorCard__top">
-                    <span className="dashboardVendorCard__avatar" aria-hidden="true">
+                    <span
+                      className="dashboardVendorCard__avatar"
+                      aria-hidden="true"
+                    >
                       <VendorCategoryIcon category={vendor.vendorCategory} />
                     </span>
                     <span className="dashboardVendorCard__badge">
@@ -1162,7 +1360,9 @@ function VendorTasksTab({
       </div>
 
       <VendorTaskModal
-        vendor={vendors.find((vendor) => vendor.vendorName === activeVendor) || null}
+        vendor={
+          vendors.find((vendor) => vendor.vendorName === activeVendor) || null
+        }
         tasksInfo={activeVendor ? taskState[activeVendor] : undefined}
         onClose={closeVendorTasks}
       />
@@ -1172,6 +1372,7 @@ function VendorTasksTab({
   );
 }
 
+// Payment Terms tab: milestone payment schedule with paid/due status per term.
 function PaymentTermsTab({
   projectName,
   fallbackProjectName,
@@ -1406,14 +1607,21 @@ function PaymentTermsTab({
   );
 }
 
+// Documents & Reports tab: project photo gallery and document list, with
+// support for scrolling to and highlighting a specific file (from a
+// "new document" notification click).
 function DocumentsTab({
   projectId,
   projectName,
   onNavigate,
+  highlightDocumentUrl,
+  onHighlightHandled,
 }: {
   projectId?: string;
   projectName?: string;
   onNavigate: (tab: QuickLinkTarget) => void;
+  highlightDocumentUrl?: string | null;
+  onHighlightHandled?: () => void;
 }) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [images, setImages] = useState<ProjectImage[]>([]);
@@ -1427,6 +1635,11 @@ function DocumentsTab({
     href: string;
     meta?: string;
   } | null>(null);
+  const [highlightedDocKey, setHighlightedDocKey] = useState<string | null>(
+    null,
+  );
+  const documentCardRefs = useRef<Record<string, HTMLElement | null>>({});
+  const processedHighlightDocUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     async function loadMedia() {
@@ -1460,6 +1673,37 @@ function DocumentsTab({
     }
     void loadMedia();
   }, [projectId]);
+
+  // Adjust local highlight state directly during render instead of in an
+  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
+  // ref guards it so each incoming highlightDocumentUrl is only applied once.
+  if (
+    highlightDocumentUrl &&
+    files.length > 0 &&
+    processedHighlightDocUrlRef.current !== highlightDocumentUrl
+  ) {
+    processedHighlightDocUrlRef.current = highlightDocumentUrl;
+    if (files.some((file) => file.downloadUrl === highlightDocumentUrl)) {
+      setActiveMediaTab("documents");
+      setHighlightedDocKey(highlightDocumentUrl);
+    }
+  }
+
+  // Tell the parent we've consumed this highlight request so it clears the
+  // prop; this is the legitimate effect part - notifying an external owner.
+  useEffect(() => {
+    if (highlightDocumentUrl && files.length > 0) {
+      onHighlightHandled?.();
+    }
+  }, [highlightDocumentUrl, files, onHighlightHandled]);
+
+  useEffect(() => {
+    if (!highlightedDocKey) return undefined;
+    const node = documentCardRefs.current[highlightedDocKey];
+    node?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timeout = window.setTimeout(() => setHighlightedDocKey(null), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [highlightedDocKey, activeMediaTab]);
 
   useEffect(() => {
     if (!selectedPreview) return undefined;
@@ -1589,7 +1833,14 @@ function DocumentsTab({
             {files.map((file, index) => (
               <motion.article
                 key={`${file.downloadUrl}-${index}`}
-                className="dashboardDocumentCard"
+                ref={(node: HTMLElement | null) => {
+                  documentCardRefs.current[file.downloadUrl] = node;
+                }}
+                className={`dashboardDocumentCard${
+                  highlightedDocKey === file.downloadUrl
+                    ? " dashboardDocumentCard--highlighted"
+                    : ""
+                }`}
                 variants={fadeUpItem}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
               >
@@ -1714,6 +1965,216 @@ function DocumentsTab({
   );
 }
 
+// Normalizes a case status into a CSS-safe modifier key (e.g. "In Progress" -> "in-progress").
+function slugifyStatus(value?: string) {
+  return (value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+// Buckets a case's granular Salesforce status (New, In Progress, Escalated, ...)
+// into the simple Open/Closed view customers filter by.
+function isClosedCaseStatus(status?: string) {
+  return ["closed", "resolved"].includes(slugifyStatus(status));
+}
+
+type CaseStatusFilter = "All" | "Open" | "Closed";
+
+// Support Cases tab: lists the client's cases with a status filter, and
+// supports scrolling to and highlighting a specific case (from a case
+// notification click).
+function CasesTab({
+  contactId,
+  onNavigate,
+  highlightCaseId,
+  onHighlightHandled,
+  onOpenSupportModal,
+}: {
+  contactId: string;
+  onNavigate: (tab: QuickLinkTarget) => void;
+  highlightCaseId?: string | null;
+  onHighlightHandled?: () => void;
+  onOpenSupportModal: () => void;
+}) {
+  const [cases, setCases] = useState<SupportCaseRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<CaseStatusFilter>("All");
+  const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(
+    null,
+  );
+  const caseCardRefs = useRef<Record<string, HTMLElement | null>>({});
+  const processedHighlightCaseIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    async function loadCases() {
+      if (!contactId) {
+        setIsLoading(false);
+        return;
+      }
+      setIsLoading(true);
+      const result = await getSupportCases(contactId);
+      setCases(result || []);
+      setIsLoading(false);
+    }
+    void loadCases();
+  }, [contactId]);
+
+  // Adjust local highlight state directly during render instead of in an
+  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
+  // ref guards it so each incoming highlightCaseId is only applied once.
+  if (
+    highlightCaseId &&
+    cases.length > 0 &&
+    processedHighlightCaseIdRef.current !== highlightCaseId
+  ) {
+    processedHighlightCaseIdRef.current = highlightCaseId;
+    if (cases.some((item) => item.caseId === highlightCaseId)) {
+      setHighlightedCaseId(highlightCaseId);
+    }
+  }
+
+  // Tell the parent we've consumed this highlight request so it clears the
+  // prop; this is the legitimate effect part - notifying an external owner.
+  useEffect(() => {
+    if (highlightCaseId && cases.length > 0) {
+      onHighlightHandled?.();
+    }
+  }, [highlightCaseId, cases, onHighlightHandled]);
+
+  useEffect(() => {
+    if (!highlightedCaseId) return undefined;
+    const node = caseCardRefs.current[highlightedCaseId];
+    node?.scrollIntoView({ behavior: "smooth", block: "center" });
+    const timeout = window.setTimeout(() => setHighlightedCaseId(null), 2500);
+    return () => window.clearTimeout(timeout);
+  }, [highlightedCaseId]);
+
+  if (isLoading)
+    return <p className="dashboard-loading">Loading your cases...</p>;
+
+  const openCases = cases.filter((item) => !isClosedCaseStatus(item.status));
+  const closedCases = cases.filter((item) => isClosedCaseStatus(item.status));
+  const statusOptions: Array<{ key: CaseStatusFilter; count: number }> = [
+    { key: "All", count: cases.length },
+    { key: "Open", count: openCases.length },
+    { key: "Closed", count: closedCases.length },
+  ];
+  const visibleCases =
+    statusFilter === "All" ? cases : statusFilter === "Open" ? openCases : closedCases;
+
+  return (
+    <motion.section
+      className="dashboardSection"
+      initial="hidden"
+      animate="visible"
+      variants={{ visible: staggerTransition }}
+    >
+      <div className="dashboardSection__heading">
+        <div>
+          <p className="dashboardSection__eyebrow">Client Support</p>
+          <h2 className="dashboardSection__title">Your support cases</h2>
+          <p className="dashboardSection__lead">
+            Track every request you&apos;ve raised with our team, along with its
+            current status, category, and priority.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="dashboardSection__chip dashboardSection__chip--button"
+          onClick={onOpenSupportModal}
+        >
+          <FiHeadphones aria-hidden="true" />
+          <span>New Case</span>
+        </button>
+      </div>
+
+      {cases.length === 0 ? (
+        <GlassEmptyState message="You haven't raised any support cases yet." />
+      ) : (
+        <>
+          <div className="dashboardMediaToggle" role="tablist">
+            {statusOptions.map(({ key, count }) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={statusFilter === key}
+                className={`dashboardMediaToggle__btn${statusFilter === key ? " is-active" : ""}`}
+                onClick={() => setStatusFilter(key)}
+              >
+                <span>{key}</span>
+                <span className="dashboardMediaToggle__count">{count}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="dashboardCaseGrid">
+            {visibleCases.map((item) => (
+              <motion.article
+                key={item.caseId}
+                ref={(node: HTMLElement | null) => {
+                  caseCardRefs.current[item.caseId] = node;
+                }}
+                className={`dashboardCaseCard${
+                  highlightedCaseId === item.caseId
+                    ? " dashboardCaseCard--highlighted"
+                    : ""
+                }`}
+                variants={fadeUpItem}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              >
+                <div className="dashboardCaseCard__header">
+                  <span className="dashboardCaseCard__eyebrow">
+                    Case #{item.caseNumber || "—"}
+                  </span>
+                  <span
+                    className={`dashboardCaseCard__status dashboardCaseCard__status--${slugifyStatus(item.status)}`}
+                  >
+                    {item.status || "Unknown"}
+                  </span>
+                </div>
+                <h3 className="dashboardCaseCard__title">{item.subject}</h3>
+                <div className="dashboardCaseCard__descriptionBlock">
+                  <span className="dashboardCaseCard__descriptionLabel">Description</span>
+                  <p className="dashboardCaseCard__description">
+                    {item.description || "No description provided."}
+                  </p>
+                </div>
+                <div className="dashboardCaseCard__meta">
+                  {item.category ? (
+                    <span>
+                      <FiLayers aria-hidden="true" />
+                      {item.category}
+                    </span>
+                  ) : null}
+                  {item.priority ? (
+                    <span
+                      className={`dashboardCaseCard__priority dashboardCaseCard__priority--${item.priority.toLowerCase()}`}
+                    >
+                      <FiZap aria-hidden="true" />
+                      {item.priority}
+                    </span>
+                  ) : null}
+                  {item.createdDate ? (
+                    <span>
+                      <FiCalendar aria-hidden="true" />
+                      {formatDate(item.createdDate)}
+                    </span>
+                  ) : null}
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        </>
+      )}
+
+      <QuickLinks exclude="cases" onNavigate={onNavigate} />
+    </motion.section>
+  );
+}
+
+// Top-level client portal page: loads the client's profile/projects, polls
+// for changes to surface notifications, and renders the active tab
+// (profile, status, vendor, payment, documents, cases) inside the shared
+// nav/notification/account chrome.
 export function DashboardPage() {
   const navigate = useNavigate();
   const {
@@ -1729,9 +2190,9 @@ export function DashboardPage() {
   );
   const [resolvedProject, setResolvedProject] =
     useState<ContactProjectLookup | null>(null);
-  const [contactProjects, setContactProjects] = useState<
-    ProjectStatusRecord[]
-  >([]);
+  const [contactProjects, setContactProjects] = useState<ProjectStatusRecord[]>(
+    [],
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -1739,12 +2200,36 @@ export function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
-  const [notifications, setNotifications] = useState<PortalNotification[]>(() => {
+  const [highlightDocumentUrl, setHighlightDocumentUrl] = useState<
+    string | null
+  >(null);
+  const [highlightCaseId, setHighlightCaseId] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<PortalNotification[]>(
+    () => {
+      const initialContactId =
+        authClient?.contactId || localStorage.getItem("contactId") || "";
+      if (!initialContactId) return [];
+      const initialProjectId = readStoredSelectedProjectId(initialContactId);
+      // Without a previously-selected project we don't yet know which
+      // project's notifications to show (the project list is still loading),
+      // so start empty rather than guessing — the poll effect fills this in
+      // once the active project resolves.
+      return initialProjectId
+        ? readStoredNotifications(
+            getNotificationStorageKeys(initialContactId, initialProjectId)
+              .list,
+          )
+        : [];
+    },
+  );
+  const [selectedProjectId, setSelectedProjectIdState] = useState<
+    string | null
+  >(() => {
     const initialContactId =
       authClient?.contactId || localStorage.getItem("contactId") || "";
     return initialContactId
-      ? readStoredNotifications(getNotificationStorageKeys(initialContactId).list)
-      : [];
+      ? readStoredSelectedProjectId(initialContactId)
+      : null;
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     () =>
@@ -1752,6 +2237,16 @@ export function DashboardPage() {
         ? window.localStorage.getItem(AUTH_STORAGE_KEYS.selectedProjectId)
         : null,
   );
+  // Persists the chosen project so a page reload keeps showing it instead of
+  // silently falling back to the contact's first project.
+  const setSelectedProjectId = (projectId: string | null) => {
+    setSelectedProjectIdState(projectId);
+    const currentContactId =
+      authClient?.contactId || localStorage.getItem("contactId") || "";
+    if (currentContactId) {
+      writeStoredSelectedProjectId(currentContactId, projectId);
+    }
+  };
 
   function selectProject(projectId: string) {
     setSelectedProjectId(projectId);
@@ -1830,8 +2325,7 @@ export function DashboardPage() {
           completionPercentage: undefined as number | undefined,
         }));
   const activeProject =
-    projects.find((project) => project.id === selectedProjectId) ||
-    projects[0];
+    projects.find((project) => project.id === selectedProjectId) || projects[0];
   const activeProjectId = activeProject?.id || resolvedProject?.id;
   const activeProjectName = activeProject?.name || resolvedProject?.name;
   // mobileProjectStatus and the /mobile/dashboard summary can format the
@@ -1851,26 +2345,69 @@ export function DashboardPage() {
   useEffect(() => {
     if (!contactId || !activeProjectId) return undefined;
 
-    const keys = getNotificationStorageKeys(contactId);
+    const keys = getNotificationStorageKeys(contactId, activeProjectId);
 
     async function checkForUpdates() {
-      const [statusRes, terms, files] = await Promise.all([
+      const [statusRes, terms, files, supportCases] = await Promise.all([
         getProjectStatus(contactId),
-        activeProjectName ? getPaymentTerms(activeProjectName) : Promise.resolve(null),
-        activeProjectId ? getProjectFiles(activeProjectId) : Promise.resolve(null),
+        activeProjectName
+          ? getPaymentTerms(activeProjectName)
+          : Promise.resolve(null),
+        activeProjectId
+          ? getProjectFiles(activeProjectId)
+          : Promise.resolve(null),
+        getSupportCases(contactId),
       ]);
 
       const project = statusRes?.success
         ? statusRes.projects.find(
-            (candidate) => (candidate.id || candidate.projectName) === activeProjectId,
+            (candidate) =>
+              (candidate.id || candidate.projectName) === activeProjectId,
           )
         : undefined;
 
       const termsList = Array.isArray(terms) ? terms : [];
       const filesList = Array.isArray(files) ? files : [];
+      const casesList = Array.isArray(supportCases) ? supportCases : [];
 
-      const nextSnapshot = buildNotificationSnapshot(project, termsList, filesList);
       const previousSnapshot = readNotificationSnapshot(keys.snapshot);
+      const freshSnapshot = buildNotificationSnapshot(
+        project,
+        termsList,
+        filesList,
+        casesList,
+      );
+
+      // Salesforce's file/case list endpoints can return an incomplete
+      // result for a single poll (a slow related-list query, a flaky
+      // endpoint, a project still resolving) even though nothing actually
+      // changed. If we replaced the snapshot outright with that poll's
+      // fetch, an entry missing from just one poll would vanish from the
+      // baseline and then look brand new the next time the API returned it
+      // — reviving notifications the client had already cleared. Instead we
+      // merge each poll's fresh data into the running baseline: fresh values
+      // win when present, but nothing already seen is ever dropped, so a
+      // vendor/payment/document/case can only be flagged "new" once, ever.
+      const nextSnapshot: NotificationSnapshot = {
+        projectStatus: freshSnapshot.projectStatus ?? previousSnapshot?.projectStatus,
+        completionPercentage:
+          freshSnapshot.completionPercentage ??
+          previousSnapshot?.completionPercentage,
+        vendors: { ...(previousSnapshot?.vendors || {}), ...freshSnapshot.vendors },
+        vendorCategories: {
+          ...(previousSnapshot?.vendorCategories || {}),
+          ...freshSnapshot.vendorCategories,
+        },
+        paymentTerms: {
+          ...(previousSnapshot?.paymentTerms || {}),
+          ...freshSnapshot.paymentTerms,
+        },
+        documents: mergeNotificationDocuments(
+          previousSnapshot?.documents || [],
+          freshSnapshot.documents,
+        ),
+        cases: { ...(previousSnapshot?.cases || {}), ...freshSnapshot.cases },
+      };
       writeNotificationSnapshot(keys.snapshot, nextSnapshot);
 
       // Change-based notifications (only when previous snapshot exists to compare against)
@@ -1881,19 +2418,22 @@ export function DashboardPage() {
       // Payment due-date notifications: fire once per calendar day per payment term
       const PAYMENT_DUE_DAYS = 30;
       const today = new Date().toISOString().slice(0, 10);
-      const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}`;
+      const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${activeProjectId}`;
       let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
       try {
         const raw = window.localStorage.getItem(paymentDueSeenKey);
         if (raw) seenData = JSON.parse(raw) as { date: string; seen: string[] };
-      } catch { /* ignore parse errors */ }
+      } catch {
+        /* ignore parse errors */
+      }
       const seenToday = seenData.date === today ? seenData.seen : [];
-      const paymentDueEntries: Array<{ type: PortalNotificationType; message: string }> = [];
+      const paymentDueEntries: NotificationEntry[] = [];
 
       termsList.forEach((term) => {
         if (!term.dueDate || term.paymentReceived) return;
         const daysUntilDue = Math.ceil(
-          (new Date(term.dueDate).getTime() - Date.now()) / (24 * 60 * 60 * 1000),
+          (new Date(term.dueDate).getTime() - Date.now()) /
+            (24 * 60 * 60 * 1000),
         );
         if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
         const alertKey = `${term.label || term.name}:${term.dueDate}`;
@@ -1920,23 +2460,49 @@ export function DashboardPage() {
       if (allEntries.length === 0) return;
 
       setNotifications((prev) => {
-        const newEntries: PortalNotification[] = allEntries.map((entry, index) => ({
-          id: `${Date.now()}-${index}`,
-          type: entry.type,
-          message: entry.message,
-          timestamp: Date.now(),
-          read: false,
-        }));
-        const merged = [...newEntries, ...prev].slice(0, MAX_STORED_NOTIFICATIONS);
+        const newEntries: PortalNotification[] = allEntries.map(
+          (entry, index) => ({
+            id: `${Date.now()}-${index}`,
+            type: entry.type,
+            message: entry.message,
+            documentUrl: entry.documentUrl,
+            caseId: entry.caseId,
+            timestamp: Date.now(),
+            read: false,
+          }),
+        );
+        const merged = [...newEntries, ...prev].slice(
+          0,
+          MAX_STORED_NOTIFICATIONS,
+        );
         writeStoredNotifications(keys.list, merged);
         return merged;
       });
     }
 
     void checkForUpdates();
-    const interval = window.setInterval(checkForUpdates, NOTIFICATION_POLL_INTERVAL_MS);
+    const interval = window.setInterval(
+      checkForUpdates,
+      NOTIFICATION_POLL_INTERVAL_MS,
+    );
     return () => window.clearInterval(interval);
   }, [contactId, activeProjectId, activeProjectName]);
+
+  // Notifications are scoped per project. Whenever the active project
+  // resolves for the first time or the client switches to a different
+  // project, swap the in-memory list for that project's own stored list
+  // instead of leaving the previous project's notifications on screen.
+  useEffect(() => {
+    if (!contactId || !activeProjectId) {
+      setNotifications([]);
+      return;
+    }
+    setNotifications(
+      readStoredNotifications(
+        getNotificationStorageKeys(contactId, activeProjectId).list,
+      ),
+    );
+  }, [contactId, activeProjectId]);
 
   const desktopNavItems = [
     { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
@@ -1944,6 +2510,7 @@ export function DashboardPage() {
     { id: "vendor", label: "Vendor Tasks", icon: FiBriefcase },
     { id: "payment", label: "Payment Terms", icon: FiCreditCard },
     { id: "documents", label: "Documents & Reports", icon: FiFileText },
+    { id: "cases", label: "Support Cases", icon: FiHeadphones },
   ] as const;
 
   const handleLogout = () => {
@@ -1964,20 +2531,38 @@ export function DashboardPage() {
       const updated = prev.map((item) =>
         item.id === notification.id ? { ...item, read: true } : item,
       );
-      if (contactId) {
-        writeStoredNotifications(getNotificationStorageKeys(contactId).list, updated);
+      if (contactId && activeProjectId) {
+        writeStoredNotifications(
+          getNotificationStorageKeys(contactId, activeProjectId).list,
+          updated,
+        );
       }
       return updated;
     });
     setIsNotificationPanelOpen(false);
-    handleTabChange(notification.type === "paymentDue" ? "payment" : notification.type);
+    if (notification.type === "documents" && notification.documentUrl) {
+      setHighlightDocumentUrl(notification.documentUrl);
+      handleTabChange("documents");
+      return;
+    }
+    if (notification.type === "cases" && notification.caseId) {
+      setHighlightCaseId(notification.caseId);
+      handleTabChange("cases");
+      return;
+    }
+    handleTabChange(
+      notification.type === "paymentDue" ? "payment" : notification.type,
+    );
   };
 
   const handleMarkAllNotificationsRead = () => {
     setNotifications((prev) => {
       const updated = prev.map((item) => ({ ...item, read: true }));
-      if (contactId) {
-        writeStoredNotifications(getNotificationStorageKeys(contactId).list, updated);
+      if (contactId && activeProjectId) {
+        writeStoredNotifications(
+          getNotificationStorageKeys(contactId, activeProjectId).list,
+          updated,
+        );
       }
       return updated;
     });
@@ -1985,8 +2570,11 @@ export function DashboardPage() {
 
   const handleClearAllNotifications = () => {
     setNotifications([]);
-    if (contactId) {
-      writeStoredNotifications(getNotificationStorageKeys(contactId).list, []);
+    if (contactId && activeProjectId) {
+      writeStoredNotifications(
+        getNotificationStorageKeys(contactId, activeProjectId).list,
+        [],
+      );
     }
   };
 
@@ -2101,13 +2689,13 @@ export function DashboardPage() {
                 })}
                 <button
                   type="button"
-                  className="dashboardMobileDrawer__link"
+                  className="dashboardMobileDrawer__link dashboardMobileDrawer__link--support"
                   onClick={() => {
                     setIsMobileMenuOpen(false);
                     setIsSupportModalOpen(true);
                   }}
                 >
-                  <FiHeadphones />
+                  <FiPhone />
                   <span>Contact Support</span>
                 </button>
                 <button
@@ -2390,9 +2978,9 @@ export function DashboardPage() {
                                       </span>
                                     </div>
                                     <p className="dashboardProjectSpotlight__description">
-                                      Access live progress, budget
-                                      checkpoints, milestone updates, and the
-                                      private project archive.
+                                      Access live progress, budget checkpoints,
+                                      milestone updates, and the private project
+                                      archive.
                                     </p>
                                     {completion != null ? (
                                       <div className="dashboardProjectSpotlight__progress">
@@ -2436,7 +3024,10 @@ export function DashboardPage() {
                               type="button"
                               className="dashboardProjectSpotlight"
                               variants={fadeUpItem}
-                              whileHover={{ x: 3, transition: { duration: 0.2 } }}
+                              whileHover={{
+                                x: 3,
+                                transition: { duration: 0.2 },
+                              }}
                               onClick={() => handleTabChange("status")}
                             >
                               <span
@@ -2559,6 +3150,17 @@ export function DashboardPage() {
                     projectId={activeProjectId}
                     projectName={activeProjectName}
                     onNavigate={handleTabChange}
+                    highlightDocumentUrl={highlightDocumentUrl}
+                    onHighlightHandled={() => setHighlightDocumentUrl(null)}
+                  />
+                ) : null}
+                {deferredDashboardTab === "cases" ? (
+                  <CasesTab
+                    contactId={contactId}
+                    onNavigate={handleTabChange}
+                    highlightCaseId={highlightCaseId}
+                    onHighlightHandled={() => setHighlightCaseId(null)}
+                    onOpenSupportModal={() => setIsSupportModalOpen(true)}
                   />
                 ) : null}
               </motion.div>
@@ -2570,6 +3172,7 @@ export function DashboardPage() {
   );
 }
 
+// Labeled select control used in the support case form (category/priority).
 function FormSelect({
   label,
   value,
@@ -2593,10 +3196,7 @@ function FormSelect({
         aria-expanded={isOpen}
       >
         <span>{value}</span>
-        <FiChevronDown
-          aria-hidden="true"
-          className={isOpen ? "is-open" : ""}
-        />
+        <FiChevronDown aria-hidden="true" className={isOpen ? "is-open" : ""} />
       </button>
 
       <AnimatePresence>
@@ -2637,6 +3237,7 @@ function FormSelect({
   );
 }
 
+// "Contact Support" modal: form to submit a new support case, then shows the returned case reference number.
 function SupportCaseModal({
   isOpen,
   contactId,
@@ -2677,7 +3278,7 @@ function SupportCaseModal({
     onClose();
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!subject.trim() || !description.trim()) {
@@ -2773,16 +3374,9 @@ function SupportCaseModal({
                         </span>
                         <h4>Request submitted</h4>
                         <p>
-                          Our team will get back to you shortly.
+                          Check your email for confirmation - our team will
+                          contact you soon.
                         </p>
-                        {caseId !== "submitted" ? (
-                          <div className="dashboardSupportModal__caseCard">
-                            <span>Reference Number</span>
-                            <strong className="dashboardSupportModal__caseId">
-                              {caseId}
-                            </strong>
-                          </div>
-                        ) : null}
                         <button
                           type="button"
                           className="dashboardProjectSpotlight__cta"
@@ -2801,9 +3395,7 @@ function SupportCaseModal({
                           <input
                             type="text"
                             value={subject}
-                            onChange={(event) =>
-                              setSubject(event.target.value)
-                            }
+                            onChange={(event) => setSubject(event.target.value)}
                             placeholder="Briefly describe your issue"
                             required
                           />
@@ -2859,9 +3451,7 @@ function SupportCaseModal({
                         </label>
 
                         {error ? (
-                          <p className="dashboardSupportForm__error">
-                            {error}
-                          </p>
+                          <p className="dashboardSupportForm__error">{error}</p>
                         ) : null}
 
                         <button
@@ -2870,9 +3460,7 @@ function SupportCaseModal({
                           disabled={isSubmitting}
                         >
                           <span>
-                            {isSubmitting
-                              ? "Submitting..."
-                              : "Submit Request"}
+                            {isSubmitting ? "Submitting..." : "Submit Request"}
                           </span>
                         </button>
                       </form>
@@ -2888,6 +3476,7 @@ function SupportCaseModal({
     : null;
 }
 
+// Formats an ISO/date string as "DD Mon YYYY"; returns the raw value if it can't be parsed.
 function formatDate(value?: string) {
   if (!value) return undefined;
   const date = new Date(value);
@@ -2901,18 +3490,24 @@ function formatDate(value?: string) {
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+// Pluralizes a day count ("1 day" vs "5 days").
 function pluralizeDays(count: number) {
   return `${count} day${count === 1 ? "" : "s"}`;
 }
 
+// Computes the total span of a project's start/end dates as a "N days" label.
 function getTotalProjectDays(startDate?: string, endDate?: string) {
   if (!startDate || !endDate) return undefined;
   const start = new Date(startDate);
   const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return undefined;
-  return pluralizeDays(Math.max(0, Math.round((end.getTime() - start.getTime()) / MS_PER_DAY)));
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
+    return undefined;
+  return pluralizeDays(
+    Math.max(0, Math.round((end.getTime() - start.getTime()) / MS_PER_DAY)),
+  );
 }
 
+// Labels the time left until a project's end date ("Completed", "Due today", "N days left", etc.).
 function getRemainingDaysLabel(endDate?: string, isCompleted?: boolean) {
   if (isCompleted) return "Completed";
   if (!endDate) return undefined;
