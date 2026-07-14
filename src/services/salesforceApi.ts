@@ -1,8 +1,8 @@
 const rawSiteUrl = import.meta.env.VITE_SALESFORCE_SITE_URL?.trim() || ''
 const rawSitePath = import.meta.env.VITE_SALESFORCE_SITE_PATH?.trim() || '/Arelia'
 
-const BASE_URL = rawSiteUrl.replace(/\/+$/, '')
-const SITE_PATH = rawSitePath ? `/${rawSitePath.replace(/^\/+|\/+$/g, '')}` : ''
+export const BASE_URL = rawSiteUrl.replace(/\/+$/, '')
+export const SITE_PATH = rawSitePath ? `/${rawSitePath.replace(/^\/+|\/+$/g, '')}` : ''
 
 const REGISTRATION_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/registration`
 const LOGIN_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileLogin`
@@ -108,6 +108,7 @@ export type ProjectStatusResponse = {
 }
 
 export type PaymentTerm = {
+  id?: string
   label?: string
   name?: string
   percentage?: number
@@ -163,7 +164,7 @@ export type ProjectMediaResponse = {
   images: ProjectImage[]
 }
 
-async function parseResponse(response: Response): Promise<unknown> {
+export async function parseResponse(response: Response): Promise<unknown> {
   const text = await response.text()
   if (!text) return {}
   try {
@@ -173,15 +174,15 @@ async function parseResponse(response: Response): Promise<unknown> {
   }
 }
 
-function asRecord(value: unknown): Record<string, unknown> | undefined {
+export function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined
 }
 
-function asString(value: unknown): string | undefined {
+export function asString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value : undefined
 }
 
-function asNumber(value: unknown): number | undefined {
+export function asNumber(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value
   if (typeof value === 'string' && value.trim()) {
     const parsed = Number(value)
@@ -190,7 +191,7 @@ function asNumber(value: unknown): number | undefined {
   return undefined
 }
 
-function asBoolean(value: unknown): boolean | undefined {
+export function asBoolean(value: unknown): boolean | undefined {
   if (typeof value === 'boolean') return value
   if (typeof value === 'string') {
     if (value.toLowerCase() === 'true') return true
@@ -199,7 +200,7 @@ function asBoolean(value: unknown): boolean | undefined {
   return undefined
 }
 
-function asArray(value: unknown): unknown[] {
+export function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
@@ -299,6 +300,7 @@ function normalizePaymentTerm(rawTerm: unknown): PaymentTerm | undefined {
   if (!label) return undefined
 
   return {
+    id: asString(term.id || term.Id),
     label,
     name: asString(term.name || term.Name),
     percentage: asNumber(term.percentage || term.Percent__c),

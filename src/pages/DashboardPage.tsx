@@ -56,6 +56,7 @@ import {
   type ProjectVendor,
   type ProjectVendorTasksResponse,
 } from "../services/salesforceApi";
+import { AUTH_STORAGE_KEYS } from "../context/authStorage";
 import "./DashboardPage.css";
 
 const staggerTransition = {
@@ -1184,6 +1185,7 @@ function PaymentTermsTab({
 }) {
   const [terms, setTerms] = useState<PaymentTerm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function loadTerms() {
@@ -1370,6 +1372,28 @@ function PaymentTermsTab({
                       {term.paymentReceived ? "Received" : "Upcoming"}
                     </span>
                   </div>
+                  {term.id ? (
+                    <div className="dashboardPaymentCard__col">
+                      <span>&nbsp;</span>
+                      {term.paymentReceived ? (
+                        <button
+                          type="button"
+                          className="dashboardPaymentCard__payButton dashboardPaymentCard__payButton--ghost"
+                          onClick={() => navigate(`/payment/receipt/${term.id}`)}
+                        >
+                          View Receipt
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="dashboardPaymentCard__payButton"
+                          onClick={() => navigate(`/payment/${term.id}`)}
+                        >
+                          Pay Now
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               </motion.article>
             </motion.div>
@@ -1723,8 +1747,16 @@ export function DashboardPage() {
       : [];
   });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-    null,
+    () =>
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(AUTH_STORAGE_KEYS.selectedProjectId)
+        : null,
   );
+
+  function selectProject(projectId: string) {
+    setSelectedProjectId(projectId);
+    window.localStorage.setItem(AUTH_STORAGE_KEYS.selectedProjectId, projectId);
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -2334,7 +2366,7 @@ export function DashboardPage() {
                                     transition: { duration: 0.2 },
                                   }}
                                   onClick={() => {
-                                    setSelectedProjectId(project.id);
+                                    selectProject(project.id);
                                     handleTabChange("status");
                                   }}
                                 >

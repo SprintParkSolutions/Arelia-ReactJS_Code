@@ -2609,6 +2609,47 @@
   color: #fcd34d;
 }
 
+.dashboardPaymentCard__payButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1.1rem;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #c8a97e, #e8d2b0);
+  color: #1d1408;
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow:
+    0 12px 26px rgba(200, 169, 126, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.dashboardPaymentCard__payButton:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 16px 32px rgba(200, 169, 126, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.dashboardPaymentCard__payButton--ghost {
+  background: transparent;
+  color: #e7bd72;
+  border: 1px solid rgba(200, 169, 126, 0.34);
+  box-shadow: none;
+}
+
+.dashboardPaymentCard__payButton--ghost:hover {
+  background: rgba(200, 169, 126, 0.08);
+  box-shadow: none;
+}
+
 
 .dashboardVendorCard:hover {
   border-color: rgba(212, 180, 129, 0.36);
