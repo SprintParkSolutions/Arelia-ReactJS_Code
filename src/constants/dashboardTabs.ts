@@ -1,4 +1,4 @@
-export type DashboardTabId = 'profile' | 'status' | 'vendor' | 'payment' | 'documents'
+export type DashboardTabId = 'profile' | 'status' | 'vendor' | 'payment' | 'documents' | 'cases'
 
 export const dashboardTabs: { id: DashboardTabId; label: string }[] = [
   { id: 'profile', label: 'Profile & Overview' },
@@ -6,4 +6,5 @@ export const dashboardTabs: { id: DashboardTabId; label: string }[] = [
   { id: 'vendor', label: 'Vendor Tasks' },
   { id: 'payment', label: 'Payment Terms' },
   { id: 'documents', label: 'Documents & Reports' },
+  { id: 'cases', label: 'Support Cases' },
 ]
