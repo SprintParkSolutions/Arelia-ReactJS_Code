@@ -9,6 +9,7 @@ import { Loader } from './components/loader/Loader'
 import NavigationMenu from './components/navigationMenu/navigationMenu'
 import { SocialSidebar } from './components/socialsidebar/SocialSidebar'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
+import { ToastProvider } from './components/toast/ToastContext'
 import { useAuth } from './context/AuthContext'
 
 import { Footer } from './pages/Footer'
@@ -18,6 +19,10 @@ import ServicesSection from './pages/ServicesSection'
 import { ContactUsPage } from './pages/ContactUsPage'
 import { Login as LoginPage } from './pages/Login'
 import { DashboardPage } from './pages/DashboardPage'
+import { PaymentGatewayPage } from './pages/PaymentGatewayPage'
+import { PaymentResultPage } from './pages/PaymentResultPage'
+import { PaymentHistoryPage } from './pages/PaymentHistoryPage'
+import { PaymentReceiptPage } from './pages/PaymentReceiptPage'
 
 // FIX: Added `.then()` to handle the named export for your ConsultationModal
 const ConsultationModal = lazy(() =>
@@ -51,7 +56,7 @@ export default function App() {
 
   const isLoginPage = location.pathname === '/login'
   const isDashboardPage =
-    location.pathname === '/dashboard' && isAuthenticated
+    (location.pathname === '/dashboard' || location.pathname.startsWith('/payment')) && isAuthenticated
 
   useEffect(() => {
     window.dataLayer = window.dataLayer || []
@@ -74,6 +79,7 @@ export default function App() {
         />
       ) : null}
 
+      <ToastProvider>
       <div className={`app-shell${isLoginPage ? ' app-shell--login' : ''}`}>
         <ScrollToTop />
 
@@ -173,6 +179,51 @@ export default function App() {
                     </ProtectedRoute>
                   }
                 />
+
+                <Route
+                  path="/payment/history"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentHistoryPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/payment/success/:paymentTermId"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentResultPage status="success" />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/payment/failed/:paymentTermId"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentResultPage status="failed" />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/payment/receipt/:paymentTermId"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentReceiptPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/payment/:paymentTermId"
+                  element={
+                    <ProtectedRoute>
+                      <PaymentGatewayPage />
+                    </ProtectedRoute>
+                  }
+                />
               </Routes>
             </motion.div>
           </AnimatePresence>
@@ -194,6 +245,7 @@ export default function App() {
           />
         </Suspense>
       </div>
+      </ToastProvider>
     </>
   )
 }

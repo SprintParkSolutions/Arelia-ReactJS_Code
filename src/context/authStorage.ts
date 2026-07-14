@@ -7,6 +7,7 @@ export const AUTH_STORAGE_KEYS = {
   leadId: 'leadId',
   name: 'name',
   activeTab: 'dashboardActiveTab',
+  selectedProjectId: 'dashboardSelectedProjectId',
   loginAt: 'clientLoginAt',
 } as const
 

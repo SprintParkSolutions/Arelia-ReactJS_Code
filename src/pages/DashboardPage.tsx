@@ -1385,6 +1385,7 @@ function PaymentTermsTab({
 }) {
   const [terms, setTerms] = useState<PaymentTerm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function loadTerms() {
@@ -1571,6 +1572,28 @@ function PaymentTermsTab({
                       {term.paymentReceived ? "Received" : "Upcoming"}
                     </span>
                   </div>
+                  {term.id ? (
+                    <div className="dashboardPaymentCard__col">
+                      <span>&nbsp;</span>
+                      {term.paymentReceived ? (
+                        <button
+                          type="button"
+                          className="dashboardPaymentCard__payButton dashboardPaymentCard__payButton--ghost"
+                          onClick={() => navigate(`/payment/receipt/${term.id}`)}
+                        >
+                          View Receipt
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="dashboardPaymentCard__payButton"
+                          onClick={() => navigate(`/payment/${term.id}`)}
+                        >
+                          Pay Now
+                        </button>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               </motion.article>
             </motion.div>
@@ -2217,6 +2240,10 @@ export function DashboardPage() {
       writeStoredSelectedProjectId(currentContactId, projectId);
     }
   };
+
+  function selectProject(projectId: string) {
+    setSelectedProjectId(projectId);
+  }
 
   useEffect(() => {
     const handleResize = () => {
@@ -2919,7 +2946,7 @@ export function DashboardPage() {
                                     transition: { duration: 0.2 },
                                   }}
                                   onClick={() => {
-                                    setSelectedProjectId(project.id);
+                                    selectProject(project.id);
                                     handleTabChange("status");
                                   }}
                                 >
