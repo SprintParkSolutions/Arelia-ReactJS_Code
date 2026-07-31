@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useMemo,
   useTransition,
   type ReactNode,
   type SubmitEvent,
@@ -59,6 +60,10 @@ import {
   type ProjectVendorTasksResponse,
   type SupportCaseRecord,
 } from "../services/salesforceApi";
+import {
+  annotateNotificationWithProject,
+  type CustomerNotificationEntry,
+} from "../utils/customerNotifications";
 import "./DashboardPage.css";
 
 const staggerTransition = {
@@ -198,6 +203,8 @@ type PortalNotification = {
   read: boolean;
   documentUrl?: string;
   caseId?: string;
+  projectId?: string;
+  projectName?: string;
 };
 
 type NotificationDocument = {
@@ -223,6 +230,7 @@ type NotificationSnapshot = {
 
 const NOTIFICATION_POLL_INTERVAL_MS = 3 * 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
+const NOTIFICATIONS_PER_PAGE = 10;
 
 // Builds the per-contact-per-project localStorage keys used to persist the
 // last-seen snapshot (for diffing) and the notification list itself. Scoping
@@ -232,6 +240,12 @@ function getNotificationStorageKeys(contactId: string, projectId: string) {
   return {
     snapshot: `portalNotifSnapshot:${contactId}:${projectId}`,
     list: `portalNotifications:${contactId}:${projectId}`,
+  };
+}
+
+function getCustomerNotificationStorageKeys(contactId: string) {
+  return {
+    list: `portalNotifications:${contactId}:all`,
   };
 }
 
@@ -333,7 +347,18 @@ function buildNotificationSnapshot(
     .filter(Boolean) as NotificationDocument[];
 
   const cases: Record<string, NotificationCase> = {};
-  supportCases.forEach((item) => {
+  // Only include support cases that are relevant to this project. If the
+  // case is tied to a specific project (projectId or projectName), ensure it
+  // matches the provided project; otherwise exclude it to avoid the same case
+  // appearing for every project owned by the same contact.
+  const relevantCases = supportCases.filter((item) => {
+    if (!item) return false;
+    if (!project) return false;
+    if (item.projectId && project.id) return item.projectId === project.id;
+    if (item.projectName) return item.projectName === project.projectName;
+    return false;
+  });
+  relevantCases.forEach((item) => {
     cases[item.caseId] = { subject: item.subject, status: item.status };
   });
 
@@ -362,11 +387,9 @@ function mergeNotificationDocuments(
   return Array.from(byKey.values());
 }
 
-type NotificationEntry = {
-  type: PortalNotificationType;
-  message: string;
-  documentUrl?: string;
-  caseId?: string;
+type NotificationEntry = CustomerNotificationEntry & {
+  projectId?: string;
+  projectName?: string;
 };
 
 // Compares two notification snapshots and produces one notification entry
@@ -375,6 +398,7 @@ type NotificationEntry = {
 function diffNotificationSnapshots(
   previous: NotificationSnapshot,
   next: NotificationSnapshot,
+  projectName?: string,
 ): NotificationEntry[] {
   const entries: NotificationEntry[] = [];
 
@@ -462,7 +486,9 @@ function diffNotificationSnapshots(
     }
   });
 
-  return entries;
+  return entries.map((entry) =>
+    annotateNotificationWithProject(entry, projectName),
+  );
 }
 
 // Formats a timestamp as "Just now" / "Xm ago" / "Xh ago" / "Xd ago" for the notification list.
@@ -476,6 +502,15 @@ function formatRelativeTime(timestamp: number) {
   return `${diffDay}d ago`;
 }
 
+// Formats a timestamp into the local date string (e.g. "02 Jul 2026").
+function formatTimestamp(timestamp: number) {
+  try {
+    return formatDate(new Date(timestamp).toISOString()) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 // Bell trigger + dropdown panel listing notifications, with mark-all-read and clear-all actions.
 function NotificationBell({
   notifications,
@@ -484,7 +519,7 @@ function NotificationBell({
   onClose,
   onNotificationClick,
   onMarkAllRead,
-  onClearAll,
+  onDeleteNotification,
   wrapperClassName = "dashboardWorkspace__notifications",
 }: {
   notifications: PortalNotification[];
@@ -493,7 +528,7 @@ function NotificationBell({
   onClose: () => void;
   onNotificationClick: (notification: PortalNotification) => void;
   onMarkAllRead: () => void;
-  onClearAll: () => void;
+  onDeleteNotification?: (id: string) => void;
   wrapperClassName?: string;
 }) {
   const unreadCount = notifications.filter(
@@ -548,13 +583,7 @@ function NotificationBell({
                         Mark all read
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      className="dashboardWorkspace__notificationsClear"
-                      onClick={onClearAll}
-                    >
-                      Clear all
-                    </button>
+                    {onDeleteNotification ? null : null}
                   </div>
                 ) : null}
               </div>
@@ -566,29 +595,42 @@ function NotificationBell({
               ) : (
                 <ul className="dashboardWorkspace__notificationsList">
                   {notifications.map((notification) => (
-                    <li key={notification.id}>
-                      <button
-                        type="button"
-                        className={`dashboardWorkspace__notificationItem${
-                          notification.read ? "" : " is-unread"
-                        }`}
-                        onClick={() => onNotificationClick(notification)}
-                      >
-                        <span
-                          className="dashboardWorkspace__notificationIcon"
-                          aria-hidden="true"
+                      <li key={notification.id} className="dashboardWorkspace__notificationRow">
+                        <button
+                          type="button"
+                          className={`dashboardWorkspace__notificationItem${
+                            notification.read ? "" : " is-unread"
+                          }`}
+                          onClick={() => onNotificationClick(notification)}
                         >
-                          <NotificationTypeIcon type={notification.type} />
-                        </span>
-                        <span className="dashboardWorkspace__notificationCopy">
-                          <span>{notification.message}</span>
-                          <small>
-                            {formatRelativeTime(notification.timestamp)}
-                          </small>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                          <span
+                            className="dashboardWorkspace__notificationIcon"
+                            aria-hidden="true"
+                          >
+                            <NotificationTypeIcon type={notification.type} />
+                          </span>
+                          <span className="dashboardWorkspace__notificationCopy">
+                            <span>{notification.message}</span>
+                            <small>
+                              {formatRelativeTime(notification.timestamp)}
+                              {" \u00B7 "}
+                              {formatTimestamp(notification.timestamp)}
+                            </small>
+                          </span>
+                        </button>
+                        {onDeleteNotification ? (
+                          <button
+                            type="button"
+                            className="dashboardWorkspace__notificationDelete"
+                            aria-label="Delete notification"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteNotification(notification.id);
+                            }}
+                          />
+                        ) : null}
+                      </li>
+                    ))}
                 </ul>
               )}
             </motion.div>
@@ -721,7 +763,8 @@ type QuickLinkTarget =
   | "vendor"
   | "payment"
   | "documents"
-  | "cases";
+  | "cases"
+  | "notifications";
 
 const quickLinkDirectory: Array<{
   target: QuickLinkTarget;
@@ -1634,11 +1677,12 @@ function DocumentsTab({
     href: string;
     meta?: string;
   } | null>(null);
-  const [highlightedDocKey, setHighlightedDocKey] = useState<string | null>(
-    null,
-  );
   const documentCardRefs = useRef<Record<string, HTMLElement | null>>({});
-  const processedHighlightDocUrlRef = useRef<string | null>(null);
+  const highlightedDocKey =
+    highlightDocumentUrl &&
+    files.some((file) => file.downloadUrl === highlightDocumentUrl)
+      ? highlightDocumentUrl
+      : null;
 
   useEffect(() => {
     async function loadMedia() {
@@ -1673,21 +1717,6 @@ function DocumentsTab({
     void loadMedia();
   }, [projectId]);
 
-  // Adjust local highlight state directly during render instead of in an
-  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
-  // ref guards it so each incoming highlightDocumentUrl is only applied once.
-  if (
-    highlightDocumentUrl &&
-    files.length > 0 &&
-    processedHighlightDocUrlRef.current !== highlightDocumentUrl
-  ) {
-    processedHighlightDocUrlRef.current = highlightDocumentUrl;
-    if (files.some((file) => file.downloadUrl === highlightDocumentUrl)) {
-      setActiveMediaTab("documents");
-      setHighlightedDocKey(highlightDocumentUrl);
-    }
-  }
-
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
   useEffect(() => {
@@ -1700,9 +1729,8 @@ function DocumentsTab({
     if (!highlightedDocKey) return undefined;
     const node = documentCardRefs.current[highlightedDocKey];
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
-    const timeout = window.setTimeout(() => setHighlightedDocKey(null), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [highlightedDocKey, activeMediaTab]);
+    return undefined;
+  }, [highlightedDocKey]);
 
   useEffect(() => {
     if (!selectedPreview) return undefined;
@@ -1969,6 +1997,118 @@ function slugifyStatus(value?: string) {
   return (value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
+// Full-page Notifications tab: lists all notifications with absolute dates.
+function NotificationsTab({
+  notifications,
+  onNotificationClick,
+  onMarkAllRead,
+  onNavigate,
+  onDeleteNotification,
+}: {
+  notifications: PortalNotification[];
+  onNotificationClick: (n: PortalNotification) => void;
+  onMarkAllRead: () => void;
+  onNavigate: (tab: QuickLinkTarget) => void;
+  onDeleteNotification?: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return notifications;
+    return notifications.filter((n) => {
+      const parts = [n.message, n.projectName || "", n.type || ""].join(" ").toLowerCase();
+      return parts.includes(q) || (n.caseId || "").toLowerCase().includes(q);
+    });
+  }, [notifications, query]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+
+  return (
+    <motion.section
+      className="dashboardSection"
+      initial="hidden"
+      animate="visible"
+      variants={{ visible: staggerTransition }}
+    >
+      <div className="dashboardSection__heading">
+        <div>
+          <p className="dashboardSection__eyebrow">Notifications</p>
+          <h2 className="dashboardSection__title">Recent activity</h2>
+          <p className="dashboardSection__lead">All notifications in one place.</p>
+        </div>
+        <div className="dashboardSection__chip dashboardSection__chip--button">
+          <button type="button" onClick={onMarkAllRead}>Mark all read</button>
+        </div>
+      </div>
+
+      <div className="dashboardNotificationsTab__controls">
+        <input
+          aria-label="Search notifications"
+          className="dashboardNotificationsTab__search"
+          placeholder="Search notifications, project, or case id..."
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(0);
+          }}
+        />
+      </div>
+
+      {filtered.length === 0 ? (
+        <GlassEmptyState message={query ? "No notifications match your search." : "You're all caught up."} />
+      ) : (
+        <>
+          <ul className="dashboardWorkspace__notificationsList dashboardNotificationsTab__list">
+            {filtered
+              .slice(safePage * NOTIFICATIONS_PER_PAGE, (safePage + 1) * NOTIFICATIONS_PER_PAGE)
+              .map((notification) => (
+                <li key={notification.id} className="dashboardWorkspace__notificationRow">
+                  <button
+                    type="button"
+                    className={`dashboardWorkspace__notificationItem${notification.read ? '' : ' is-unread'}`}
+                    onClick={() => onNotificationClick(notification)}
+                  >
+                    <span className="dashboardWorkspace__notificationIcon" aria-hidden="true">
+                      <NotificationTypeIcon type={notification.type} />
+                    </span>
+                    <span className="dashboardWorkspace__notificationCopy">
+                      <span>{notification.message}</span>
+                      <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
+                    </span>
+                    <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true">
+                      <FiArrowRight />
+                    </span>
+                  </button>
+                  {onDeleteNotification ? (
+                    <button
+                      type="button"
+                      className="dashboardWorkspace__notificationDelete"
+                      aria-label="Delete notification"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteNotification(notification.id);
+                      }}
+                    />
+                  ) : null}
+                </li>
+              ))}
+          </ul>
+          {totalPages > 1 ? (
+            <div className="dashboardNotificationsTab__pagination">
+              <button type="button" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0}>Prev</button>
+              <span>{safePage * NOTIFICATIONS_PER_PAGE + 1}-{Math.min((safePage + 1) * NOTIFICATIONS_PER_PAGE, filtered.length)} of {filtered.length}</span>
+              <button type="button" onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))} disabled={safePage === totalPages - 1}>Next</button>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      <QuickLinks exclude={"profile"} onNavigate={onNavigate} />
+    </motion.section>
+  );
+}
+
 // Buckets a case's granular Salesforce status (New, In Progress, Escalated, ...)
 // into the simple Open/Closed view customers filter by.
 function isClosedCaseStatus(status?: string) {
@@ -1982,12 +2122,16 @@ type CaseStatusFilter = "All" | "Open" | "Closed";
 // notification click).
 function CasesTab({
   contactId,
+  projectId,
+  projectName,
   onNavigate,
   highlightCaseId,
   onHighlightHandled,
   onOpenSupportModal,
 }: {
   contactId: string;
+  projectId?: string | null;
+  projectName?: string | null;
   onNavigate: (tab: QuickLinkTarget) => void;
   highlightCaseId?: string | null;
   onHighlightHandled?: () => void;
@@ -1996,11 +2140,11 @@ function CasesTab({
   const [cases, setCases] = useState<SupportCaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<CaseStatusFilter>("All");
-  const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(
-    null,
-  );
   const caseCardRefs = useRef<Record<string, HTMLElement | null>>({});
-  const processedHighlightCaseIdRef = useRef<string | null>(null);
+  const effectiveHighlightedCaseId =
+    highlightCaseId && cases.some((item) => item.caseId === highlightCaseId)
+      ? highlightCaseId
+      : null;
 
   useEffect(() => {
     async function loadCases() {
@@ -2010,25 +2154,20 @@ function CasesTab({
       }
       setIsLoading(true);
       const result = await getSupportCases(contactId);
-      setCases(result || []);
+      let list = result || [];
+      if (projectId || projectName) {
+        list = list.filter((item) => {
+          if (!item) return false;
+          if (projectId && item.projectId) return item.projectId === projectId;
+          if (projectName && item.projectName) return item.projectName === projectName;
+          return false;
+        });
+      }
+      setCases(list);
       setIsLoading(false);
     }
     void loadCases();
-  }, [contactId]);
-
-  // Adjust local highlight state directly during render instead of in an
-  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
-  // ref guards it so each incoming highlightCaseId is only applied once.
-  if (
-    highlightCaseId &&
-    cases.length > 0 &&
-    processedHighlightCaseIdRef.current !== highlightCaseId
-  ) {
-    processedHighlightCaseIdRef.current = highlightCaseId;
-    if (cases.some((item) => item.caseId === highlightCaseId)) {
-      setHighlightedCaseId(highlightCaseId);
-    }
-  }
+  }, [contactId, projectId, projectName]);
 
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
@@ -2039,12 +2178,11 @@ function CasesTab({
   }, [highlightCaseId, cases, onHighlightHandled]);
 
   useEffect(() => {
-    if (!highlightedCaseId) return undefined;
-    const node = caseCardRefs.current[highlightedCaseId];
+    if (!effectiveHighlightedCaseId) return undefined;
+    const node = caseCardRefs.current[effectiveHighlightedCaseId];
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
-    const timeout = window.setTimeout(() => setHighlightedCaseId(null), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [highlightedCaseId]);
+    return undefined;
+  }, [effectiveHighlightedCaseId]);
 
   if (isLoading)
     return <p className="dashboard-loading">Loading your cases...</p>;
@@ -2113,7 +2251,7 @@ function CasesTab({
                   caseCardRefs.current[item.caseId] = node;
                 }}
                 className={`dashboardCaseCard${
-                  highlightedCaseId === item.caseId
+                  effectiveHighlightedCaseId === item.caseId
                     ? " dashboardCaseCard--highlighted"
                     : ""
                 }`}
@@ -2208,17 +2346,9 @@ export function DashboardPage() {
       const initialContactId =
         authClient?.contactId || localStorage.getItem("contactId") || "";
       if (!initialContactId) return [];
-      const initialProjectId = readStoredSelectedProjectId(initialContactId);
-      // Without a previously-selected project we don't yet know which
-      // project's notifications to show (the project list is still loading),
-      // so start empty rather than guessing — the poll effect fills this in
-      // once the active project resolves.
-      return initialProjectId
-        ? readStoredNotifications(
-            getNotificationStorageKeys(initialContactId, initialProjectId)
-              .list,
-          )
-        : [];
+      return readStoredNotifications(
+        getCustomerNotificationStorageKeys(initialContactId).list,
+      );
     },
   );
   const [selectedProjectId, setSelectedProjectIdState] = useState<
@@ -2334,121 +2464,152 @@ export function DashboardPage() {
   // Polls the same data the individual tabs already fetch on their own, so a
   // status/vendor/payment/document change is surfaced as a notification even
   // if the client never visits that tab during this session.
-  useEffect(() => {
-    if (!contactId || !activeProjectId) return undefined;
+  const notificationProjectKey = useMemo(
+    () => contactProjects.map((project) => project.id || project.projectName).join("|"),
+    [contactProjects],
+  );
 
-    const keys = getNotificationStorageKeys(contactId, activeProjectId);
+  useEffect(() => {
+    if (!contactId || contactProjects.length === 0) return undefined;
 
     async function checkForUpdates() {
-      const [statusRes, terms, files, supportCases] = await Promise.all([
+      const [statusRes, supportCases] = await Promise.all([
         getProjectStatus(contactId),
-        activeProjectName
-          ? getPaymentTerms(activeProjectName)
-          : Promise.resolve(null),
-        activeProjectId
-          ? getProjectFiles(activeProjectId)
-          : Promise.resolve(null),
         getSupportCases(contactId),
       ]);
 
-      const project = statusRes?.success
-        ? statusRes.projects.find(
-            (candidate) =>
-              (candidate.id || candidate.projectName) === activeProjectId,
-          )
-        : undefined;
-
-      const termsList = Array.isArray(terms) ? terms : [];
-      const filesList = Array.isArray(files) ? files : [];
+      const projectsList = statusRes?.success ? statusRes.projects : [];
       const casesList = Array.isArray(supportCases) ? supportCases : [];
+      const allEntries: NotificationEntry[] = [];
 
-      const previousSnapshot = readNotificationSnapshot(keys.snapshot);
-      const freshSnapshot = buildNotificationSnapshot(
-        project,
-        termsList,
-        filesList,
-        casesList,
+      await Promise.all(
+        contactProjects.map(async (project) => {
+          const projectId = project.id || project.projectName;
+          const projectName = project.projectName;
+          const keys = getNotificationStorageKeys(contactId, projectId);
+
+          const [terms, files] = await Promise.all([
+            projectName ? getPaymentTerms(projectName) : Promise.resolve(null),
+            projectId ? getProjectFiles(projectId) : Promise.resolve(null),
+          ]);
+
+          const matchingProject = projectsList.find(
+            (candidate) =>
+              (candidate.id || candidate.projectName) === projectId,
+          );
+
+          const termsList = Array.isArray(terms) ? terms : [];
+          const filesList = Array.isArray(files) ? files : [];
+
+          const previousSnapshot = readNotificationSnapshot(keys.snapshot);
+          const freshSnapshot = buildNotificationSnapshot(
+            matchingProject,
+            termsList,
+            filesList,
+            casesList,
+          );
+
+          // Salesforce's file/case list endpoints can return an incomplete
+          // result for a single poll (a slow related-list query, a flaky
+          // endpoint, a project still resolving) even though nothing actually
+          // changed. If we replaced the snapshot outright with that poll's
+          // fetch, an entry missing from just one poll would vanish from the
+          // baseline and then look brand new the next time the API returned it
+          // — reviving notifications the client had already cleared. Instead we
+          // merge each poll's fresh data into the running baseline: fresh values
+          // win when present, but nothing already seen is ever dropped, so a
+          // vendor/payment/document/case can only be flagged "new" once, ever.
+          const nextSnapshot: NotificationSnapshot = {
+            projectStatus:
+              freshSnapshot.projectStatus ?? previousSnapshot?.projectStatus,
+            completionPercentage:
+              freshSnapshot.completionPercentage ??
+              previousSnapshot?.completionPercentage,
+            vendors: {
+              ...(previousSnapshot?.vendors || {}),
+              ...freshSnapshot.vendors,
+            },
+            vendorCategories: {
+              ...(previousSnapshot?.vendorCategories || {}),
+              ...freshSnapshot.vendorCategories,
+            },
+            paymentTerms: {
+              ...(previousSnapshot?.paymentTerms || {}),
+              ...freshSnapshot.paymentTerms,
+            },
+            documents: mergeNotificationDocuments(
+              previousSnapshot?.documents || [],
+              freshSnapshot.documents,
+            ),
+            cases: { ...(previousSnapshot?.cases || {}), ...freshSnapshot.cases },
+          };
+          writeNotificationSnapshot(keys.snapshot, nextSnapshot);
+
+          const diffs = previousSnapshot
+            ? diffNotificationSnapshots(
+                previousSnapshot,
+                nextSnapshot,
+                projectName,
+              ).map((entry) => ({
+                ...entry,
+                projectId,
+                projectName,
+              }))
+            : [];
+
+          const PAYMENT_DUE_DAYS = 30;
+          const today = new Date().toISOString().slice(0, 10);
+          const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${projectId}`;
+          let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
+          try {
+            const raw = window.localStorage.getItem(paymentDueSeenKey);
+            if (raw) seenData = JSON.parse(raw) as { date: string; seen: string[] };
+          } catch {
+            /* ignore parse errors */
+          }
+          const seenToday = seenData.date === today ? seenData.seen : [];
+          const paymentDueEntries: NotificationEntry[] = [];
+
+          termsList.forEach((term) => {
+            if (!term.dueDate || term.paymentReceived) return;
+            const daysUntilDue = Math.ceil(
+              (new Date(term.dueDate).getTime() - Date.now()) /
+                (24 * 60 * 60 * 1000),
+            );
+            if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
+            const alertKey = `${term.label || term.name}:${term.dueDate}`;
+            if (seenToday.includes(alertKey)) return;
+            seenToday.push(alertKey);
+            const label = term.label || term.name || "Payment";
+            const message =
+              daysUntilDue === 0
+                ? `"${label}" payment is due today.`
+                : daysUntilDue === 1
+                  ? `"${label}" payment is due tomorrow.`
+                  : `"${label}" payment is due in ${daysUntilDue} days.`;
+            paymentDueEntries.push(
+              {
+                ...annotateNotificationWithProject(
+                  { type: "paymentDue", message },
+                  projectName,
+                ),
+                projectId,
+                projectName,
+              },
+            );
+          });
+
+          if (paymentDueEntries.length > 0) {
+            window.localStorage.setItem(
+              paymentDueSeenKey,
+              JSON.stringify({ date: today, seen: seenToday }),
+            );
+          }
+
+          allEntries.push(...diffs, ...paymentDueEntries);
+        }),
       );
 
-      // Salesforce's file/case list endpoints can return an incomplete
-      // result for a single poll (a slow related-list query, a flaky
-      // endpoint, a project still resolving) even though nothing actually
-      // changed. If we replaced the snapshot outright with that poll's
-      // fetch, an entry missing from just one poll would vanish from the
-      // baseline and then look brand new the next time the API returned it
-      // — reviving notifications the client had already cleared. Instead we
-      // merge each poll's fresh data into the running baseline: fresh values
-      // win when present, but nothing already seen is ever dropped, so a
-      // vendor/payment/document/case can only be flagged "new" once, ever.
-      const nextSnapshot: NotificationSnapshot = {
-        projectStatus: freshSnapshot.projectStatus ?? previousSnapshot?.projectStatus,
-        completionPercentage:
-          freshSnapshot.completionPercentage ??
-          previousSnapshot?.completionPercentage,
-        vendors: { ...(previousSnapshot?.vendors || {}), ...freshSnapshot.vendors },
-        vendorCategories: {
-          ...(previousSnapshot?.vendorCategories || {}),
-          ...freshSnapshot.vendorCategories,
-        },
-        paymentTerms: {
-          ...(previousSnapshot?.paymentTerms || {}),
-          ...freshSnapshot.paymentTerms,
-        },
-        documents: mergeNotificationDocuments(
-          previousSnapshot?.documents || [],
-          freshSnapshot.documents,
-        ),
-        cases: { ...(previousSnapshot?.cases || {}), ...freshSnapshot.cases },
-      };
-      writeNotificationSnapshot(keys.snapshot, nextSnapshot);
-
-      // Change-based notifications (only when previous snapshot exists to compare against)
-      const diffs = previousSnapshot
-        ? diffNotificationSnapshots(previousSnapshot, nextSnapshot)
-        : [];
-
-      // Payment due-date notifications: fire once per calendar day per payment term
-      const PAYMENT_DUE_DAYS = 30;
-      const today = new Date().toISOString().slice(0, 10);
-      const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${activeProjectId}`;
-      let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
-      try {
-        const raw = window.localStorage.getItem(paymentDueSeenKey);
-        if (raw) seenData = JSON.parse(raw) as { date: string; seen: string[] };
-      } catch {
-        /* ignore parse errors */
-      }
-      const seenToday = seenData.date === today ? seenData.seen : [];
-      const paymentDueEntries: NotificationEntry[] = [];
-
-      termsList.forEach((term) => {
-        if (!term.dueDate || term.paymentReceived) return;
-        const daysUntilDue = Math.ceil(
-          (new Date(term.dueDate).getTime() - Date.now()) /
-            (24 * 60 * 60 * 1000),
-        );
-        if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
-        const alertKey = `${term.label || term.name}:${term.dueDate}`;
-        if (seenToday.includes(alertKey)) return;
-        seenToday.push(alertKey);
-        const label = term.label || term.name || "Payment";
-        const message =
-          daysUntilDue === 0
-            ? `"${label}" payment is due today.`
-            : daysUntilDue === 1
-              ? `"${label}" payment is due tomorrow.`
-              : `"${label}" payment is due in ${daysUntilDue} days.`;
-        paymentDueEntries.push({ type: "paymentDue", message });
-      });
-
-      if (paymentDueEntries.length > 0) {
-        window.localStorage.setItem(
-          paymentDueSeenKey,
-          JSON.stringify({ date: today, seen: seenToday }),
-        );
-      }
-
-      const allEntries = [...diffs, ...paymentDueEntries];
       if (allEntries.length === 0) return;
 
       setNotifications((prev) => {
@@ -2459,6 +2620,8 @@ export function DashboardPage() {
             message: entry.message,
             documentUrl: entry.documentUrl,
             caseId: entry.caseId,
+            projectId: entry.projectId,
+            projectName: entry.projectName,
             timestamp: Date.now(),
             read: false,
           }),
@@ -2467,37 +2630,24 @@ export function DashboardPage() {
           0,
           MAX_STORED_NOTIFICATIONS,
         );
-        writeStoredNotifications(keys.list, merged);
+        writeStoredNotifications(
+          getCustomerNotificationStorageKeys(contactId).list,
+          merged,
+        );
         return merged;
       });
     }
 
     void checkForUpdates();
-    const interval = window.setInterval(
-      checkForUpdates,
-      NOTIFICATION_POLL_INTERVAL_MS,
-    );
+    const interval = window.setInterval(() => {
+      void checkForUpdates();
+    }, NOTIFICATION_POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [contactId, activeProjectId, activeProjectName]);
-
-  // Notifications are scoped per project. Whenever the active project
-  // resolves for the first time or the client switches to a different
-  // project, swap the in-memory list for that project's own stored list
-  // instead of leaving the previous project's notifications on screen.
-  useEffect(() => {
-    if (!contactId || !activeProjectId) {
-      setNotifications([]);
-      return;
-    }
-    setNotifications(
-      readStoredNotifications(
-        getNotificationStorageKeys(contactId, activeProjectId).list,
-      ),
-    );
-  }, [contactId, activeProjectId]);
+  }, [contactId, contactProjects, notificationProjectKey]);
 
   const desktopNavItems = [
     { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
+    { id: "notifications", label: "Notifications", icon: FiBell },
     { id: "status", label: "Project Status", icon: FiCalendar },
     { id: "vendor", label: "Vendor Tasks", icon: FiBriefcase },
     { id: "payment", label: "Payment Terms", icon: FiCreditCard },
@@ -2523,14 +2673,17 @@ export function DashboardPage() {
       const updated = prev.map((item) =>
         item.id === notification.id ? { ...item, read: true } : item,
       );
-      if (contactId && activeProjectId) {
+      if (contactId) {
         writeStoredNotifications(
-          getNotificationStorageKeys(contactId, activeProjectId).list,
+          getCustomerNotificationStorageKeys(contactId).list,
           updated,
         );
       }
       return updated;
     });
+    if (notification.projectId) {
+      setSelectedProjectId(notification.projectId);
+    }
     setIsNotificationPanelOpen(false);
     if (notification.type === "documents" && notification.documentUrl) {
       setHighlightDocumentUrl(notification.documentUrl);
@@ -2547,12 +2700,12 @@ export function DashboardPage() {
     );
   };
 
-  const handleMarkAllNotificationsRead = () => {
+  const handleDeleteNotification = (notificationId: string) => {
     setNotifications((prev) => {
-      const updated = prev.map((item) => ({ ...item, read: true }));
-      if (contactId && activeProjectId) {
+      const updated = prev.filter((n) => n.id !== notificationId);
+      if (contactId) {
         writeStoredNotifications(
-          getNotificationStorageKeys(contactId, activeProjectId).list,
+          getCustomerNotificationStorageKeys(contactId).list,
           updated,
         );
       }
@@ -2560,14 +2713,17 @@ export function DashboardPage() {
     });
   };
 
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-    if (contactId && activeProjectId) {
-      writeStoredNotifications(
-        getNotificationStorageKeys(contactId, activeProjectId).list,
-        [],
-      );
-    }
+  const handleMarkAllNotificationsRead = () => {
+    setNotifications((prev) => {
+      const updated = prev.map((item) => ({ ...item, read: true }));
+      if (contactId) {
+        writeStoredNotifications(
+          getCustomerNotificationStorageKeys(contactId).list,
+          updated,
+        );
+      }
+      return updated;
+    });
   };
 
   return (
@@ -2620,16 +2776,16 @@ export function DashboardPage() {
           </button>
 
           <div className="dashboardMobileBar__actions">
-            <NotificationBell
-              wrapperClassName="dashboardMobileBar__notifications"
-              notifications={notifications}
-              isOpen={isNotificationPanelOpen}
-              onToggle={() => setIsNotificationPanelOpen((value) => !value)}
-              onClose={() => setIsNotificationPanelOpen(false)}
-              onNotificationClick={handleNotificationClick}
-              onMarkAllRead={handleMarkAllNotificationsRead}
-              onClearAll={handleClearAllNotifications}
-            />
+              <NotificationBell
+                wrapperClassName="dashboardMobileBar__notifications"
+                notifications={notifications}
+                isOpen={isNotificationPanelOpen}
+                onToggle={() => setIsNotificationPanelOpen((value) => !value)}
+                onClose={() => setIsNotificationPanelOpen(false)}
+                onNotificationClick={handleNotificationClick}
+                onMarkAllRead={handleMarkAllNotificationsRead}
+                onDeleteNotification={handleDeleteNotification}
+              />
 
             <AccountMenu
               wrapperClassName="dashboardMobileBar__account"
@@ -2779,7 +2935,7 @@ export function DashboardPage() {
                 onClose={() => setIsNotificationPanelOpen(false)}
                 onNotificationClick={handleNotificationClick}
                 onMarkAllRead={handleMarkAllNotificationsRead}
-                onClearAll={handleClearAllNotifications}
+                onDeleteNotification={handleDeleteNotification}
               />
 
               <AccountMenu
@@ -3146,9 +3302,20 @@ export function DashboardPage() {
                     onHighlightHandled={() => setHighlightDocumentUrl(null)}
                   />
                 ) : null}
+                {deferredDashboardTab === "notifications" ? (
+                  <NotificationsTab
+                    notifications={notifications}
+                    onNotificationClick={handleNotificationClick}
+                    onMarkAllRead={handleMarkAllNotificationsRead}
+                    onDeleteNotification={handleDeleteNotification}
+                    onNavigate={handleTabChange}
+                  />
+                ) : null}
                 {deferredDashboardTab === "cases" ? (
                   <CasesTab
                     contactId={contactId}
+                    projectId={activeProjectId}
+                    projectName={activeProjectName}
                     onNavigate={handleTabChange}
                     highlightCaseId={highlightCaseId}
                     onHighlightHandled={() => setHighlightCaseId(null)}

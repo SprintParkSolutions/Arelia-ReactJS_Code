@@ -53,6 +53,8 @@ export type SupportCaseRecord = {
   priority?: string
   category?: string
   createdDate?: string
+  projectId?: string
+  projectName?: string
 }
 
 export type ClientPortalResponse = {
@@ -275,6 +277,12 @@ function normalizeSupportCaseRecord(rawCase: unknown): SupportCaseRecord | undef
     priority: asString(item.priority || item.Priority),
     category: asString(item.category || item.Type),
     createdDate: asString(item.createdDate || item.CreatedDate),
+    projectId: asString(
+      item.projectId || item.ProjectId || item.project?.id || item.project?.projectId || item.project?.Id,
+    ),
+    projectName: asString(
+      item.projectName || item.Project__r?.Name || item.project?.name || item.project?.projectName,
+    ),
   }
 }
 
