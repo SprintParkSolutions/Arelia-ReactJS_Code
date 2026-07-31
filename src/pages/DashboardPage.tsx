@@ -1677,11 +1677,12 @@ function DocumentsTab({
     href: string;
     meta?: string;
   } | null>(null);
-  const [highlightedDocKey, setHighlightedDocKey] = useState<string | null>(
-    null,
-  );
   const documentCardRefs = useRef<Record<string, HTMLElement | null>>({});
-  const processedHighlightDocUrlRef = useRef<string | null>(null);
+  const highlightedDocKey =
+    highlightDocumentUrl &&
+    files.some((file) => file.downloadUrl === highlightDocumentUrl)
+      ? highlightDocumentUrl
+      : null;
 
   useEffect(() => {
     async function loadMedia() {
@@ -1716,21 +1717,6 @@ function DocumentsTab({
     void loadMedia();
   }, [projectId]);
 
-  // Adjust local highlight state directly during render instead of in an
-  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
-  // ref guards it so each incoming highlightDocumentUrl is only applied once.
-  if (
-    highlightDocumentUrl &&
-    files.length > 0 &&
-    processedHighlightDocUrlRef.current !== highlightDocumentUrl
-  ) {
-    processedHighlightDocUrlRef.current = highlightDocumentUrl;
-    if (files.some((file) => file.downloadUrl === highlightDocumentUrl)) {
-      setActiveMediaTab("documents");
-      setHighlightedDocKey(highlightDocumentUrl);
-    }
-  }
-
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
   useEffect(() => {
@@ -1743,9 +1729,8 @@ function DocumentsTab({
     if (!highlightedDocKey) return undefined;
     const node = documentCardRefs.current[highlightedDocKey];
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
-    const timeout = window.setTimeout(() => setHighlightedDocKey(null), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [highlightedDocKey, activeMediaTab]);
+    return undefined;
+  }, [highlightedDocKey]);
 
   useEffect(() => {
     if (!selectedPreview) return undefined;
@@ -2036,9 +2021,8 @@ function NotificationsTab({
       return parts.includes(q) || (n.caseId || "").toLowerCase().includes(q);
     });
   }, [notifications, query]);
-  useEffect(() => {
-    setPage(0);
-  }, [query, notifications]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
 
   return (
     <motion.section
@@ -2064,7 +2048,10 @@ function NotificationsTab({
           className="dashboardNotificationsTab__search"
           placeholder="Search notifications, project, or case id..."
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setPage(0);
+          }}
         />
       </div>
 
@@ -2073,51 +2060,45 @@ function NotificationsTab({
       ) : (
         <>
           <ul className="dashboardWorkspace__notificationsList dashboardNotificationsTab__list">
-            {(() => {
-              const pageCount = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE));
-              const visible = filtered.slice(page * NOTIFICATIONS_PER_PAGE, (page + 1) * NOTIFICATIONS_PER_PAGE);
-              return (
-                <>
-                  {visible.map((notification) => (
-                    <li key={notification.id} className="dashboardWorkspace__notificationRow">
-                      <button
-                        type="button"
-                        className={`dashboardWorkspace__notificationItem${notification.read ? '' : ' is-unread'}`}
-                        onClick={() => onNotificationClick(notification)}
-                      >
-                        <span className="dashboardWorkspace__notificationIcon" aria-hidden="true">
-                          <NotificationTypeIcon type={notification.type} />
-                        </span>
-                        <span className="dashboardWorkspace__notificationCopy">
-                          <span>{notification.message}</span>
-                          <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
-                        </span>
-                        <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true">
-                          <FiArrowRight />
-                        </span>
-                      </button>
-                      {onDeleteNotification ? (
-                        <button
-                          type="button"
-                          className="dashboardWorkspace__notificationDelete"
-                          aria-label="Delete notification"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteNotification(notification.id);
-                          }}
-                        />
-                      ) : null}
-                    </li>
-                  ))}
-                </>
-              );
-            })()}
+            {filtered
+              .slice(safePage * NOTIFICATIONS_PER_PAGE, (safePage + 1) * NOTIFICATIONS_PER_PAGE)
+              .map((notification) => (
+                <li key={notification.id} className="dashboardWorkspace__notificationRow">
+                  <button
+                    type="button"
+                    className={`dashboardWorkspace__notificationItem${notification.read ? '' : ' is-unread'}`}
+                    onClick={() => onNotificationClick(notification)}
+                  >
+                    <span className="dashboardWorkspace__notificationIcon" aria-hidden="true">
+                      <NotificationTypeIcon type={notification.type} />
+                    </span>
+                    <span className="dashboardWorkspace__notificationCopy">
+                      <span>{notification.message}</span>
+                      <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
+                    </span>
+                    <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true">
+                      <FiArrowRight />
+                    </span>
+                  </button>
+                  {onDeleteNotification ? (
+                    <button
+                      type="button"
+                      className="dashboardWorkspace__notificationDelete"
+                      aria-label="Delete notification"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteNotification(notification.id);
+                      }}
+                    />
+                  ) : null}
+                </li>
+              ))}
           </ul>
-          {Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE)) > 1 ? (
+          {totalPages > 1 ? (
             <div className="dashboardNotificationsTab__pagination">
-              <button type="button" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>Prev</button>
-              <span>{page * NOTIFICATIONS_PER_PAGE + 1}-{Math.min((page + 1) * NOTIFICATIONS_PER_PAGE, filtered.length)} of {filtered.length}</span>
-              <button type="button" onClick={() => setPage(Math.min(Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE)) - 1, page + 1))} disabled={page === Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE)) - 1}>Next</button>
+              <button type="button" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0}>Prev</button>
+              <span>{safePage * NOTIFICATIONS_PER_PAGE + 1}-{Math.min((safePage + 1) * NOTIFICATIONS_PER_PAGE, filtered.length)} of {filtered.length}</span>
+              <button type="button" onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))} disabled={safePage === totalPages - 1}>Next</button>
             </div>
           ) : null}
         </>
@@ -2159,11 +2140,11 @@ function CasesTab({
   const [cases, setCases] = useState<SupportCaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<CaseStatusFilter>("All");
-  const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(
-    null,
-  );
   const caseCardRefs = useRef<Record<string, HTMLElement | null>>({});
-  const processedHighlightCaseIdRef = useRef<string | null>(null);
+  const effectiveHighlightedCaseId =
+    highlightCaseId && cases.some((item) => item.caseId === highlightCaseId)
+      ? highlightCaseId
+      : null;
 
   useEffect(() => {
     async function loadCases() {
@@ -2188,20 +2169,6 @@ function CasesTab({
     void loadCases();
   }, [contactId, projectId, projectName]);
 
-  // Adjust local highlight state directly during render instead of in an
-  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
-  // ref guards it so each incoming highlightCaseId is only applied once.
-  if (
-    highlightCaseId &&
-    cases.length > 0 &&
-    processedHighlightCaseIdRef.current !== highlightCaseId
-  ) {
-    processedHighlightCaseIdRef.current = highlightCaseId;
-    if (cases.some((item) => item.caseId === highlightCaseId)) {
-      setHighlightedCaseId(highlightCaseId);
-    }
-  }
-
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
   useEffect(() => {
@@ -2211,12 +2178,11 @@ function CasesTab({
   }, [highlightCaseId, cases, onHighlightHandled]);
 
   useEffect(() => {
-    if (!highlightedCaseId) return undefined;
-    const node = caseCardRefs.current[highlightedCaseId];
+    if (!effectiveHighlightedCaseId) return undefined;
+    const node = caseCardRefs.current[effectiveHighlightedCaseId];
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
-    const timeout = window.setTimeout(() => setHighlightedCaseId(null), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [highlightedCaseId]);
+    return undefined;
+  }, [effectiveHighlightedCaseId]);
 
   if (isLoading)
     return <p className="dashboard-loading">Loading your cases...</p>;
@@ -2285,7 +2251,7 @@ function CasesTab({
                   caseCardRefs.current[item.caseId] = node;
                 }}
                 className={`dashboardCaseCard${
-                  highlightedCaseId === item.caseId
+                  effectiveHighlightedCaseId === item.caseId
                     ? " dashboardCaseCard--highlighted"
                     : ""
                 }`}
@@ -2498,6 +2464,11 @@ export function DashboardPage() {
   // Polls the same data the individual tabs already fetch on their own, so a
   // status/vendor/payment/document change is surfaced as a notification even
   // if the client never visits that tab during this session.
+  const notificationProjectKey = useMemo(
+    () => contactProjects.map((project) => project.id || project.projectName).join("|"),
+    [contactProjects],
+  );
+
   useEffect(() => {
     if (!contactId || contactProjects.length === 0) return undefined;
 
@@ -2672,17 +2643,7 @@ export function DashboardPage() {
       void checkForUpdates();
     }, NOTIFICATION_POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [contactId, contactProjects.map((project) => project.id || project.projectName).join("|")]);
-
-  useEffect(() => {
-    if (!contactId) {
-      setNotifications([]);
-      return;
-    }
-    setNotifications(
-      readStoredNotifications(getCustomerNotificationStorageKeys(contactId).list),
-    );
-  }, [contactId, contactProjects.length]);
+  }, [contactId, contactProjects, notificationProjectKey]);
 
   const desktopNavItems = [
     { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
@@ -2763,16 +2724,6 @@ export function DashboardPage() {
       }
       return updated;
     });
-  };
-
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-    if (contactId) {
-      writeStoredNotifications(
-        getCustomerNotificationStorageKeys(contactId).list,
-        [],
-      );
-    }
   };
 
   return (
