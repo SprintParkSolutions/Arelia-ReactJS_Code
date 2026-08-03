@@ -148,6 +148,12 @@ function formatTaskStatusKey(status?: string) {
   return (status || "pending").toLowerCase().replace(/\s+/g, "-");
 }
 
+function getVendorProgressStatus(completion: number) {
+  if (completion >= 100) return "Completed";
+  if (completion > 0) return "In progress";
+  return "Not started";
+}
+
 // Determines whether a file's type should render in the image gallery vs the document list.
 function isImageFileType(fileType?: string) {
   if (!fileType) return false;
@@ -228,9 +234,10 @@ type NotificationSnapshot = {
   cases: Record<string, NotificationCase>;
 };
 
-const NOTIFICATION_POLL_INTERVAL_MS = 3 * 60 * 1000;
+const NOTIFICATION_POLL_INTERVAL_MS = 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
 const NOTIFICATIONS_PER_PAGE = 10;
+const SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX = "supportCaseProjectMap";
 
 // Builds the per-contact-per-project localStorage keys used to persist the
 // last-seen snapshot (for diffing) and the notification list itself. Scoping
@@ -429,12 +436,16 @@ function diffNotificationSnapshots(
     if (prevCompletion == null || prevCompletion === completion) return;
     const displayLabel =
       (next.vendorCategories ?? {})[vendorName] || vendorName;
+    const previousStatus = getVendorProgressStatus(prevCompletion);
+    const nextStatus = getVendorProgressStatus(completion);
     entries.push({
       type: "vendor",
       message:
         completion >= 100
-          ? `${displayLabel} finished all assigned tasks.`
-          : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%.`,
+          ? `${displayLabel} finished all assigned tasks. Status: ${nextStatus}.`
+          : previousStatus !== nextStatus
+            ? `${displayLabel} status changed from ${previousStatus} to ${nextStatus} (${prevCompletion}% to ${completion}%).`
+            : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%. Status: ${nextStatus}.`,
     });
   });
 
@@ -509,6 +520,49 @@ function formatTimestamp(timestamp: number) {
   } catch {
     return undefined;
   }
+}
+
+function readSupportCaseProjectMap(contactId: string) {
+  try {
+    const raw = window.localStorage.getItem(
+      `${SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX}:${contactId}`,
+    );
+    return raw
+      ? (JSON.parse(raw) as Record<
+          string,
+          { projectId?: string; projectName?: string }
+        >)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSupportCaseProjectMap(
+  contactId: string,
+  map: Record<string, { projectId?: string; projectName?: string }>,
+) {
+  try {
+    window.localStorage.setItem(
+      `${SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX}:${contactId}`,
+      JSON.stringify(map),
+    );
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+function formatNotificationCount(count: number) {
+  if (count <= 0) return null;
+  return count > 99 ? "99+" : String(count);
+}
+
+function normalizeProjectMatchValue(value?: string | null) {
+  return (value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/-+$/g, "")
+    .toLowerCase();
 }
 
 // Bell trigger + dropdown panel listing notifications, with mark-all-read and clear-all actions.
@@ -2122,24 +2176,25 @@ type CaseStatusFilter = "All" | "Open" | "Closed";
 // notification click).
 function CasesTab({
   contactId,
-  projectId,
-  projectName,
+  projects,
   onNavigate,
   highlightCaseId,
   onHighlightHandled,
   onOpenSupportModal,
+  refreshKey,
 }: {
   contactId: string;
-  projectId?: string | null;
-  projectName?: string | null;
+  projects: Array<{ id: string; name: string }>;
   onNavigate: (tab: QuickLinkTarget) => void;
   highlightCaseId?: string | null;
   onHighlightHandled?: () => void;
   onOpenSupportModal: () => void;
+  refreshKey: number;
 }) {
   const [cases, setCases] = useState<SupportCaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<CaseStatusFilter>("All");
+  const [projectFilter, setProjectFilter] = useState("all");
   const caseCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const effectiveHighlightedCaseId =
     highlightCaseId && cases.some((item) => item.caseId === highlightCaseId)
@@ -2154,20 +2209,42 @@ function CasesTab({
       }
       setIsLoading(true);
       const result = await getSupportCases(contactId);
-      let list = result || [];
-      if (projectId || projectName) {
-        list = list.filter((item) => {
-          if (!item) return false;
-          if (projectId && item.projectId) return item.projectId === projectId;
-          if (projectName && item.projectName) return item.projectName === projectName;
-          return false;
+      const storedProjectMap = readSupportCaseProjectMap(contactId);
+      const list = (result || [])
+        .map((item) => {
+          const storedProject = storedProjectMap[item.caseId];
+          return {
+            ...item,
+            projectId: item.projectId || storedProject?.projectId,
+            projectName: item.projectName || storedProject?.projectName,
+          };
+        })
+        .slice()
+        .sort((left, right) => {
+        const leftTime = left.createdDate
+          ? new Date(left.createdDate).getTime()
+          : 0;
+        const rightTime = right.createdDate
+          ? new Date(right.createdDate).getTime()
+          : 0;
+        return rightTime - leftTime;
         });
-      }
+
+      const nextStoredProjectMap = { ...storedProjectMap };
+      list.forEach((item) => {
+        if (item.caseId && (item.projectId || item.projectName)) {
+          nextStoredProjectMap[item.caseId] = {
+            projectId: item.projectId,
+            projectName: item.projectName,
+          };
+        }
+      });
+      writeSupportCaseProjectMap(contactId, nextStoredProjectMap);
       setCases(list);
       setIsLoading(false);
     }
     void loadCases();
-  }, [contactId, projectId, projectName]);
+  }, [contactId, refreshKey]);
 
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
@@ -2194,8 +2271,37 @@ function CasesTab({
     { key: "Open", count: openCases.length },
     { key: "Closed", count: closedCases.length },
   ];
-  const visibleCases =
+  const visibleCasesByStatus =
     statusFilter === "All" ? cases : statusFilter === "Open" ? openCases : closedCases;
+  const findMatchingProject = (item: SupportCaseRecord) => {
+    const normalizedProjectId = normalizeProjectMatchValue(item.projectId);
+    const normalizedProjectName = normalizeProjectMatchValue(item.projectName);
+    return projects.find((project) => {
+      const projectIdMatch =
+        normalizedProjectId &&
+        normalizeProjectMatchValue(project.id) === normalizedProjectId;
+      const projectNameMatch =
+        normalizedProjectName &&
+        normalizeProjectMatchValue(project.name) === normalizedProjectName;
+      const projectIdLooksLikeName =
+        normalizedProjectId &&
+        normalizeProjectMatchValue(project.name) === normalizedProjectId;
+      return Boolean(projectIdMatch || projectNameMatch || projectIdLooksLikeName);
+    });
+  };
+  const resolvedProjectName = (item: SupportCaseRecord) =>
+    item.projectName ||
+    findMatchingProject(item)?.name ||
+    "Project not assigned";
+  const projectOptions = [
+    { id: "all", name: "All projects" },
+    ...projects.map((project) => ({ id: project.id, name: project.name })),
+  ];
+  const visibleCases = visibleCasesByStatus.filter((item) => {
+    if (projectFilter === "all") return true;
+    const matchedProject = findMatchingProject(item);
+    return matchedProject?.id === projectFilter;
+  });
 
   return (
     <motion.section
@@ -2243,6 +2349,30 @@ function CasesTab({
             ))}
           </div>
 
+          <div className="dashboardCaseFilters">
+            <div className="dashboardCaseFilters__summary">
+              <strong>Total Cases: {visibleCases.length}</strong>
+              <span>
+                {projectFilter === "all"
+                  ? "cases shown across all projects"
+                  : `cases shown for ${
+                      projectOptions.find((project) => project.id === projectFilter)
+                        ?.name || "selected project"
+                    }`}
+              </span>
+            </div>
+            <FormSelect
+              label="Project Filter"
+              value={projectFilter}
+              options={projectOptions.map((project) => ({
+                label: project.name,
+                value: project.id,
+              }))}
+              onChange={setProjectFilter}
+              className="dashboardCaseFilters__project"
+            />
+          </div>
+
           <div className="dashboardCaseGrid">
             {visibleCases.map((item) => (
               <motion.article
@@ -2269,6 +2399,9 @@ function CasesTab({
                   </span>
                 </div>
                 <h3 className="dashboardCaseCard__title">{item.subject}</h3>
+                <p className="dashboardCaseCard__projectName">
+                  {resolvedProjectName(item)}
+                </p>
                 <div className="dashboardCaseCard__descriptionBlock">
                   <span className="dashboardCaseCard__descriptionLabel">Description</span>
                   <p className="dashboardCaseCard__description">
@@ -2276,6 +2409,10 @@ function CasesTab({
                   </p>
                 </div>
                 <div className="dashboardCaseCard__meta">
+                  <span>
+                    <FiFileText aria-hidden="true" />
+                    {item.caseId}
+                  </span>
                   {item.category ? (
                     <span>
                       <FiLayers aria-hidden="true" />
@@ -2334,6 +2471,7 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [supportCasesRefreshKey, setSupportCasesRefreshKey] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
@@ -2661,6 +2799,13 @@ export function DashboardPage() {
     navigate("/login", { replace: true });
   };
 
+  const unreadNotificationCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
+  const unreadNotificationLabel = formatNotificationCount(
+    unreadNotificationCount,
+  );
+
   const handleTabChange = (tabId: (typeof desktopNavItems)[number]["id"]) => {
     startTabTransition(() => {
       setActiveDashboardTab(tabId);
@@ -2738,6 +2883,14 @@ export function DashboardPage() {
         isOpen={isSupportModalOpen}
         contactId={contactId}
         projectId={activeProjectId}
+        projectName={activeProjectName}
+        projects={projects.map((project) => ({
+          id: project.id,
+          name: project.name,
+        }))}
+        onCaseCreated={() =>
+          setSupportCasesRefreshKey((current) => current + 1)
+        }
         onClose={() => setIsSupportModalOpen(false)}
       />
 
@@ -2823,6 +2976,8 @@ export function DashboardPage() {
                 {desktopNavItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeDashboardTab === item.id;
+                  const notificationBadge =
+                    item.id === "notifications" ? unreadNotificationLabel : null;
                   return (
                     <button
                       key={item.id}
@@ -2831,7 +2986,14 @@ export function DashboardPage() {
                       onClick={() => handleTabChange(item.id)}
                     >
                       <Icon />
-                      <span>{item.label}</span>
+                      <span className="dashboardMobileDrawer__linkLabel">
+                        {item.label}
+                      </span>
+                      {notificationBadge ? (
+                        <span className="dashboardNavBadge">
+                          {notificationBadge}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -2890,6 +3052,8 @@ export function DashboardPage() {
             {desktopNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeDashboardTab === item.id;
+              const notificationBadge =
+                item.id === "notifications" ? unreadNotificationLabel : null;
               return (
                 <button
                   key={item.id}
@@ -2898,7 +3062,12 @@ export function DashboardPage() {
                   onClick={() => handleTabChange(item.id)}
                 >
                   <Icon />
-                  <span>{item.label}</span>
+                  <span className="dashboardRail__linkLabel">{item.label}</span>
+                  {notificationBadge ? (
+                    <span className="dashboardNavBadge">
+                      {notificationBadge}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -3314,12 +3483,15 @@ export function DashboardPage() {
                 {deferredDashboardTab === "cases" ? (
                   <CasesTab
                     contactId={contactId}
-                    projectId={activeProjectId}
-                    projectName={activeProjectName}
+                    projects={projects.map((project) => ({
+                      id: project.id,
+                      name: project.name,
+                    }))}
                     onNavigate={handleTabChange}
                     highlightCaseId={highlightCaseId}
                     onHighlightHandled={() => setHighlightCaseId(null)}
                     onOpenSupportModal={() => setIsSupportModalOpen(true)}
+                    refreshKey={supportCasesRefreshKey}
                   />
                 ) : null}
               </motion.div>
@@ -3337,16 +3509,32 @@ function FormSelect({
   value,
   options,
   onChange,
+  placeholder,
+  className,
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: Array<string | { label: string; value: string }>;
   onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const normalizedOptions = options.map((option) =>
+    typeof option === "string"
+      ? { label: option, value: option }
+      : option,
+  );
+  const selectedOption = normalizedOptions.find(
+    (option) => option.value === value,
+  );
 
   return (
-    <div className="dashboardSupportForm__field dashboardSupportForm__select">
+    <div
+      className={`dashboardSupportForm__field dashboardSupportForm__select${
+        className ? ` ${className}` : ""
+      }`}
+    >
       <span>{label}</span>
       <button
         type="button"
@@ -3354,7 +3542,7 @@ function FormSelect({
         onClick={() => setIsOpen((current) => !current)}
         aria-expanded={isOpen}
       >
-        <span>{value}</span>
+        <span>{selectedOption?.label || placeholder || "Select"}</span>
         <FiChevronDown aria-hidden="true" className={isOpen ? "is-open" : ""} />
       </button>
 
@@ -3375,17 +3563,19 @@ function FormSelect({
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             >
-              {options.map((option) => (
+              {normalizedOptions.map((option) => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
-                  className={`dashboardSupportForm__selectOption${option === value ? " is-active" : ""}`}
+                  className={`dashboardSupportForm__selectOption${
+                    option.value === value ? " is-active" : ""
+                  }`}
                   onClick={() => {
-                    onChange(option);
+                    onChange(option.value);
                     setIsOpen(false);
                   }}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </motion.div>
@@ -3401,11 +3591,17 @@ function SupportCaseModal({
   isOpen,
   contactId,
   projectId,
+  projectName,
+  projects,
+  onCaseCreated,
   onClose,
 }: {
   isOpen: boolean;
   contactId: string;
   projectId?: string;
+  projectName?: string;
+  projects: Array<{ id: string; name: string }>;
+  onCaseCreated?: () => void;
   onClose: () => void;
 }) {
   const [subject, setSubject] = useState("");
@@ -3413,9 +3609,15 @@ function SupportCaseModal({
   const [priority, setPriority] = useState("Medium");
   const [category, setCategory] = useState("General");
   const [otherCategory, setOtherCategory] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [caseId, setCaseId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedProjectId(projectId || projects[0]?.id || "");
+  }, [isOpen, projectId, projects]);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -3432,6 +3634,7 @@ function SupportCaseModal({
     setPriority("Medium");
     setCategory("General");
     setOtherCategory("");
+    setSelectedProjectId(projectId || projects[0]?.id || "");
     setError("");
     setCaseId(null);
     onClose();
@@ -3448,13 +3651,17 @@ function SupportCaseModal({
       setError("Please describe the category.");
       return;
     }
+    if (!selectedProjectId) {
+      setError("Please select a project for this support case.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError("");
 
     const res = await createSupportCase({
       contactId,
-      projectId,
+      projectId: selectedProjectId,
       subject: subject.trim(),
       description: description.trim(),
       priority,
@@ -3466,6 +3673,20 @@ function SupportCaseModal({
 
     if (res.success) {
       setCaseId(res.caseId || "submitted");
+      if (contactId && res.caseId) {
+        const storedProjectMap = readSupportCaseProjectMap(contactId);
+        const selectedProject = projects.find(
+          (project) => project.id === selectedProjectId,
+        );
+        writeSupportCaseProjectMap(contactId, {
+          ...storedProjectMap,
+          [res.caseId]: {
+            projectId: selectedProjectId,
+            projectName: selectedProject?.name || projectName,
+          },
+        });
+      }
+      onCaseCreated?.();
     } else {
       console.error("Support case submission failed:", res.message);
       setError(
@@ -3536,6 +3757,11 @@ function SupportCaseModal({
                           Check your email for confirmation - our team will
                           contact you soon.
                         </p>
+                        <p className="dashboardSupportModal__successMeta">
+                          {projects.find((project) => project.id === selectedProjectId)
+                            ?.name || projectName || "Selected project"}
+                          {" · "}Case #{caseId}
+                        </p>
                         <button
                           type="button"
                           className="dashboardProjectSpotlight__cta"
@@ -3549,6 +3775,17 @@ function SupportCaseModal({
                         className="dashboardSupportForm"
                         onSubmit={handleSubmit}
                       >
+                        <FormSelect
+                          label="Project"
+                          value={selectedProjectId}
+                          options={projects.map((project) => ({
+                            label: project.name,
+                            value: project.id,
+                          }))}
+                          onChange={setSelectedProjectId}
+                          placeholder="Select a project"
+                        />
+
                         <label className="dashboardSupportForm__field">
                           <span>Subject</span>
                           <input

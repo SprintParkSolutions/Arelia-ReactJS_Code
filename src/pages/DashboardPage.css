@@ -265,6 +265,33 @@
   flex-shrink: 0;
 }
 
+.dashboardRail__linkLabel,
+.dashboardMobileDrawer__linkLabel {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dashboardNavBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.55rem;
+  height: 1.55rem;
+  padding: 0 0.42rem;
+  margin-left: auto;
+  border: 1px solid rgba(16, 17, 18, 0.9);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #c8a97e, #e8d2b0);
+  color: #1d1408;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow:
+    0 10px 22px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
 .dashboardRail__link.is-active {
   color: #fbe3ad;
   border-color: rgba(233, 193, 118, 0.3);
@@ -2319,6 +2346,13 @@
   gap: 0.75rem;
 }
 
+.dashboardCaseCard__headerCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .dashboardCaseCard__eyebrow {
   display: inline-flex;
   align-items: center;
@@ -2342,6 +2376,75 @@
   font-size: 1rem;
   letter-spacing: -0.01em;
   line-height: 1.4;
+}
+
+.dashboardCaseCard__projectName {
+  margin: -0.15rem 0 0;
+  color: rgba(231, 224, 214, 0.62);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.dashboardCaseFilters {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0 1.2rem;
+}
+
+.dashboardCaseFilters__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.dashboardCaseFilters__summary strong {
+  color: #f8f6f2;
+  font-size: 0.96rem;
+  font-weight: 700;
+}
+
+.dashboardCaseFilters__summary span {
+  color: rgba(231, 224, 214, 0.56);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.dashboardCaseFilters__project {
+  display: flex;
+  flex-direction: column;
+  gap: 0.42rem;
+  min-width: min(100%, 18rem);
+}
+
+.dashboardCaseFilters__project span {
+  color: rgba(248, 246, 242, 0.56);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dashboardCaseFilters__project select {
+  width: 100%;
+  padding: 0.72rem 0.9rem;
+  border: 1px solid rgba(194, 177, 143, 0.18);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: #f5f0e8;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.dashboardCaseFilters__project select:focus,
+.dashboardCaseFilters__project select:hover {
+  outline: none;
+  border-color: rgba(233, 193, 118, 0.5);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .dashboardCaseCard__descriptionBlock {
@@ -3044,6 +3147,7 @@
 }
 
 .dashboardSupportForm__field input,
+.dashboardSupportForm__field select,
 .dashboardSupportForm__field textarea {
   width: 100%;
   padding: 0.75rem 0.9rem;
@@ -3058,10 +3162,23 @@
 }
 
 .dashboardSupportForm__field input:focus,
+.dashboardSupportForm__field select:focus,
 .dashboardSupportForm__field textarea:focus {
   outline: none;
   border-color: rgba(233, 193, 118, 0.5);
   background: rgba(255, 255, 255, 0.05);
+}
+
+.dashboardSupportForm__field select {
+  appearance: none;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.dashboardSupportForm__field select option,
+.dashboardCaseFilters__project select option {
+  background: #161718;
+  color: #f5f0e8;
 }
 
 .dashboardSupportForm__select {
@@ -3196,6 +3313,13 @@
   line-height: 1.55;
 }
 
+.dashboardSupportModal__successMeta {
+  color: rgba(233, 193, 118, 0.8);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .dashboardSupportModal__success .dashboardProjectSpotlight__cta {
   margin-top: 0.5rem;
 }
@@ -3286,6 +3410,15 @@
 
   .dashboardQuickLinks {
     grid-template-columns: 1fr;
+  }
+
+  .dashboardCaseFilters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboardCaseFilters__project {
+    min-width: 0;
   }
 }
 
@@ -3429,6 +3562,10 @@
     cursor: pointer;
     text-align: left;
     font-size: 0.86rem;
+  }
+
+  .dashboardMobileDrawer__linkLabel {
+    flex: 1 1 auto;
   }
 
   .dashboardMobileDrawer__link.is-active {
