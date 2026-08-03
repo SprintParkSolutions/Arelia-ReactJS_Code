@@ -234,6 +234,8 @@ type NotificationSnapshot = {
   cases: Record<string, NotificationCase>;
 };
 
+type NotificationVisibilityFilter = "unread" | "all";
+
 const NOTIFICATION_POLL_INTERVAL_MS = 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
 const NOTIFICATIONS_PER_PAGE = 10;
@@ -585,9 +587,20 @@ function NotificationBell({
   onDeleteNotification?: (id: string) => void;
   wrapperClassName?: string;
 }) {
+  const [activeFilter, setActiveFilter] =
+    useState<NotificationVisibilityFilter>("unread");
   const unreadCount = notifications.filter(
     (notification) => !notification.read,
   ).length;
+  const filteredNotifications =
+    activeFilter === "unread"
+      ? notifications.filter((notification) => !notification.read)
+      : notifications;
+  const hasUnreadNotifications = unreadCount > 0;
+  const emptyMessage =
+    activeFilter === "unread"
+      ? "No unread notifications right now."
+      : "You're all caught up.";
 
   return (
     <div className={wrapperClassName}>
@@ -642,13 +655,44 @@ function NotificationBell({
                 ) : null}
               </div>
 
-              {notifications.length === 0 ? (
+              {notifications.length > 0 ? (
+                <div className="dashboardNotificationsFilter">
+                  <button
+                    type="button"
+                    className={`dashboardNotificationsFilter__chip${
+                      activeFilter === "unread" ? " is-active" : ""
+                    }`}
+                    onClick={() => setActiveFilter("unread")}
+                  >
+                    Unread
+                    {hasUnreadNotifications ? (
+                      <span className="dashboardNotificationsFilter__count">
+                        {unreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    className={`dashboardNotificationsFilter__chip${
+                      activeFilter === "all" ? " is-active" : ""
+                    }`}
+                    onClick={() => setActiveFilter("all")}
+                  >
+                    All notifications
+                    <span className="dashboardNotificationsFilter__count">
+                      {notifications.length}
+                    </span>
+                  </button>
+                </div>
+              ) : null}
+
+              {filteredNotifications.length === 0 ? (
                 <p className="dashboardWorkspace__notificationsEmpty">
-                  You're all caught up.
+                  {emptyMessage}
                 </p>
               ) : (
                 <ul className="dashboardWorkspace__notificationsList">
-                  {notifications.map((notification) => (
+                  {filteredNotifications.map((notification) => (
                       <li key={notification.id} className="dashboardWorkspace__notificationRow">
                         <button
                           type="button"
@@ -2067,16 +2111,39 @@ function NotificationsTab({
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [activeFilter, setActiveFilter] =
+    useState<NotificationVisibilityFilter>("unread");
+  const unreadNotifications = useMemo(
+    () => notifications.filter((notification) => !notification.read),
+    [notifications],
+  );
+  const visibleNotifications =
+    activeFilter === "unread" ? unreadNotifications : notifications;
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return notifications;
-    return notifications.filter((n) => {
+    if (!q) return visibleNotifications;
+    return visibleNotifications.filter((n) => {
       const parts = [n.message, n.projectName || "", n.type || ""].join(" ").toLowerCase();
       return parts.includes(q) || (n.caseId || "").toLowerCase().includes(q);
     });
-  }, [notifications, query]);
+  }, [visibleNotifications, query]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE));
   const safePage = Math.min(page, totalPages - 1);
+  const unreadCount = unreadNotifications.length;
+  const readCount = Math.max(0, notifications.length - unreadCount);
+  const emptyTitle =
+    activeFilter === "unread"
+      ? "No unread notifications right now."
+      : "No notifications yet.";
+  const emptyDescription = query
+    ? "Try another search term, project name, or case number."
+    : activeFilter === "unread"
+      ? "You're caught up. Switch to All notifications to review earlier updates."
+      : "New project updates, files, payments, and case alerts will appear here.";
+
+  useEffect(() => {
+    setPage(0);
+  }, [query, activeFilter]);
 
   return (
     <motion.section
@@ -2089,28 +2156,87 @@ function NotificationsTab({
         <div>
           <p className="dashboardSection__eyebrow">Notifications</p>
           <h2 className="dashboardSection__title">Recent activity</h2>
-          <p className="dashboardSection__lead">All notifications in one place.</p>
+          <p className="dashboardSection__lead">
+            Unread notifications are shown first by default, with full history available anytime.
+          </p>
         </div>
         <div className="dashboardSection__chip dashboardSection__chip--button">
           <button type="button" onClick={onMarkAllRead}>Mark all read</button>
         </div>
       </div>
 
-      <div className="dashboardNotificationsTab__controls">
-        <input
-          aria-label="Search notifications"
-          className="dashboardNotificationsTab__search"
-          placeholder="Search notifications, project, or case id..."
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(0);
-          }}
-        />
+      <div className="dashboardNotificationsTab__toolbar">
+        <div className="dashboardNotificationsTab__summary">
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Unread</span>
+            <strong>{unreadCount}</strong>
+          </div>
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Read</span>
+            <strong>{readCount}</strong>
+          </div>
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Total</span>
+            <strong>{notifications.length}</strong>
+          </div>
+        </div>
+
+        <div className="dashboardNotificationsTab__controls">
+          <div className="dashboardNotificationsFilter">
+            <button
+              type="button"
+              className={`dashboardNotificationsFilter__chip${
+                activeFilter === "unread" ? " is-active" : ""
+              }`}
+              onClick={() => setActiveFilter("unread")}
+            >
+              Unread
+              {unreadCount > 0 ? (
+                <span className="dashboardNotificationsFilter__count">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </button>
+            <button
+              type="button"
+              className={`dashboardNotificationsFilter__chip${
+                activeFilter === "all" ? " is-active" : ""
+              }`}
+              onClick={() => setActiveFilter("all")}
+            >
+              All notifications
+              <span className="dashboardNotificationsFilter__count">
+                {notifications.length}
+              </span>
+            </button>
+          </div>
+          <input
+            aria-label="Search notifications"
+            className="dashboardNotificationsTab__search"
+            placeholder="Search notifications, project, or case id..."
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
+          />
+        </div>
       </div>
 
       {filtered.length === 0 ? (
-        <GlassEmptyState message={query ? "No notifications match your search." : "You're all caught up."} />
+        <motion.div
+          className="dashboardNotificationsTab__empty"
+          variants={fadeUpItem}
+        >
+          <div className="dashboardNotificationsTab__emptyIcon" aria-hidden="true">
+            <FiBell />
+          </div>
+          <div className="dashboardNotificationsTab__emptyCopy">
+            <strong>
+              {query ? "No notifications match your search." : emptyTitle}
+            </strong>
+            <p>{emptyDescription}</p>
+          </div>
+        </motion.div>
       ) : (
         <>
           <ul className="dashboardWorkspace__notificationsList dashboardNotificationsTab__list">
