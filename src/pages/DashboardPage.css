@@ -2051,6 +2051,7 @@
 
 .dashboardVendorGrid,
 .dashboardImageGrid,
+.dashboardVideoGrid,
 .dashboardDocumentGrid {
   display: grid;
   gap: 0.95rem;
@@ -2492,6 +2493,19 @@
   gap: 0.85rem;
 }
 
+.dashboardVideoGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.dashboardImageCard__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 240ms ease;
+  filter: saturate(0.92) contrast(1.02) brightness(0.9);
+}
+
 .dashboardImageCard {
   padding: 0;
   cursor: pointer;
@@ -2506,12 +2520,22 @@
   position: relative;
 }
 
-.dashboardImageCard__preview img {
+.dashboardVideoCard__preview {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.02);
+  position: relative;
+}
+
+.dashboardVideoCard__preview video {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform 240ms ease;
-  filter: saturate(0.92) contrast(1.02) brightness(0.9);
+  filter: saturate(0.96) contrast(1.02) brightness(0.88);
+  background: #0c0d0f;
 }
 
 .dashboardImageCard:hover .dashboardImageCard__preview img {
@@ -2568,6 +2592,39 @@
 .dashboardDocumentGrid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1rem;
+}
+
+.dashboardVideoCard__body {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.dashboardVideoCard__copy {
+  min-width: 0;
+}
+
+.dashboardVideoCard__copy strong {
+  display: block;
+  color: #f4efe6;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.dashboardVideoCard__copy p {
+  margin: 0.28rem 0 0;
+  color: rgba(248, 246, 242, 0.58);
+  font-size: 0.8rem;
+}
+
+.dashboardVideoCard__actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.dashboardVideoCard__actions .dashboardDocumentCard__download {
+  flex: 1 1 0;
 }
 
 .dashboardDocumentCard {
@@ -2988,6 +3045,34 @@
   object-fit: contain;
   background: #0d0e10;
   border-radius: 0.8rem;
+}
+
+.dashboardPreview__video {
+  width: 100%;
+  max-height: 62vh;
+  border-radius: 0.8rem;
+  background: #0d0e10;
+}
+
+.dashboardPreview__videoFallback {
+  margin-top: 0.85rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(194, 177, 143, 0.14);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dashboardPreview__videoFallback strong {
+  display: block;
+  color: #f5f0e8;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.dashboardPreview__videoFallback p {
+  margin: 0.35rem 0 0;
+  color: rgba(248, 246, 242, 0.58);
+  font-size: 0.78rem;
 }
 
 .dashboardPreview__close {
@@ -3723,6 +3808,7 @@
   }
 
   .dashboardImageGrid,
+  .dashboardVideoGrid,
   .dashboardDocumentGrid,
   .dashboardCaseGrid,
   .dashboardStatusLayout {
@@ -3999,6 +4085,10 @@
 
   .dashboardMediaToggle {
     margin-top: 1.2rem;
+  }
+
+  .dashboardVideoCard__actions {
+    flex-direction: column;
   }
 
   .dashboardProjectSpotlight {

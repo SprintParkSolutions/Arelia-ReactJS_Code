@@ -57,6 +57,7 @@ import {
   type ProjectImage,
   type ProjectStatusRecord,
   type ProjectVendor,
+  type ProjectVendorTask,
   type ProjectVendorTasksResponse,
   type SupportCaseRecord,
 } from "../services/salesforceApi";
@@ -161,6 +162,12 @@ function isImageFileType(fileType?: string) {
   return ["PNG", "JPG", "JPEG", "WEBP", "GIF", "BMP"].includes(normalized);
 }
 
+function isVideoFileType(fileType?: string) {
+  if (!fileType) return false;
+  const normalized = fileType.trim().toUpperCase();
+  return ["MP4", "MOV", "AVI", "WEBM", "M4V"].includes(normalized);
+}
+
 // Builds the "type • size" caption shown under a document card, falling back to formatFileMeta.
 function formatReadableFileMeta(file: ProjectFile) {
   const legacyMeta = formatFileMeta(file);
@@ -229,6 +236,8 @@ type NotificationSnapshot = {
   completionPercentage?: number;
   vendors: Record<string, number>;
   vendorCategories: Record<string, string>;
+  vendorStatuses: Record<string, string>;
+  vendorTasks: Record<string, { vendorName: string; taskName: string; status?: string }>;
   paymentTerms: Record<string, boolean>;
   documents: NotificationDocument[];
   cases: Record<string, NotificationCase>;
@@ -329,16 +338,34 @@ function writeStoredNotifications(
 // decide which notifications to raise on the next poll.
 function buildNotificationSnapshot(
   project: ProjectStatusRecord | undefined,
+  vendorTasksByVendor: Record<string, ProjectVendorTask[]>,
   terms: PaymentTerm[],
   files: ProjectFile[],
   supportCases: SupportCaseRecord[],
 ): NotificationSnapshot {
   const vendors: Record<string, number> = {};
   const vendorCategories: Record<string, string> = {};
+  const vendorStatuses: Record<string, string> = {};
   project?.vendors.forEach((vendor) => {
     vendors[vendor.vendorName] = Math.round(vendor.completionPercentage || 0);
     if (vendor.vendorCategory)
       vendorCategories[vendor.vendorName] = vendor.vendorCategory;
+    if (vendor.status) vendorStatuses[vendor.vendorName] = vendor.status;
+  });
+
+  const vendorTasks: Record<
+    string,
+    { vendorName: string; taskName: string; status?: string }
+  > = {};
+  Object.entries(vendorTasksByVendor).forEach(([vendorName, tasks]) => {
+    tasks.forEach((task) => {
+      const taskKey = `${vendorName}::${task.taskName}`;
+      vendorTasks[taskKey] = {
+        vendorName,
+        taskName: task.taskName,
+        status: task.status,
+      };
+    });
   });
 
   const paymentTerms: Record<string, boolean> = {};
@@ -379,6 +406,8 @@ function buildNotificationSnapshot(
         : undefined,
     vendors,
     vendorCategories,
+    vendorStatuses,
+    vendorTasks,
     paymentTerms,
     documents,
     cases,
@@ -448,6 +477,29 @@ function diffNotificationSnapshots(
           : previousStatus !== nextStatus
             ? `${displayLabel} status changed from ${previousStatus} to ${nextStatus} (${prevCompletion}% to ${completion}%).`
             : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%. Status: ${nextStatus}.`,
+    });
+  });
+
+  Object.entries(next.vendorStatuses).forEach(([vendorName, status]) => {
+    const previousStatus = previous.vendorStatuses[vendorName];
+    if (!status || previousStatus == null || previousStatus === status) return;
+    const displayLabel =
+      (next.vendorCategories ?? {})[vendorName] || vendorName;
+    entries.push({
+      type: "vendor",
+      message: `${displayLabel} assignment status changed from "${previousStatus}" to "${status}".`,
+    });
+  });
+
+  Object.entries(next.vendorTasks).forEach(([taskKey, taskInfo]) => {
+    const previousTask = previous.vendorTasks[taskKey];
+    if (!previousTask) return;
+    if (!taskInfo.status || previousTask.status === taskInfo.status) return;
+    const displayLabel =
+      (next.vendorCategories ?? {})[taskInfo.vendorName] || taskInfo.vendorName;
+    entries.push({
+      type: "vendor",
+      message: `${displayLabel} task "${taskInfo.taskName}" changed from "${previousTask.status || "Unknown"}" to "${taskInfo.status}".`,
     });
   });
 
@@ -1765,16 +1817,23 @@ function DocumentsTab({
 }) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [images, setImages] = useState<ProjectImage[]>([]);
+  const [videos, setVideos] = useState<ProjectFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeMediaTab, setActiveMediaTab] = useState<"photos" | "documents">(
+  const [activeMediaTab, setActiveMediaTab] = useState<
+    "photos" | "videos" | "documents"
+  >(
     "photos",
   );
   const [selectedPreview, setSelectedPreview] = useState<{
     title: string;
     subtitle?: string;
     href: string;
+    openHref?: string;
+    downloadHref?: string;
     meta?: string;
+    mediaType: "image" | "video";
   } | null>(null);
+  const [videoPlaybackFailed, setVideoPlaybackFailed] = useState(false);
   const documentCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const highlightedDocKey =
     highlightDocumentUrl &&
@@ -1793,7 +1852,12 @@ function DocumentsTab({
       const filesRes = await getProjectFiles(projectId);
 
       if (Array.isArray(filesRes)) {
-        setFiles(filesRes.filter((file) => !isImageFileType(file.fileType)));
+        setFiles(
+          filesRes.filter(
+            (file) =>
+              !isImageFileType(file.fileType) && !isVideoFileType(file.fileType),
+          ),
+        );
         setImages(
           filesRes
             .filter((file) => isImageFileType(file.fileType))
@@ -1805,9 +1869,13 @@ function DocumentsTab({
               previewUrl: file.previewUrl || file.downloadUrl,
             })),
         );
+        setVideos(
+          filesRes.filter((file) => isVideoFileType(file.fileType)),
+        );
       } else {
         setFiles([]);
         setImages([]);
+        setVideos([]);
       }
 
       setIsLoading(false);
@@ -1833,6 +1901,8 @@ function DocumentsTab({
   useEffect(() => {
     if (!selectedPreview) return undefined;
 
+    setVideoPlaybackFailed(false);
+
     const originalOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedPreview(null);
@@ -1849,20 +1919,24 @@ function DocumentsTab({
 
   if (isLoading)
     return <p className="dashboard-loading">Loading project media...</p>;
-  if (files.length === 0 && images.length === 0) {
+  if (files.length === 0 && images.length === 0 && videos.length === 0) {
     return (
-      <GlassEmptyState message="No files or images have been uploaded to this project yet." />
+      <GlassEmptyState message="No files, images, or videos have been uploaded to this project yet." />
     );
   }
 
   const hasPhotos = images.length > 0;
+  const hasVideos = videos.length > 0;
   const hasDocuments = files.length > 0;
-  const effectiveTab: "photos" | "documents" =
-    hasPhotos && hasDocuments
+  const mediaTabs = [
+    hasPhotos ? "photos" : null,
+    hasVideos ? "videos" : null,
+    hasDocuments ? "documents" : null,
+  ].filter(Boolean) as Array<"photos" | "videos" | "documents">;
+  const effectiveTab: "photos" | "videos" | "documents" =
+    mediaTabs.length > 1
       ? activeMediaTab
-      : hasPhotos
-        ? "photos"
-        : "documents";
+      : mediaTabs[0];
 
   return (
     <>
@@ -1888,32 +1962,50 @@ function DocumentsTab({
           ) : null}
         </div>
 
-        {hasPhotos && hasDocuments ? (
+        {mediaTabs.length > 1 ? (
           <div className="dashboardMediaToggle" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === "photos"}
-              className={`dashboardMediaToggle__btn${effectiveTab === "photos" ? " is-active" : ""}`}
-              onClick={() => setActiveMediaTab("photos")}
-            >
-              <span>Project Photos</span>
-              <span className="dashboardMediaToggle__count">
-                {images.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === "documents"}
-              className={`dashboardMediaToggle__btn${effectiveTab === "documents" ? " is-active" : ""}`}
-              onClick={() => setActiveMediaTab("documents")}
-            >
-              <span>Project Documents</span>
-              <span className="dashboardMediaToggle__count">
-                {files.length}
-              </span>
-            </button>
+            {hasPhotos ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "photos"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "photos" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("photos")}
+              >
+                <span>Project Photos</span>
+                <span className="dashboardMediaToggle__count">
+                  {images.length}
+                </span>
+              </button>
+            ) : null}
+            {hasVideos ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "videos"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "videos" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("videos")}
+              >
+                <span>Project Videos</span>
+                <span className="dashboardMediaToggle__count">
+                  {videos.length}
+                </span>
+              </button>
+            ) : null}
+            {hasDocuments ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "documents"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "documents" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("documents")}
+              >
+                <span>Project Documents</span>
+                <span className="dashboardMediaToggle__count">
+                  {files.length}
+                </span>
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -1930,8 +2022,11 @@ function DocumentsTab({
                   setSelectedPreview({
                     title: img.title,
                     href: img.imageUrl,
+                    openHref: img.imageUrl,
+                    downloadHref: img.imageUrl,
                     subtitle: "Project image",
                     meta: "Private archive image",
+                    mediaType: "image",
                   })
                 }
               >
@@ -1951,6 +2046,45 @@ function DocumentsTab({
                   <p>Click to preview</p>
                 </div>
               </motion.button>
+            ))}
+          </div>
+        ) : effectiveTab === "videos" ? (
+          <div className="dashboardVideoGrid">
+            {videos.map((video, index) => (
+              <motion.article
+                key={`${video.downloadUrl}-${index}`}
+                className="dashboardDocumentCard dashboardVideoCard"
+                variants={fadeUpItem}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              >
+                <div className="dashboardVideoCard__preview">
+                  <video
+                    src={video.previewUrl || video.downloadUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    controlsList="nodownload"
+                  />
+                </div>
+                <div className="dashboardVideoCard__body">
+                  <div className="dashboardDocumentCard__body dashboardVideoCard__copy">
+                    <strong>{video.title}</strong>
+                    <p>{formatReadableFileMeta(video)}</p>
+                  </div>
+                </div>
+                <div className="dashboardVideoCard__actions">
+                  <a
+                    href={video.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={video.title}
+                    className="dashboardDocumentCard__download"
+                  >
+                    <FiDownload aria-hidden="true" />
+                    <span>Download</span>
+                  </a>
+                </div>
+              </motion.article>
             ))}
           </div>
         ) : (
@@ -2029,7 +2163,9 @@ function DocumentsTab({
                       <div className="dashboardPreview__header">
                         <div className="dashboardPreview__headerCopy">
                           <p className="dashboardPreview__eyebrow">
-                            Image Preview
+                            {selectedPreview.mediaType === "video"
+                              ? "Video Preview"
+                              : "Image Preview"}
                           </p>
                           <h3 id="dashboard-preview-title">
                             {selectedPreview.title}
@@ -2052,14 +2188,44 @@ function DocumentsTab({
                         <div className="dashboardPreview__metaBar">
                           <span>{selectedPreview.title}</span>
                           <span>
-                            {selectedPreview.meta || "Private archive image"}
+                            {selectedPreview.meta ||
+                              (selectedPreview.mediaType === "video"
+                                ? "Private archive video"
+                                : "Private archive image")}
                           </span>
                         </div>
                         <div className="dashboardPreview__image">
-                          <img
-                            src={selectedPreview.href}
-                            alt={selectedPreview.title}
-                          />
+                          {selectedPreview.mediaType === "video" ? (
+                            <>
+                              <video
+                                className="dashboardPreview__video"
+                                controls
+                                autoPlay
+                                playsInline
+                                preload="metadata"
+                                onError={() => setVideoPlaybackFailed(true)}
+                              >
+                                <source
+                                  src={selectedPreview.href}
+                                  type="video/mp4"
+                                />
+                                <source src={selectedPreview.href} />
+                              </video>
+                              {videoPlaybackFailed ? (
+                                <div className="dashboardPreview__videoFallback">
+                                  <strong>Inline playback is not available for this video.</strong>
+                                  <p>
+                                    You can still open it in a new tab or download it directly.
+                                  </p>
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <img
+                              src={selectedPreview.href}
+                              alt={selectedPreview.title}
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -2069,14 +2235,30 @@ function DocumentsTab({
                           <p>{selectedPreview.meta}</p>
                         </div>
                         <a
-                          href={selectedPreview.href}
+                          href={
+                            selectedPreview.mediaType === "video"
+                              ? selectedPreview.openHref || selectedPreview.href
+                              : selectedPreview.downloadHref || selectedPreview.href
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
-                          download={selectedPreview.title}
                           className="dashboardPreview__cta"
                         >
-                          Download
+                          {selectedPreview.mediaType === "video"
+                            ? "Open Video"
+                            : "Download"}
                         </a>
+                        {selectedPreview.mediaType === "video" ? (
+                          <a
+                            href={selectedPreview.downloadHref || selectedPreview.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={selectedPreview.title}
+                            className="dashboardPreview__cta"
+                          >
+                            Download Video
+                          </a>
+                        ) : null}
                       </div>
                     </div>
                   </motion.div>
@@ -2764,10 +2946,33 @@ export function DashboardPage() {
 
           const termsList = Array.isArray(terms) ? terms : [];
           const filesList = Array.isArray(files) ? files : [];
+          const vendorTasksByVendor: Record<string, ProjectVendorTask[]> = {};
+
+          if (projectId && matchingProject?.vendors?.length) {
+            const vendorTaskResults = await Promise.all(
+              matchingProject.vendors.map(async (vendor) => {
+                const vendorResponse = await getVendorTasks(
+                  projectId,
+                  vendor.vendorName,
+                );
+                return [
+                  vendor.vendorName,
+                  Array.isArray(vendorResponse?.tasks)
+                    ? vendorResponse.tasks
+                    : [],
+                ] as const;
+              }),
+            );
+
+            vendorTaskResults.forEach(([vendorName, tasks]) => {
+              vendorTasksByVendor[vendorName] = tasks;
+            });
+          }
 
           const previousSnapshot = readNotificationSnapshot(keys.snapshot);
           const freshSnapshot = buildNotificationSnapshot(
             matchingProject,
+            vendorTasksByVendor,
             termsList,
             filesList,
             casesList,
@@ -2796,6 +3001,14 @@ export function DashboardPage() {
             vendorCategories: {
               ...(previousSnapshot?.vendorCategories || {}),
               ...freshSnapshot.vendorCategories,
+            },
+            vendorStatuses: {
+              ...(previousSnapshot?.vendorStatuses || {}),
+              ...freshSnapshot.vendorStatuses,
+            },
+            vendorTasks: {
+              ...(previousSnapshot?.vendorTasks || {}),
+              ...freshSnapshot.vendorTasks,
             },
             paymentTerms: {
               ...(previousSnapshot?.paymentTerms || {}),

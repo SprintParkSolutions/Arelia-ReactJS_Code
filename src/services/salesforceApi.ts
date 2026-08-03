@@ -69,6 +69,7 @@ export type ProjectVendor = {
   vendorName: string
   vendorCategory?: string
   completionPercentage?: number
+  status?: string
 }
 
 export type VendorTaskMediaItem = {
@@ -319,6 +320,15 @@ function normalizeProjectVendor(rawVendor: unknown): ProjectVendor | undefined {
     completionPercentage: roundPercentage(
       vendor.completionPercentage || vendor.progress || vendor.percentComplete,
     ),
+    status: asString(
+      vendor.status ||
+        vendor.assignmentStatus ||
+        vendor.vendorStatus ||
+        vendor.phaseStatus ||
+        vendor.Status ||
+        vendor.Assignment_Status__c ||
+        vendor.Vendor_Status__c,
+    ),
   }
 }
 
@@ -373,6 +383,15 @@ function normalizeProjectFile(rawFile: unknown): ProjectFile | undefined {
 
   const title = asString(file.title || file.name || file.Name)
   const downloadUrl = absolutizeSalesforceUrl(file.downloadUrl || file.url || file.fileUrl)
+  const previewUrl = absolutizeSalesforceUrl(
+    file.previewUrl ||
+      file.preview ||
+      file.playUrl ||
+      file.videoUrl ||
+      file.streamUrl ||
+      file.mediaUrl ||
+      file.filePreviewUrl,
+  )
   if (!title || !downloadUrl) return undefined
 
   return {
@@ -382,7 +401,7 @@ function normalizeProjectFile(rawFile: unknown): ProjectFile | undefined {
     versionId: asString(file.versionId),
     fileSize: asNumber(file.fileSize || file.contentSize),
     downloadUrl,
-    previewUrl: absolutizeSalesforceUrl(file.previewUrl),
+    previewUrl,
   }
 }
 
