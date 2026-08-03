@@ -1948,9 +1948,7 @@ function DocumentsTab({
     hasDocuments ? "documents" : null,
   ].filter(Boolean) as Array<"photos" | "videos" | "documents">;
   const effectiveTab: "photos" | "videos" | "documents" =
-    mediaTabs.length > 1
-      ? activeMediaTab
-      : mediaTabs[0];
+    mediaTabs.includes(activeMediaTab) ? activeMediaTab : mediaTabs[0];
 
   return (
     <>
