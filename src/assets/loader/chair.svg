@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <defs>
+    <linearGradient id="chair-gold" x1="18" y1="18" x2="98" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8D66B"/>
+      <stop offset="0.5" stop-color="#E0B047"/>
+      <stop offset="1" stop-color="#A56E1D"/>
+    </linearGradient>
+  </defs>
+  <rect x="38" y="16" width="40" height="34" rx="8" fill="url(#chair-gold)"/>
+  <path d="M28 56C28 51.582 31.582 48 36 48H80C84.418 48 88 51.582 88 56V78H28V56Z" fill="url(#chair-gold)"/>
+  <path d="M24 78H92V92C92 96.418 88.418 100 84 100H32C27.582 100 24 96.418 24 92V78Z" fill="url(#chair-gold)"/>
+  <path d="M34 100H44L38 116H30L34 100Z" fill="url(#chair-gold)"/>
+  <path d="M82 100H72L78 116H86L82 100Z" fill="url(#chair-gold)"/>
+</svg>

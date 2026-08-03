@@ -1,0 +1,548 @@
+.loginPage {
+  position: relative;
+  width: 100%;
+  padding: 0 1.5rem;
+}
+
+.loginPage__backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.loginPage__veil,
+.loginPage__grain {
+  position: absolute;
+  inset: 0;
+}
+
+.loginPage__veil {
+  background: linear-gradient(180deg, rgba(3, 3, 5, 0.32), rgba(3, 3, 5, 0.5));
+}
+
+.loginPage__watermark {
+  position: absolute;
+  right: -7rem;
+  bottom: -9rem;
+  width: 34rem;
+  height: 34rem;
+  background-image: url('/images/Logos/Arelia.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.07;
+  filter: brightness(1.6);
+  transform: rotate(-6deg);
+}
+
+.loginPage__corner {
+  position: absolute;
+  width: 6.5rem;
+  height: 6.5rem;
+  opacity: 0.4;
+}
+
+.loginPage__corner--tr {
+  top: 2.25rem;
+  right: 2.25rem;
+  border-top: 1px solid rgba(200, 169, 126, 0.3);
+  border-right: 1px solid rgba(200, 169, 126, 0.3);
+  border-radius: 0 0.75rem 0 0;
+}
+
+.loginPage__corner--bl {
+  bottom: 2.25rem;
+  left: 2.25rem;
+  border-bottom: 1px solid rgba(200, 169, 126, 0.3);
+  border-left: 1px solid rgba(200, 169, 126, 0.3);
+  border-radius: 0 0 0 0.75rem;
+}
+
+.loginPage__grain {
+  opacity: 0.1;
+  background-image:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.8) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 80% 40%, rgba(255, 255, 255, 0.6) 0.4px, transparent 0.7px),
+    radial-gradient(circle at 50% 80%, rgba(255, 255, 255, 0.5) 0.4px, transparent 0.7px);
+  background-size: 12px 12px, 18px 18px, 16px 16px;
+}
+
+.loginPage__shell {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 28rem;
+  margin: 0 auto;
+  display: grid;
+}
+
+.loginPage__backButton {
+  position: fixed;
+  top: 2.6rem;
+  left: 1.5rem;
+  z-index: 65;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 2.75rem;
+  padding: 0 1rem;
+  border: 1px solid rgba(200, 169, 126, 0.22);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
+    rgba(8, 8, 11, 0.32);
+  color: #e8d2b0;
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.loginPage__backButton:hover {
+  border-color: rgba(232, 210, 176, 0.42);
+  background: rgba(200, 169, 126, 0.08);
+  box-shadow:
+    0 16px 34px rgba(0, 0, 0, 0.28),
+    0 0 22px rgba(200, 169, 126, 0.12);
+}
+
+.loginPage__panel {
+  position: relative;
+  padding: 2.6rem 2rem 1.5rem;
+}
+
+.loginPage__panelGlow {
+  position: absolute;
+  inset: auto;
+  top: -4.5rem;
+  left: 50%;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(200, 169, 126, 0.22), transparent 68%);
+  filter: blur(22px);
+  transform: translateX(-50%);
+}
+
+.loginPage__panel--shake {
+  animation: loginPageShake 400ms ease;
+}
+
+.loginPage__panelHeader {
+  position: relative;
+  display: grid;
+  gap: 0.8rem;
+  text-align: center;
+}
+
+.loginPage__panelEyebrow {
+  margin: 0;
+  color: #e0bc8d;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.loginPage__panelTitle {
+  margin: 0;
+  color: #f8f6f2;
+  font-size: clamp(2.5rem, 6vw, 3.2rem);
+  line-height: 0.95;
+}
+
+.loginPage__panelIntro {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.loginForm {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.loginForm__field {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.loginForm__inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.loginForm__inputIcon {
+  position: absolute;
+  left: 1.1rem;
+  color: rgba(216, 174, 116, 0.6);
+  font-size: 1.05rem;
+  pointer-events: none;
+  transition: color 180ms ease;
+}
+
+.loginForm__inputWrap:focus-within .loginForm__inputIcon {
+  color: rgba(232, 210, 176, 0.92);
+}
+
+.loginForm__input.loginForm__input--icon {
+  padding-left: 3rem;
+}
+
+.loginForm__heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.loginForm__label {
+  color: rgba(248, 246, 242, 0.86);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.loginForm__input {
+  width: 100%;
+  min-height: 3.7rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid rgba(200, 169, 126, 0.16);
+  border-radius: 1.2rem;
+  outline: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)),
+    rgba(12, 12, 16, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 18px rgba(255, 255, 255, 0.015);
+  color: rgba(255, 255, 255, 0.94);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    background-color 180ms ease;
+}
+
+.loginForm__input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.loginForm__input:focus {
+  border-color: rgba(200, 169, 126, 0.42);
+  box-shadow:
+    0 0 0 4px rgba(200, 169, 126, 0.08),
+    0 0 28px rgba(200, 169, 126, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: rgba(18, 18, 22, 0.58);
+  transform: translateY(-1px) scale(1.01);
+}
+
+.loginForm__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: -0.4rem -0.6rem;
+  padding: 0.4rem 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #e0bc8d;
+  cursor: pointer;
+  font-size: 0.78rem;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.loginForm__toggle:hover {
+  background: rgba(200, 169, 126, 0.12);
+  color: #f1d9ad;
+}
+
+.loginForm__options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: -0.2rem;
+}
+
+.loginForm__remember {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: rgba(248, 246, 242, 0.74);
+  cursor: pointer;
+  font-size: 0.82rem;
+  user-select: none;
+}
+
+.loginForm__checkboxInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.loginForm__checkboxBox {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(200, 169, 126, 0.4);
+  border-radius: 0.35rem;
+  background: rgba(255, 255, 255, 0.03);
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.loginForm__checkboxBox::after {
+  content: "";
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 0.12rem;
+  background: transparent;
+  transition: background-color 150ms ease;
+}
+
+.loginForm__checkboxInput:checked ~ .loginForm__checkboxBox {
+  border-color: rgba(232, 210, 176, 0.7);
+  background: linear-gradient(135deg, #c8a97e, #e8d2b0);
+}
+
+.loginForm__checkboxInput:checked ~ .loginForm__checkboxBox::after {
+  background: #1d1408;
+}
+
+.loginForm__checkboxInput:focus-visible ~ .loginForm__checkboxBox {
+  box-shadow: 0 0 0 3px rgba(200, 169, 126, 0.25);
+}
+
+.loginForm__forgot {
+  border: 0;
+  background: transparent;
+  color: #d9a957;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0;
+  white-space: nowrap;
+  transition: color 180ms ease;
+}
+
+.loginForm__forgot:hover {
+  color: #f3d8a7;
+}
+
+.loginForm__forgotPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.loginForm__forgotIntro {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(200, 169, 126, 0.18);
+  border-radius: 1rem;
+  background: rgba(200, 169, 126, 0.06);
+  color: rgba(248, 246, 242, 0.78);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.loginForm__forgotActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.loginForm__error {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(240, 113, 113, 0.24);
+  border-radius: 1rem;
+  background: rgba(120, 24, 24, 0.18);
+  color: #fecaca;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.loginForm__submit {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 3.8rem;
+  margin-top: 0.3rem;
+  border: 1px solid rgba(200, 169, 126, 0.32);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #c8a97e, #e8d2b0);
+  color: #1d1408;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  overflow: hidden;
+  box-shadow:
+    0 20px 44px rgba(200, 169, 126, 0.22),
+    0 0 28px rgba(200, 169, 126, 0.14);
+  transition: box-shadow 180ms ease, opacity 180ms ease;
+}
+
+.loginForm__submit:hover:not(:disabled) {
+  box-shadow:
+    0 26px 54px rgba(200, 169, 126, 0.28),
+    0 0 34px rgba(200, 169, 126, 0.18);
+}
+
+.loginForm__submit:disabled {
+  opacity: 0.82;
+  cursor: wait;
+}
+
+.loginForm__submit > * {
+  position: relative;
+  z-index: 1;
+}
+
+.loginForm__submitShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    120deg,
+    transparent 10%,
+    rgba(255, 255, 255, 0.42) 30%,
+    transparent 50%
+  );
+  background-size: 220% 100%;
+  animation: loginPageShimmer 3.2s linear infinite;
+}
+
+.loginForm__loader {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(29, 20, 8, 0.25);
+  border-top-color: rgba(29, 20, 8, 0.85);
+  border-radius: 50%;
+  animation: loginPageSpin 800ms linear infinite;
+}
+
+.loginPage__footerNote {
+  position: relative;
+  margin: 1.2rem 0 0;
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.8rem;
+  line-height: 1.6;
+  text-align: center;
+}
+
+@keyframes loginPageSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loginPageShimmer {
+  0% {
+    background-position: 180% 0;
+  }
+  100% {
+    background-position: -40% 0;
+  }
+}
+
+@keyframes loginPageShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-8px);
+  }
+  40%,
+  80% {
+    transform: translateX(8px);
+  }
+}
+
+@media (max-width: 1023px) {
+  /* The global nav left-aligns its logo below 1024px, so the back button
+     moves to the opposite corner to avoid overlapping it. */
+  .loginPage__backButton {
+    left: auto;
+    right: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .loginPage__watermark {
+    width: 22rem;
+    height: 22rem;
+    right: -5rem;
+    bottom: -6rem;
+    opacity: 0.05;
+  }
+
+  .loginPage__corner {
+    width: 4.5rem;
+    height: 4.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .loginPage {
+    padding: 0 1rem;
+  }
+
+  .loginPage__shell {
+    max-width: 100%;
+  }
+
+  .loginPage__backButton {
+    top: 1.3rem;
+    right: 0.85rem;
+    min-height: 2.55rem;
+    padding-inline: 0.9rem;
+    font-size: 0.7rem;
+  }
+
+  .loginPage__panel {
+    padding: 2rem 1.2rem 1.25rem;
+  }
+
+  .loginPage__panelTitle {
+    font-size: clamp(2rem, 10vw, 2.6rem);
+  }
+
+  .loginPage__panelIntro {
+    font-size: 0.94rem;
+  }
+
+  .loginForm__input,
+  .loginForm__submit {
+    min-height: 3.5rem;
+  }
+}

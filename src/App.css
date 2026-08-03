@@ -4,10 +4,84 @@ body {
   background: transparent;
   overflow-x: hidden;
 }
+
 .app-shell {
+  --app-shell-page-padding-x: 1.5rem;
+  --app-shell-page-padding-top: 9rem;
+  --app-shell-page-padding-bottom: 3rem;
+  --app-shell-page-width: 84rem;
   position: relative;
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
+  isolation: isolate;
+  transform-origin: center top;
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(110px);
+  opacity: 0.8;
+}
+
+.app-shell::before {
+  top: 4rem;
+  left: -7rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(200, 169, 126, 0.12);
+}
+
+.app-shell::after {
+  right: -8rem;
+  top: 16rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(50, 90, 170, 0.12);
+}
+
+.app-shell--login {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.app-shell--entering {
+  opacity: 0;
+  transform: scale(0.985);
+}
+
+.app-shell--ready {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.app-shell__page-frame {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell__content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.app-shell__routeStage {
+  position: relative;
+  width: 100%;
 }
 
 .page {
@@ -16,7 +90,7 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 8rem 1.5rem 3rem;
+  padding: var(--app-shell-page-padding-top) var(--app-shell-page-padding-x) var(--app-shell-page-padding-bottom);
 }
 
 .home-page {
@@ -25,7 +99,7 @@ body {
 }
 
 .page__inner {
-  width: min(100%, 64rem);
+  width: min(100%, var(--app-shell-page-width));
   padding: 2rem;
   text-align: center;
   color: #f8f5ef;
@@ -41,38 +115,37 @@ body {
 
 .page__title {
   margin: 0;
-  font-family: 'Times New Roman', Times, serif;
-  font-size: clamp(3rem, 8vw, 6rem);
-  font-weight: 500;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-family: var(--font-serif);
+  font-size: var(--type-h1);
+  font-weight: 700;
+  letter-spacing: var(--tracking-heading);
+  line-height: 1.1;
+  text-wrap: balance;
+  color: #f8f6f2;
   text-shadow: 0 10px 35px rgba(0, 0, 0, 0.55);
 }
 
-.page--hero .page__inner {
-  width: min(100%, 68rem);
-}
-
 .page--hero .page__title {
-  font-size: clamp(3rem, 6.2vw, 5.8rem);
-  line-height: 1.08;
-  letter-spacing: 0.03em;
+  font-size: var(--type-h1);
+  line-height: 1.1;
+  letter-spacing: var(--tracking-heading);
   text-wrap: balance;
 }
 
 
 .page__description {
   width: min(100%, 42rem);
-  margin: 1.25rem auto 0;
-  font-size: 1rem;
-  line-height: 1.8;
-  color: rgba(255, 255, 255, 0.78);
+  margin: 1.5rem auto 0;
+  font-size: var(--type-body);
+  line-height: 1.75;
+  color: var(--text-soft);
+  font-weight: 400;
 }
 
 .page__secondary {
   width: min(100%, 34rem);
   margin: 1rem auto 0;
-  font-size: 0.95rem;
+  font-size: var(--type-small);
   letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.62);
 }
@@ -98,8 +171,13 @@ body {
 }
 
 @media (max-width: 767px) {
+  .app-shell {
+    --app-shell-page-padding-top: 9rem;
+    --app-shell-page-padding-x: 1rem;
+  }
+
   .page {
-    padding-top: 9rem;
+    padding-top: var(--app-shell-page-padding-top);
   }
 
   .page__inner {
@@ -117,5 +195,4 @@ body {
   .page__action-pill {
     width: 100%;
   }
-
 }
