@@ -35,10 +35,7 @@ function ScrollToTop() {
   const location = useLocation()
 
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    })
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname])
 
   return null
@@ -99,24 +96,21 @@ export default function App() {
         ) : null}
 
         <div className="app-shell__content">
-          <AnimatePresence mode="popLayout" initial={false}>
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
               className="app-shell__routeStage"
               initial={{
                 opacity: 0,
                 y: 18,
-                filter: 'blur(12px)',
               }}
               animate={{
                 opacity: 1,
                 y: 0,
-                filter: 'blur(0px)',
               }}
               exit={{
                 opacity: 0,
                 y: -12,
-                filter: 'blur(8px)',
                 transition: {
                   duration: 0.16,
                   ease: 'easeIn',

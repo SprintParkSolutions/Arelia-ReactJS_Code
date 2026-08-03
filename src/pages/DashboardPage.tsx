@@ -57,6 +57,7 @@ import {
   type ProjectImage,
   type ProjectStatusRecord,
   type ProjectVendor,
+  type ProjectVendorTask,
   type ProjectVendorTasksResponse,
   type SupportCaseRecord,
 } from "../services/salesforceApi";
@@ -148,11 +149,23 @@ function formatTaskStatusKey(status?: string) {
   return (status || "pending").toLowerCase().replace(/\s+/g, "-");
 }
 
+function getVendorProgressStatus(completion: number) {
+  if (completion >= 100) return "Completed";
+  if (completion > 0) return "In progress";
+  return "Not started";
+}
+
 // Determines whether a file's type should render in the image gallery vs the document list.
 function isImageFileType(fileType?: string) {
   if (!fileType) return false;
   const normalized = fileType.trim().toUpperCase();
   return ["PNG", "JPG", "JPEG", "WEBP", "GIF", "BMP"].includes(normalized);
+}
+
+function isVideoFileType(fileType?: string) {
+  if (!fileType) return false;
+  const normalized = fileType.trim().toUpperCase();
+  return ["MP4", "MOV", "AVI", "WEBM", "M4V"].includes(normalized);
 }
 
 // Builds the "type • size" caption shown under a document card, falling back to formatFileMeta.
@@ -223,14 +236,19 @@ type NotificationSnapshot = {
   completionPercentage?: number;
   vendors: Record<string, number>;
   vendorCategories: Record<string, string>;
+  vendorStatuses: Record<string, string>;
+  vendorTasks: Record<string, { vendorName: string; taskName: string; status?: string }>;
   paymentTerms: Record<string, boolean>;
   documents: NotificationDocument[];
   cases: Record<string, NotificationCase>;
 };
 
-const NOTIFICATION_POLL_INTERVAL_MS = 3 * 60 * 1000;
+type NotificationVisibilityFilter = "unread" | "all";
+
+const NOTIFICATION_POLL_INTERVAL_MS = 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
 const NOTIFICATIONS_PER_PAGE = 10;
+const SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX = "supportCaseProjectMap";
 
 // Builds the per-contact-per-project localStorage keys used to persist the
 // last-seen snapshot (for diffing) and the notification list itself. Scoping
@@ -320,16 +338,34 @@ function writeStoredNotifications(
 // decide which notifications to raise on the next poll.
 function buildNotificationSnapshot(
   project: ProjectStatusRecord | undefined,
+  vendorTasksByVendor: Record<string, ProjectVendorTask[]>,
   terms: PaymentTerm[],
   files: ProjectFile[],
   supportCases: SupportCaseRecord[],
 ): NotificationSnapshot {
   const vendors: Record<string, number> = {};
   const vendorCategories: Record<string, string> = {};
+  const vendorStatuses: Record<string, string> = {};
   project?.vendors.forEach((vendor) => {
     vendors[vendor.vendorName] = Math.round(vendor.completionPercentage || 0);
     if (vendor.vendorCategory)
       vendorCategories[vendor.vendorName] = vendor.vendorCategory;
+    if (vendor.status) vendorStatuses[vendor.vendorName] = vendor.status;
+  });
+
+  const vendorTasks: Record<
+    string,
+    { vendorName: string; taskName: string; status?: string }
+  > = {};
+  Object.entries(vendorTasksByVendor).forEach(([vendorName, tasks]) => {
+    tasks.forEach((task) => {
+      const taskKey = `${vendorName}::${task.taskName}`;
+      vendorTasks[taskKey] = {
+        vendorName,
+        taskName: task.taskName,
+        status: task.status,
+      };
+    });
   });
 
   const paymentTerms: Record<string, boolean> = {};
@@ -370,6 +406,8 @@ function buildNotificationSnapshot(
         : undefined,
     vendors,
     vendorCategories,
+    vendorStatuses,
+    vendorTasks,
     paymentTerms,
     documents,
     cases,
@@ -429,12 +467,39 @@ function diffNotificationSnapshots(
     if (prevCompletion == null || prevCompletion === completion) return;
     const displayLabel =
       (next.vendorCategories ?? {})[vendorName] || vendorName;
+    const previousStatus = getVendorProgressStatus(prevCompletion);
+    const nextStatus = getVendorProgressStatus(completion);
     entries.push({
       type: "vendor",
       message:
         completion >= 100
-          ? `${displayLabel} finished all assigned tasks.`
-          : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%.`,
+          ? `${displayLabel} finished all assigned tasks. Status: ${nextStatus}.`
+          : previousStatus !== nextStatus
+            ? `${displayLabel} status changed from ${previousStatus} to ${nextStatus} (${prevCompletion}% to ${completion}%).`
+            : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%. Status: ${nextStatus}.`,
+    });
+  });
+
+  Object.entries(next.vendorStatuses).forEach(([vendorName, status]) => {
+    const previousStatus = previous.vendorStatuses[vendorName];
+    if (!status || previousStatus == null || previousStatus === status) return;
+    const displayLabel =
+      (next.vendorCategories ?? {})[vendorName] || vendorName;
+    entries.push({
+      type: "vendor",
+      message: `${displayLabel} assignment status changed from "${previousStatus}" to "${status}".`,
+    });
+  });
+
+  Object.entries(next.vendorTasks).forEach(([taskKey, taskInfo]) => {
+    const previousTask = previous.vendorTasks[taskKey];
+    if (!previousTask) return;
+    if (!taskInfo.status || previousTask.status === taskInfo.status) return;
+    const displayLabel =
+      (next.vendorCategories ?? {})[taskInfo.vendorName] || taskInfo.vendorName;
+    entries.push({
+      type: "vendor",
+      message: `${displayLabel} task "${taskInfo.taskName}" changed from "${previousTask.status || "Unknown"}" to "${taskInfo.status}".`,
     });
   });
 
@@ -511,6 +576,49 @@ function formatTimestamp(timestamp: number) {
   }
 }
 
+function readSupportCaseProjectMap(contactId: string) {
+  try {
+    const raw = window.localStorage.getItem(
+      `${SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX}:${contactId}`,
+    );
+    return raw
+      ? (JSON.parse(raw) as Record<
+          string,
+          { projectId?: string; projectName?: string }
+        >)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSupportCaseProjectMap(
+  contactId: string,
+  map: Record<string, { projectId?: string; projectName?: string }>,
+) {
+  try {
+    window.localStorage.setItem(
+      `${SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX}:${contactId}`,
+      JSON.stringify(map),
+    );
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+function formatNotificationCount(count: number) {
+  if (count <= 0) return null;
+  return count > 99 ? "99+" : String(count);
+}
+
+function normalizeProjectMatchValue(value?: string | null) {
+  return (value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/-+$/g, "")
+    .toLowerCase();
+}
+
 // Bell trigger + dropdown panel listing notifications, with mark-all-read and clear-all actions.
 function NotificationBell({
   notifications,
@@ -531,9 +639,20 @@ function NotificationBell({
   onDeleteNotification?: (id: string) => void;
   wrapperClassName?: string;
 }) {
+  const [activeFilter, setActiveFilter] =
+    useState<NotificationVisibilityFilter>("unread");
   const unreadCount = notifications.filter(
     (notification) => !notification.read,
   ).length;
+  const filteredNotifications =
+    activeFilter === "unread"
+      ? notifications.filter((notification) => !notification.read)
+      : notifications;
+  const hasUnreadNotifications = unreadCount > 0;
+  const emptyMessage =
+    activeFilter === "unread"
+      ? "No unread notifications right now."
+      : "You're all caught up.";
 
   return (
     <div className={wrapperClassName}>
@@ -588,13 +707,44 @@ function NotificationBell({
                 ) : null}
               </div>
 
-              {notifications.length === 0 ? (
+              {notifications.length > 0 ? (
+                <div className="dashboardNotificationsFilter">
+                  <button
+                    type="button"
+                    className={`dashboardNotificationsFilter__chip${
+                      activeFilter === "unread" ? " is-active" : ""
+                    }`}
+                    onClick={() => setActiveFilter("unread")}
+                  >
+                    Unread
+                    {hasUnreadNotifications ? (
+                      <span className="dashboardNotificationsFilter__count">
+                        {unreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    className={`dashboardNotificationsFilter__chip${
+                      activeFilter === "all" ? " is-active" : ""
+                    }`}
+                    onClick={() => setActiveFilter("all")}
+                  >
+                    All notifications
+                    <span className="dashboardNotificationsFilter__count">
+                      {notifications.length}
+                    </span>
+                  </button>
+                </div>
+              ) : null}
+
+              {filteredNotifications.length === 0 ? (
                 <p className="dashboardWorkspace__notificationsEmpty">
-                  You're all caught up.
+                  {emptyMessage}
                 </p>
               ) : (
                 <ul className="dashboardWorkspace__notificationsList">
-                  {notifications.map((notification) => (
+                  {filteredNotifications.map((notification) => (
                       <li key={notification.id} className="dashboardWorkspace__notificationRow">
                         <button
                           type="button"
@@ -1667,22 +1817,45 @@ function DocumentsTab({
 }) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [images, setImages] = useState<ProjectImage[]>([]);
+  const [videos, setVideos] = useState<ProjectFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeMediaTab, setActiveMediaTab] = useState<"photos" | "documents">(
+  const [activeMediaTab, setActiveMediaTab] = useState<
+    "photos" | "videos" | "documents"
+  >(
     "photos",
   );
   const [selectedPreview, setSelectedPreview] = useState<{
     title: string;
     subtitle?: string;
     href: string;
+    openHref?: string;
+    downloadHref?: string;
     meta?: string;
+    mediaType: "image" | "video";
   } | null>(null);
+  const [videoPlaybackFailed, setVideoPlaybackFailed] = useState(false);
   const documentCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const highlightedDocKey =
     highlightDocumentUrl &&
     files.some((file) => file.downloadUrl === highlightDocumentUrl)
       ? highlightDocumentUrl
       : null;
+  const openPreview = (preview: {
+    title: string;
+    subtitle?: string;
+    href: string;
+    openHref?: string;
+    downloadHref?: string;
+    meta?: string;
+    mediaType: "image" | "video";
+  }) => {
+    setVideoPlaybackFailed(false);
+    setSelectedPreview(preview);
+  };
+  const closePreview = () => {
+    setVideoPlaybackFailed(false);
+    setSelectedPreview(null);
+  };
 
   useEffect(() => {
     async function loadMedia() {
@@ -1695,7 +1868,12 @@ function DocumentsTab({
       const filesRes = await getProjectFiles(projectId);
 
       if (Array.isArray(filesRes)) {
-        setFiles(filesRes.filter((file) => !isImageFileType(file.fileType)));
+        setFiles(
+          filesRes.filter(
+            (file) =>
+              !isImageFileType(file.fileType) && !isVideoFileType(file.fileType),
+          ),
+        );
         setImages(
           filesRes
             .filter((file) => isImageFileType(file.fileType))
@@ -1707,9 +1885,13 @@ function DocumentsTab({
               previewUrl: file.previewUrl || file.downloadUrl,
             })),
         );
+        setVideos(
+          filesRes.filter((file) => isVideoFileType(file.fileType)),
+        );
       } else {
         setFiles([]);
         setImages([]);
+        setVideos([]);
       }
 
       setIsLoading(false);
@@ -1737,7 +1919,7 @@ function DocumentsTab({
 
     const originalOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedPreview(null);
+      if (event.key === "Escape") closePreview();
     };
 
     document.body.style.overflow = "hidden";
@@ -1751,20 +1933,24 @@ function DocumentsTab({
 
   if (isLoading)
     return <p className="dashboard-loading">Loading project media...</p>;
-  if (files.length === 0 && images.length === 0) {
+  if (files.length === 0 && images.length === 0 && videos.length === 0) {
     return (
-      <GlassEmptyState message="No files or images have been uploaded to this project yet." />
+      <GlassEmptyState message="No files, images, or videos have been uploaded to this project yet." />
     );
   }
 
   const hasPhotos = images.length > 0;
+  const hasVideos = videos.length > 0;
   const hasDocuments = files.length > 0;
-  const effectiveTab: "photos" | "documents" =
-    hasPhotos && hasDocuments
+  const mediaTabs = [
+    hasPhotos ? "photos" : null,
+    hasVideos ? "videos" : null,
+    hasDocuments ? "documents" : null,
+  ].filter(Boolean) as Array<"photos" | "videos" | "documents">;
+  const effectiveTab: "photos" | "videos" | "documents" =
+    mediaTabs.length > 1
       ? activeMediaTab
-      : hasPhotos
-        ? "photos"
-        : "documents";
+      : mediaTabs[0];
 
   return (
     <>
@@ -1790,32 +1976,50 @@ function DocumentsTab({
           ) : null}
         </div>
 
-        {hasPhotos && hasDocuments ? (
+        {mediaTabs.length > 1 ? (
           <div className="dashboardMediaToggle" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === "photos"}
-              className={`dashboardMediaToggle__btn${effectiveTab === "photos" ? " is-active" : ""}`}
-              onClick={() => setActiveMediaTab("photos")}
-            >
-              <span>Project Photos</span>
-              <span className="dashboardMediaToggle__count">
-                {images.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === "documents"}
-              className={`dashboardMediaToggle__btn${effectiveTab === "documents" ? " is-active" : ""}`}
-              onClick={() => setActiveMediaTab("documents")}
-            >
-              <span>Project Documents</span>
-              <span className="dashboardMediaToggle__count">
-                {files.length}
-              </span>
-            </button>
+            {hasPhotos ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "photos"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "photos" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("photos")}
+              >
+                <span>Project Photos</span>
+                <span className="dashboardMediaToggle__count">
+                  {images.length}
+                </span>
+              </button>
+            ) : null}
+            {hasVideos ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "videos"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "videos" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("videos")}
+              >
+                <span>Project Videos</span>
+                <span className="dashboardMediaToggle__count">
+                  {videos.length}
+                </span>
+              </button>
+            ) : null}
+            {hasDocuments ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "documents"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "documents" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("documents")}
+              >
+                <span>Project Documents</span>
+                <span className="dashboardMediaToggle__count">
+                  {files.length}
+                </span>
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -1829,11 +2033,14 @@ function DocumentsTab({
                 variants={fadeUpItem}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
                 onClick={() =>
-                  setSelectedPreview({
+                  openPreview({
                     title: img.title,
                     href: img.imageUrl,
+                    openHref: img.imageUrl,
+                    downloadHref: img.imageUrl,
                     subtitle: "Project image",
                     meta: "Private archive image",
+                    mediaType: "image",
                   })
                 }
               >
@@ -1853,6 +2060,45 @@ function DocumentsTab({
                   <p>Click to preview</p>
                 </div>
               </motion.button>
+            ))}
+          </div>
+        ) : effectiveTab === "videos" ? (
+          <div className="dashboardVideoGrid">
+            {videos.map((video, index) => (
+              <motion.article
+                key={`${video.downloadUrl}-${index}`}
+                className="dashboardDocumentCard dashboardVideoCard"
+                variants={fadeUpItem}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              >
+                <div className="dashboardVideoCard__preview">
+                  <video
+                    src={video.previewUrl || video.downloadUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    controlsList="nodownload"
+                  />
+                </div>
+                <div className="dashboardVideoCard__body">
+                  <div className="dashboardDocumentCard__body dashboardVideoCard__copy">
+                    <strong>{video.title}</strong>
+                    <p>{formatReadableFileMeta(video)}</p>
+                  </div>
+                </div>
+                <div className="dashboardVideoCard__actions">
+                  <a
+                    href={video.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={video.title}
+                    className="dashboardDocumentCard__download"
+                  >
+                    <FiDownload aria-hidden="true" />
+                    <span>Download</span>
+                  </a>
+                </div>
+              </motion.article>
             ))}
           </div>
         ) : (
@@ -1911,7 +2157,7 @@ function DocumentsTab({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={() => setSelectedPreview(null)}
+                    onClick={closePreview}
                   />
                   <motion.div
                     className="dashboardPreview__shell"
@@ -1931,7 +2177,9 @@ function DocumentsTab({
                       <div className="dashboardPreview__header">
                         <div className="dashboardPreview__headerCopy">
                           <p className="dashboardPreview__eyebrow">
-                            Image Preview
+                            {selectedPreview.mediaType === "video"
+                              ? "Video Preview"
+                              : "Image Preview"}
                           </p>
                           <h3 id="dashboard-preview-title">
                             {selectedPreview.title}
@@ -1944,7 +2192,7 @@ function DocumentsTab({
                           type="button"
                           className="dashboardPreview__close"
                           aria-label="Close preview"
-                          onClick={() => setSelectedPreview(null)}
+                          onClick={closePreview}
                         >
                           <FiX aria-hidden="true" />
                         </button>
@@ -1954,14 +2202,44 @@ function DocumentsTab({
                         <div className="dashboardPreview__metaBar">
                           <span>{selectedPreview.title}</span>
                           <span>
-                            {selectedPreview.meta || "Private archive image"}
+                            {selectedPreview.meta ||
+                              (selectedPreview.mediaType === "video"
+                                ? "Private archive video"
+                                : "Private archive image")}
                           </span>
                         </div>
                         <div className="dashboardPreview__image">
-                          <img
-                            src={selectedPreview.href}
-                            alt={selectedPreview.title}
-                          />
+                          {selectedPreview.mediaType === "video" ? (
+                            <>
+                              <video
+                                className="dashboardPreview__video"
+                                controls
+                                autoPlay
+                                playsInline
+                                preload="metadata"
+                                onError={() => setVideoPlaybackFailed(true)}
+                              >
+                                <source
+                                  src={selectedPreview.href}
+                                  type="video/mp4"
+                                />
+                                <source src={selectedPreview.href} />
+                              </video>
+                              {videoPlaybackFailed ? (
+                                <div className="dashboardPreview__videoFallback">
+                                  <strong>Inline playback is not available for this video.</strong>
+                                  <p>
+                                    You can still open it in a new tab or download it directly.
+                                  </p>
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <img
+                              src={selectedPreview.href}
+                              alt={selectedPreview.title}
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -1971,14 +2249,30 @@ function DocumentsTab({
                           <p>{selectedPreview.meta}</p>
                         </div>
                         <a
-                          href={selectedPreview.href}
+                          href={
+                            selectedPreview.mediaType === "video"
+                              ? selectedPreview.openHref || selectedPreview.href
+                              : selectedPreview.downloadHref || selectedPreview.href
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
-                          download={selectedPreview.title}
                           className="dashboardPreview__cta"
                         >
-                          Download
+                          {selectedPreview.mediaType === "video"
+                            ? "Open Video"
+                            : "Download"}
                         </a>
+                        {selectedPreview.mediaType === "video" ? (
+                          <a
+                            href={selectedPreview.downloadHref || selectedPreview.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={selectedPreview.title}
+                            className="dashboardPreview__cta"
+                          >
+                            Download Video
+                          </a>
+                        ) : null}
                       </div>
                     </div>
                   </motion.div>
@@ -2013,16 +2307,35 @@ function NotificationsTab({
 }) {
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(0);
+  const [activeFilter, setActiveFilter] =
+    useState<NotificationVisibilityFilter>("unread");
+  const unreadNotifications = useMemo(
+    () => notifications.filter((notification) => !notification.read),
+    [notifications],
+  );
+  const visibleNotifications =
+    activeFilter === "unread" ? unreadNotifications : notifications;
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return notifications;
-    return notifications.filter((n) => {
+    if (!q) return visibleNotifications;
+    return visibleNotifications.filter((n) => {
       const parts = [n.message, n.projectName || "", n.type || ""].join(" ").toLowerCase();
       return parts.includes(q) || (n.caseId || "").toLowerCase().includes(q);
     });
-  }, [notifications, query]);
+  }, [visibleNotifications, query]);
   const totalPages = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE));
   const safePage = Math.min(page, totalPages - 1);
+  const unreadCount = unreadNotifications.length;
+  const readCount = Math.max(0, notifications.length - unreadCount);
+  const emptyTitle =
+    activeFilter === "unread"
+      ? "No unread notifications right now."
+      : "No notifications yet.";
+  const emptyDescription = query
+    ? "Try another search term, project name, or case number."
+    : activeFilter === "unread"
+      ? "You're caught up. Switch to All notifications to review earlier updates."
+      : "New project updates, files, payments, and case alerts will appear here.";
 
   return (
     <motion.section
@@ -2035,28 +2348,94 @@ function NotificationsTab({
         <div>
           <p className="dashboardSection__eyebrow">Notifications</p>
           <h2 className="dashboardSection__title">Recent activity</h2>
-          <p className="dashboardSection__lead">All notifications in one place.</p>
+          <p className="dashboardSection__lead">
+            Unread notifications are shown first by default, with full history available anytime.
+          </p>
         </div>
         <div className="dashboardSection__chip dashboardSection__chip--button">
           <button type="button" onClick={onMarkAllRead}>Mark all read</button>
         </div>
       </div>
 
-      <div className="dashboardNotificationsTab__controls">
-        <input
-          aria-label="Search notifications"
-          className="dashboardNotificationsTab__search"
-          placeholder="Search notifications, project, or case id..."
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setPage(0);
-          }}
-        />
+      <div className="dashboardNotificationsTab__toolbar">
+        <div className="dashboardNotificationsTab__summary">
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Unread</span>
+            <strong>{unreadCount}</strong>
+          </div>
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Read</span>
+            <strong>{readCount}</strong>
+          </div>
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Total</span>
+            <strong>{notifications.length}</strong>
+          </div>
+        </div>
+
+        <div className="dashboardNotificationsTab__controls">
+          <div className="dashboardNotificationsFilter">
+            <button
+            type="button"
+            className={`dashboardNotificationsFilter__chip${
+              activeFilter === "unread" ? " is-active" : ""
+            }`}
+            onClick={() => {
+              setActiveFilter("unread");
+              setPage(0);
+            }}
+          >
+              Unread
+              {unreadCount > 0 ? (
+                <span className="dashboardNotificationsFilter__count">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </button>
+            <button
+            type="button"
+            className={`dashboardNotificationsFilter__chip${
+              activeFilter === "all" ? " is-active" : ""
+            }`}
+            onClick={() => {
+              setActiveFilter("all");
+              setPage(0);
+            }}
+          >
+              All notifications
+              <span className="dashboardNotificationsFilter__count">
+                {notifications.length}
+              </span>
+            </button>
+          </div>
+          <input
+            aria-label="Search notifications"
+            className="dashboardNotificationsTab__search"
+            placeholder="Search notifications, project, or case id..."
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
       </div>
 
       {filtered.length === 0 ? (
-        <GlassEmptyState message={query ? "No notifications match your search." : "You're all caught up."} />
+        <motion.div
+          className="dashboardNotificationsTab__empty"
+          variants={fadeUpItem}
+        >
+          <div className="dashboardNotificationsTab__emptyIcon" aria-hidden="true">
+            <FiBell />
+          </div>
+          <div className="dashboardNotificationsTab__emptyCopy">
+            <strong>
+              {query ? "No notifications match your search." : emptyTitle}
+            </strong>
+            <p>{emptyDescription}</p>
+          </div>
+        </motion.div>
       ) : (
         <>
           <ul className="dashboardWorkspace__notificationsList dashboardNotificationsTab__list">
@@ -2122,24 +2501,25 @@ type CaseStatusFilter = "All" | "Open" | "Closed";
 // notification click).
 function CasesTab({
   contactId,
-  projectId,
-  projectName,
+  projects,
   onNavigate,
   highlightCaseId,
   onHighlightHandled,
   onOpenSupportModal,
+  refreshKey,
 }: {
   contactId: string;
-  projectId?: string | null;
-  projectName?: string | null;
+  projects: Array<{ id: string; name: string }>;
   onNavigate: (tab: QuickLinkTarget) => void;
   highlightCaseId?: string | null;
   onHighlightHandled?: () => void;
   onOpenSupportModal: () => void;
+  refreshKey: number;
 }) {
   const [cases, setCases] = useState<SupportCaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<CaseStatusFilter>("All");
+  const [projectFilter, setProjectFilter] = useState("all");
   const caseCardRefs = useRef<Record<string, HTMLElement | null>>({});
   const effectiveHighlightedCaseId =
     highlightCaseId && cases.some((item) => item.caseId === highlightCaseId)
@@ -2154,20 +2534,42 @@ function CasesTab({
       }
       setIsLoading(true);
       const result = await getSupportCases(contactId);
-      let list = result || [];
-      if (projectId || projectName) {
-        list = list.filter((item) => {
-          if (!item) return false;
-          if (projectId && item.projectId) return item.projectId === projectId;
-          if (projectName && item.projectName) return item.projectName === projectName;
-          return false;
+      const storedProjectMap = readSupportCaseProjectMap(contactId);
+      const list = (result || [])
+        .map((item) => {
+          const storedProject = storedProjectMap[item.caseId];
+          return {
+            ...item,
+            projectId: item.projectId || storedProject?.projectId,
+            projectName: item.projectName || storedProject?.projectName,
+          };
+        })
+        .slice()
+        .sort((left, right) => {
+        const leftTime = left.createdDate
+          ? new Date(left.createdDate).getTime()
+          : 0;
+        const rightTime = right.createdDate
+          ? new Date(right.createdDate).getTime()
+          : 0;
+        return rightTime - leftTime;
         });
-      }
+
+      const nextStoredProjectMap = { ...storedProjectMap };
+      list.forEach((item) => {
+        if (item.caseId && (item.projectId || item.projectName)) {
+          nextStoredProjectMap[item.caseId] = {
+            projectId: item.projectId,
+            projectName: item.projectName,
+          };
+        }
+      });
+      writeSupportCaseProjectMap(contactId, nextStoredProjectMap);
       setCases(list);
       setIsLoading(false);
     }
     void loadCases();
-  }, [contactId, projectId, projectName]);
+  }, [contactId, refreshKey]);
 
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
@@ -2194,8 +2596,37 @@ function CasesTab({
     { key: "Open", count: openCases.length },
     { key: "Closed", count: closedCases.length },
   ];
-  const visibleCases =
+  const visibleCasesByStatus =
     statusFilter === "All" ? cases : statusFilter === "Open" ? openCases : closedCases;
+  const findMatchingProject = (item: SupportCaseRecord) => {
+    const normalizedProjectId = normalizeProjectMatchValue(item.projectId);
+    const normalizedProjectName = normalizeProjectMatchValue(item.projectName);
+    return projects.find((project) => {
+      const projectIdMatch =
+        normalizedProjectId &&
+        normalizeProjectMatchValue(project.id) === normalizedProjectId;
+      const projectNameMatch =
+        normalizedProjectName &&
+        normalizeProjectMatchValue(project.name) === normalizedProjectName;
+      const projectIdLooksLikeName =
+        normalizedProjectId &&
+        normalizeProjectMatchValue(project.name) === normalizedProjectId;
+      return Boolean(projectIdMatch || projectNameMatch || projectIdLooksLikeName);
+    });
+  };
+  const resolvedProjectName = (item: SupportCaseRecord) =>
+    item.projectName ||
+    findMatchingProject(item)?.name ||
+    "Project not assigned";
+  const projectOptions = [
+    { id: "all", name: "All projects" },
+    ...projects.map((project) => ({ id: project.id, name: project.name })),
+  ];
+  const visibleCases = visibleCasesByStatus.filter((item) => {
+    if (projectFilter === "all") return true;
+    const matchedProject = findMatchingProject(item);
+    return matchedProject?.id === projectFilter;
+  });
 
   return (
     <motion.section
@@ -2243,6 +2674,30 @@ function CasesTab({
             ))}
           </div>
 
+          <div className="dashboardCaseFilters">
+            <div className="dashboardCaseFilters__summary">
+              <strong>Total Cases: {visibleCases.length}</strong>
+              <span>
+                {projectFilter === "all"
+                  ? "cases shown across all projects"
+                  : `cases shown for ${
+                      projectOptions.find((project) => project.id === projectFilter)
+                        ?.name || "selected project"
+                    }`}
+              </span>
+            </div>
+            <FormSelect
+              label="Project Filter"
+              value={projectFilter}
+              options={projectOptions.map((project) => ({
+                label: project.name,
+                value: project.id,
+              }))}
+              onChange={setProjectFilter}
+              className="dashboardCaseFilters__project"
+            />
+          </div>
+
           <div className="dashboardCaseGrid">
             {visibleCases.map((item) => (
               <motion.article
@@ -2269,6 +2724,9 @@ function CasesTab({
                   </span>
                 </div>
                 <h3 className="dashboardCaseCard__title">{item.subject}</h3>
+                <p className="dashboardCaseCard__projectName">
+                  {resolvedProjectName(item)}
+                </p>
                 <div className="dashboardCaseCard__descriptionBlock">
                   <span className="dashboardCaseCard__descriptionLabel">Description</span>
                   <p className="dashboardCaseCard__description">
@@ -2276,6 +2734,10 @@ function CasesTab({
                   </p>
                 </div>
                 <div className="dashboardCaseCard__meta">
+                  <span>
+                    <FiFileText aria-hidden="true" />
+                    {item.caseId}
+                  </span>
                   {item.category ? (
                     <span>
                       <FiLayers aria-hidden="true" />
@@ -2334,6 +2796,7 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [supportCasesRefreshKey, setSupportCasesRefreshKey] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
@@ -2500,10 +2963,33 @@ export function DashboardPage() {
 
           const termsList = Array.isArray(terms) ? terms : [];
           const filesList = Array.isArray(files) ? files : [];
+          const vendorTasksByVendor: Record<string, ProjectVendorTask[]> = {};
+
+          if (projectId && matchingProject?.vendors?.length) {
+            const vendorTaskResults = await Promise.all(
+              matchingProject.vendors.map(async (vendor) => {
+                const vendorResponse = await getVendorTasks(
+                  projectId,
+                  vendor.vendorName,
+                );
+                return [
+                  vendor.vendorName,
+                  Array.isArray(vendorResponse?.tasks)
+                    ? vendorResponse.tasks
+                    : [],
+                ] as const;
+              }),
+            );
+
+            vendorTaskResults.forEach(([vendorName, tasks]) => {
+              vendorTasksByVendor[vendorName] = tasks;
+            });
+          }
 
           const previousSnapshot = readNotificationSnapshot(keys.snapshot);
           const freshSnapshot = buildNotificationSnapshot(
             matchingProject,
+            vendorTasksByVendor,
             termsList,
             filesList,
             casesList,
@@ -2532,6 +3018,14 @@ export function DashboardPage() {
             vendorCategories: {
               ...(previousSnapshot?.vendorCategories || {}),
               ...freshSnapshot.vendorCategories,
+            },
+            vendorStatuses: {
+              ...(previousSnapshot?.vendorStatuses || {}),
+              ...freshSnapshot.vendorStatuses,
+            },
+            vendorTasks: {
+              ...(previousSnapshot?.vendorTasks || {}),
+              ...freshSnapshot.vendorTasks,
             },
             paymentTerms: {
               ...(previousSnapshot?.paymentTerms || {}),
@@ -2661,6 +3155,13 @@ export function DashboardPage() {
     navigate("/login", { replace: true });
   };
 
+  const unreadNotificationCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
+  const unreadNotificationLabel = formatNotificationCount(
+    unreadNotificationCount,
+  );
+
   const handleTabChange = (tabId: (typeof desktopNavItems)[number]["id"]) => {
     startTabTransition(() => {
       setActiveDashboardTab(tabId);
@@ -2738,6 +3239,14 @@ export function DashboardPage() {
         isOpen={isSupportModalOpen}
         contactId={contactId}
         projectId={activeProjectId}
+        projectName={activeProjectName}
+        projects={projects.map((project) => ({
+          id: project.id,
+          name: project.name,
+        }))}
+        onCaseCreated={() =>
+          setSupportCasesRefreshKey((current) => current + 1)
+        }
         onClose={() => setIsSupportModalOpen(false)}
       />
 
@@ -2823,6 +3332,8 @@ export function DashboardPage() {
                 {desktopNavItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeDashboardTab === item.id;
+                  const notificationBadge =
+                    item.id === "notifications" ? unreadNotificationLabel : null;
                   return (
                     <button
                       key={item.id}
@@ -2831,7 +3342,14 @@ export function DashboardPage() {
                       onClick={() => handleTabChange(item.id)}
                     >
                       <Icon />
-                      <span>{item.label}</span>
+                      <span className="dashboardMobileDrawer__linkLabel">
+                        {item.label}
+                      </span>
+                      {notificationBadge ? (
+                        <span className="dashboardNavBadge">
+                          {notificationBadge}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -2890,6 +3408,8 @@ export function DashboardPage() {
             {desktopNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeDashboardTab === item.id;
+              const notificationBadge =
+                item.id === "notifications" ? unreadNotificationLabel : null;
               return (
                 <button
                   key={item.id}
@@ -2898,7 +3418,12 @@ export function DashboardPage() {
                   onClick={() => handleTabChange(item.id)}
                 >
                   <Icon />
-                  <span>{item.label}</span>
+                  <span className="dashboardRail__linkLabel">{item.label}</span>
+                  {notificationBadge ? (
+                    <span className="dashboardNavBadge">
+                      {notificationBadge}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -3314,12 +3839,15 @@ export function DashboardPage() {
                 {deferredDashboardTab === "cases" ? (
                   <CasesTab
                     contactId={contactId}
-                    projectId={activeProjectId}
-                    projectName={activeProjectName}
+                    projects={projects.map((project) => ({
+                      id: project.id,
+                      name: project.name,
+                    }))}
                     onNavigate={handleTabChange}
                     highlightCaseId={highlightCaseId}
                     onHighlightHandled={() => setHighlightCaseId(null)}
                     onOpenSupportModal={() => setIsSupportModalOpen(true)}
+                    refreshKey={supportCasesRefreshKey}
                   />
                 ) : null}
               </motion.div>
@@ -3337,16 +3865,32 @@ function FormSelect({
   value,
   options,
   onChange,
+  placeholder,
+  className,
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: Array<string | { label: string; value: string }>;
   onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const normalizedOptions = options.map((option) =>
+    typeof option === "string"
+      ? { label: option, value: option }
+      : option,
+  );
+  const selectedOption = normalizedOptions.find(
+    (option) => option.value === value,
+  );
 
   return (
-    <div className="dashboardSupportForm__field dashboardSupportForm__select">
+    <div
+      className={`dashboardSupportForm__field dashboardSupportForm__select${
+        className ? ` ${className}` : ""
+      }`}
+    >
       <span>{label}</span>
       <button
         type="button"
@@ -3354,7 +3898,7 @@ function FormSelect({
         onClick={() => setIsOpen((current) => !current)}
         aria-expanded={isOpen}
       >
-        <span>{value}</span>
+        <span>{selectedOption?.label || placeholder || "Select"}</span>
         <FiChevronDown aria-hidden="true" className={isOpen ? "is-open" : ""} />
       </button>
 
@@ -3375,17 +3919,19 @@ function FormSelect({
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             >
-              {options.map((option) => (
+              {normalizedOptions.map((option) => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
-                  className={`dashboardSupportForm__selectOption${option === value ? " is-active" : ""}`}
+                  className={`dashboardSupportForm__selectOption${
+                    option.value === value ? " is-active" : ""
+                  }`}
                   onClick={() => {
-                    onChange(option);
+                    onChange(option.value);
                     setIsOpen(false);
                   }}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </motion.div>
@@ -3401,11 +3947,17 @@ function SupportCaseModal({
   isOpen,
   contactId,
   projectId,
+  projectName,
+  projects,
+  onCaseCreated,
   onClose,
 }: {
   isOpen: boolean;
   contactId: string;
   projectId?: string;
+  projectName?: string;
+  projects: Array<{ id: string; name: string }>;
+  onCaseCreated?: () => void;
   onClose: () => void;
 }) {
   const [subject, setSubject] = useState("");
@@ -3413,9 +3965,12 @@ function SupportCaseModal({
   const [priority, setPriority] = useState("Medium");
   const [category, setCategory] = useState("General");
   const [otherCategory, setOtherCategory] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [caseId, setCaseId] = useState<string | null>(null);
+  const defaultProjectId = projectId || projects[0]?.id || "";
+  const effectiveSelectedProjectId = selectedProjectId || defaultProjectId;
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -3432,6 +3987,7 @@ function SupportCaseModal({
     setPriority("Medium");
     setCategory("General");
     setOtherCategory("");
+    setSelectedProjectId("");
     setError("");
     setCaseId(null);
     onClose();
@@ -3448,13 +4004,17 @@ function SupportCaseModal({
       setError("Please describe the category.");
       return;
     }
+    if (!effectiveSelectedProjectId) {
+      setError("Please select a project for this support case.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError("");
 
     const res = await createSupportCase({
       contactId,
-      projectId,
+      projectId: effectiveSelectedProjectId,
       subject: subject.trim(),
       description: description.trim(),
       priority,
@@ -3466,6 +4026,20 @@ function SupportCaseModal({
 
     if (res.success) {
       setCaseId(res.caseId || "submitted");
+      if (contactId && res.caseId) {
+        const storedProjectMap = readSupportCaseProjectMap(contactId);
+        const selectedProject = projects.find(
+          (project) => project.id === effectiveSelectedProjectId,
+        );
+        writeSupportCaseProjectMap(contactId, {
+          ...storedProjectMap,
+          [res.caseId]: {
+            projectId: effectiveSelectedProjectId,
+            projectName: selectedProject?.name || projectName,
+          },
+        });
+      }
+      onCaseCreated?.();
     } else {
       console.error("Support case submission failed:", res.message);
       setError(
@@ -3536,6 +4110,11 @@ function SupportCaseModal({
                           Check your email for confirmation - our team will
                           contact you soon.
                         </p>
+                        <p className="dashboardSupportModal__successMeta">
+                          {projects.find((project) => project.id === effectiveSelectedProjectId)
+                            ?.name || projectName || "Selected project"}
+                          {" · "}Case #{caseId}
+                        </p>
                         <button
                           type="button"
                           className="dashboardProjectSpotlight__cta"
@@ -3549,6 +4128,17 @@ function SupportCaseModal({
                         className="dashboardSupportForm"
                         onSubmit={handleSubmit}
                       >
+                        <FormSelect
+                          label="Project"
+                          value={effectiveSelectedProjectId}
+                          options={projects.map((project) => ({
+                            label: project.name,
+                            value: project.id,
+                          }))}
+                          onChange={setSelectedProjectId}
+                          placeholder="Select a project"
+                        />
+
                         <label className="dashboardSupportForm__field">
                           <span>Subject</span>
                           <input
