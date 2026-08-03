@@ -1840,6 +1840,22 @@ function DocumentsTab({
     files.some((file) => file.downloadUrl === highlightDocumentUrl)
       ? highlightDocumentUrl
       : null;
+  const openPreview = (preview: {
+    title: string;
+    subtitle?: string;
+    href: string;
+    openHref?: string;
+    downloadHref?: string;
+    meta?: string;
+    mediaType: "image" | "video";
+  }) => {
+    setVideoPlaybackFailed(false);
+    setSelectedPreview(preview);
+  };
+  const closePreview = () => {
+    setVideoPlaybackFailed(false);
+    setSelectedPreview(null);
+  };
 
   useEffect(() => {
     async function loadMedia() {
@@ -1901,11 +1917,9 @@ function DocumentsTab({
   useEffect(() => {
     if (!selectedPreview) return undefined;
 
-    setVideoPlaybackFailed(false);
-
     const originalOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedPreview(null);
+      if (event.key === "Escape") closePreview();
     };
 
     document.body.style.overflow = "hidden";
@@ -2019,7 +2033,7 @@ function DocumentsTab({
                 variants={fadeUpItem}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
                 onClick={() =>
-                  setSelectedPreview({
+                  openPreview({
                     title: img.title,
                     href: img.imageUrl,
                     openHref: img.imageUrl,
@@ -2143,7 +2157,7 @@ function DocumentsTab({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={() => setSelectedPreview(null)}
+                    onClick={closePreview}
                   />
                   <motion.div
                     className="dashboardPreview__shell"
@@ -2178,7 +2192,7 @@ function DocumentsTab({
                           type="button"
                           className="dashboardPreview__close"
                           aria-label="Close preview"
-                          onClick={() => setSelectedPreview(null)}
+                          onClick={closePreview}
                         >
                           <FiX aria-hidden="true" />
                         </button>
@@ -2323,10 +2337,6 @@ function NotificationsTab({
       ? "You're caught up. Switch to All notifications to review earlier updates."
       : "New project updates, files, payments, and case alerts will appear here.";
 
-  useEffect(() => {
-    setPage(0);
-  }, [query, activeFilter]);
-
   return (
     <motion.section
       className="dashboardSection"
@@ -2366,12 +2376,15 @@ function NotificationsTab({
         <div className="dashboardNotificationsTab__controls">
           <div className="dashboardNotificationsFilter">
             <button
-              type="button"
-              className={`dashboardNotificationsFilter__chip${
-                activeFilter === "unread" ? " is-active" : ""
-              }`}
-              onClick={() => setActiveFilter("unread")}
-            >
+            type="button"
+            className={`dashboardNotificationsFilter__chip${
+              activeFilter === "unread" ? " is-active" : ""
+            }`}
+            onClick={() => {
+              setActiveFilter("unread");
+              setPage(0);
+            }}
+          >
               Unread
               {unreadCount > 0 ? (
                 <span className="dashboardNotificationsFilter__count">
@@ -2380,12 +2393,15 @@ function NotificationsTab({
               ) : null}
             </button>
             <button
-              type="button"
-              className={`dashboardNotificationsFilter__chip${
-                activeFilter === "all" ? " is-active" : ""
-              }`}
-              onClick={() => setActiveFilter("all")}
-            >
+            type="button"
+            className={`dashboardNotificationsFilter__chip${
+              activeFilter === "all" ? " is-active" : ""
+            }`}
+            onClick={() => {
+              setActiveFilter("all");
+              setPage(0);
+            }}
+          >
               All notifications
               <span className="dashboardNotificationsFilter__count">
                 {notifications.length}
@@ -2399,6 +2415,7 @@ function NotificationsTab({
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              setPage(0);
             }}
           />
         </div>
@@ -3952,11 +3969,8 @@ function SupportCaseModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [caseId, setCaseId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    setSelectedProjectId(projectId || projects[0]?.id || "");
-  }, [isOpen, projectId, projects]);
+  const defaultProjectId = projectId || projects[0]?.id || "";
+  const effectiveSelectedProjectId = selectedProjectId || defaultProjectId;
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -3973,7 +3987,7 @@ function SupportCaseModal({
     setPriority("Medium");
     setCategory("General");
     setOtherCategory("");
-    setSelectedProjectId(projectId || projects[0]?.id || "");
+    setSelectedProjectId("");
     setError("");
     setCaseId(null);
     onClose();
@@ -3990,7 +4004,7 @@ function SupportCaseModal({
       setError("Please describe the category.");
       return;
     }
-    if (!selectedProjectId) {
+    if (!effectiveSelectedProjectId) {
       setError("Please select a project for this support case.");
       return;
     }
@@ -4000,7 +4014,7 @@ function SupportCaseModal({
 
     const res = await createSupportCase({
       contactId,
-      projectId: selectedProjectId,
+      projectId: effectiveSelectedProjectId,
       subject: subject.trim(),
       description: description.trim(),
       priority,
@@ -4015,12 +4029,12 @@ function SupportCaseModal({
       if (contactId && res.caseId) {
         const storedProjectMap = readSupportCaseProjectMap(contactId);
         const selectedProject = projects.find(
-          (project) => project.id === selectedProjectId,
+          (project) => project.id === effectiveSelectedProjectId,
         );
         writeSupportCaseProjectMap(contactId, {
           ...storedProjectMap,
           [res.caseId]: {
-            projectId: selectedProjectId,
+            projectId: effectiveSelectedProjectId,
             projectName: selectedProject?.name || projectName,
           },
         });
@@ -4097,7 +4111,7 @@ function SupportCaseModal({
                           contact you soon.
                         </p>
                         <p className="dashboardSupportModal__successMeta">
-                          {projects.find((project) => project.id === selectedProjectId)
+                          {projects.find((project) => project.id === effectiveSelectedProjectId)
                             ?.name || projectName || "Selected project"}
                           {" · "}Case #{caseId}
                         </p>
@@ -4116,7 +4130,7 @@ function SupportCaseModal({
                       >
                         <FormSelect
                           label="Project"
-                          value={selectedProjectId}
+                          value={effectiveSelectedProjectId}
                           options={projects.map((project) => ({
                             label: project.name,
                             value: project.id,
