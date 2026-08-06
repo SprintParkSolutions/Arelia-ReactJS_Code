@@ -7,9 +7,9 @@ body {
 
 .app-shell {
   --app-shell-page-padding-x: 1.5rem;
-  --app-shell-page-padding-top: 8rem;
+  --app-shell-page-padding-top: 9rem;
   --app-shell-page-padding-bottom: 3rem;
-  --app-shell-page-width: 64rem;
+  --app-shell-page-width: 84rem;
   position: relative;
   width: 100%;
   max-width: 100%;
@@ -20,6 +20,40 @@ body {
   transition:
     opacity 0.8s ease,
     transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.app-shell::before,
+.app-shell::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(110px);
+  opacity: 0.8;
+}
+
+.app-shell::before {
+  top: 4rem;
+  left: -7rem;
+  width: 20rem;
+  height: 20rem;
+  background: rgba(200, 169, 126, 0.12);
+}
+
+.app-shell::after {
+  right: -8rem;
+  top: 16rem;
+  width: 24rem;
+  height: 24rem;
+  background: rgba(50, 90, 170, 0.12);
+}
+
+.app-shell--login {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .app-shell--entering {
@@ -45,8 +79,9 @@ body {
   overflow-x: clip;
 }
 
-.app-shell__route-fallback {
-  min-height: 100vh;
+.app-shell__routeStage {
+  position: relative;
+  width: 100%;
 }
 
 .page {
