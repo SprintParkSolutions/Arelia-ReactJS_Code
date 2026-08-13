@@ -238,7 +238,7 @@ export function ConsultationForm({
       {step === 'form' ? (
         <form onSubmit={handleSubmit} noValidate>
           <div className="consultation-form__intro">
-            <p className="consultation-form__eyebrow">Consultation Request</p>
+            <p className="consultation-form__eyebrow">YOUR PROJECT BEGINS HERE</p>
             {title ? <h2 className="consultation-form__title">{title}</h2> : null}
             {description ? <p className="consultation-form__description">{description}</p> : null}
           </div>

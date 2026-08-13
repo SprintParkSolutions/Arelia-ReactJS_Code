@@ -5,7 +5,9 @@ export const BASE_URL = rawSiteUrl.replace(/\/+$/, '')
 export const SITE_PATH = rawSitePath ? `/${rawSitePath.replace(/^\/+|\/+$/g, '')}` : ''
 
 const REGISTRATION_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/registration`
+const CONVERTED_PROJECT_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/converted-customer/project`
 const LOGIN_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileLogin`
+const PROSPECT_LOGIN_URL = `${REGISTRATION_BASE_URL}/lead/login`
 const FORGOT_PASSWORD_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileForgotPassword`
 
 export type LoginClientResponse = {
@@ -19,6 +21,163 @@ export type LoginClientResponse = {
 export type ForgotPasswordResponse = {
   success: boolean
   message?: string
+}
+
+export type SiteVisitAppointment = {
+  success: boolean
+  message?: string
+  appointmentAvailable: boolean
+  actionRequired: boolean
+  leadId?: string
+  opportunityId?: string
+  appointmentSentDate?: string
+  appointmentDate?: string
+  appointmentTimeSlot?: string
+  appointmentStatus?: string
+  appointmentConfirmed: boolean
+  requestedDate?: string
+  requestedTimeSlot?: string
+  clientResponseMessage?: string
+  availableTimeSlots: string[]
+}
+
+export type SiteVisitResponsePayload = {
+  leadId?: string
+  opportunityId?: string
+  contactId?: string
+  response: 'Approved' | 'Reschedule Requested'
+  requestedDate?: string
+  requestedTimeSlot?: string
+}
+
+export type DesignApprovalFile = {
+  versionId: string
+  title: string
+  fileExtension?: string
+  isImage: boolean
+  downloadUrl: string
+}
+
+export type DesignApproval = {
+  id: string
+  opportunityId: string
+  title: string
+  projectName?: string
+  status: string
+  comments?: string
+  createdDate?: string
+  canApprove: boolean
+  canRequestChanges: boolean
+  files: DesignApprovalFile[]
+}
+
+export type DesignApprovalsResponse = {
+  success: boolean
+  message?: string
+  designs: DesignApproval[]
+}
+
+export type DesignApprovalDecisionPayload = {
+  opportunityId: string
+  contactId: string
+  designId: string
+  status: 'Approved' | 'Changes Requested'
+  comments?: string
+}
+
+export type SiteVisitReportDocument = {
+  documentId?: string
+  versionId: string
+  title: string
+  fileExtension?: string
+  contentSize?: number
+  isImage: boolean
+  downloadUrl: string
+}
+
+export type SiteVisitReport = {
+  reportId: string
+  reportName?: string
+  recordType?: string
+  leadId?: string
+  opportunityId?: string
+  siteVisitType?: string
+  projectStage?: string
+  siteVisitDate?: string
+  siteVisitTimeSlot?: string
+  siteAddress?: string
+  roomsCount?: number
+  siteAreaSqFt?: number
+  usableAreaSqFt?: number
+  description?: string
+  estimatedBudgetDescription?: string
+  estimatedCompletionDate?: string
+  estimatedCompletionMonths?: number
+  totalEstimatedCost?: number
+  status?: string
+  supervisorName?: string
+  layoutBlueprintUploaded?: boolean
+  reviewChanges?: boolean
+  reviewChangeReason?: string
+  clientApproval?: boolean
+  finalSubmitted?: boolean
+  managementApproval?: boolean
+  documents: SiteVisitReportDocument[]
+}
+
+export type SiteVisitReportResponse = {
+  success: boolean
+  reportAvailable: boolean
+  message?: string
+  report?: SiteVisitReport
+}
+
+export type ProjectDetails = {
+  success: boolean
+  message?: string
+  leadId?: string
+  opportunityId?: string
+  projectSubmitted: boolean
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  siteSpace?: string
+  typeOfProject?: string
+  projectScope?: string
+  planLevel?: string
+  customerBudget?: string
+  siteLocation?: string
+  projectDescription?: string
+}
+
+export type ProjectDetailsPayload = {
+  leadId?: string
+  opportunityId?: string
+  contactId?: string
+  siteSpace: string
+  typeOfProject: string
+  projectScope: string
+  planLevel: string
+  customerBudget: string
+  siteLocation: string
+  projectDescription: string
+  // quotationType?: 'Manual' | 'Automation'
+}
+
+function applySiteVisitStatusRules(
+  appointment: SiteVisitAppointment,
+): SiteVisitAppointment {
+  if (appointment.appointmentStatus?.trim().toLowerCase() !== 'rescheduled') {
+    return appointment
+  }
+
+  return {
+    ...appointment,
+    appointmentConfirmed: true,
+    appointmentDate: undefined,
+    appointmentTimeSlot: undefined,
+  }
 }
 
 export type PortalClientRecord = { 
@@ -60,6 +219,7 @@ export type SupportCaseRecord = {
 export type ClientPortalResponse = {
   success: boolean
   message: string
+  sourceLeadId?: string
   client?: PortalClientRecord
   projects: PortalProject[]
 }
@@ -503,34 +663,47 @@ function normalizeVendorTaskSummary(rawSummary: unknown): ProjectVendorTaskSumma
 export async function loginClient(email: string, password: string): Promise<LoginClientResponse> {
   if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
 
+  const normalizedEmail = email.trim().toLowerCase()
+
   try {
     const response = await fetch(`${LOGIN_BASE_URL}/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: email.trim(), password }),
+      body: JSON.stringify({ username: normalizedEmail, password }),
     })
 
-    if (!response.ok) {
-      const errorData = asRecord(await parseResponse(response))
-      console.error(`Login request failed: HTTP ${response.status}`, errorData?.message)
+    const data = asRecord(await parseResponse(response))
+    if (response.ok && data?.success === true) {
       return {
-        success: false,
-        message: asString(errorData?.message) || 'Unable to log in right now. Please try again.',
+        success: true,
+        message: asString(data?.message) || 'Login successful.',
+        contactId: data?.contactId ? String(data.contactId) : undefined,
+        leadId: data?.leadId ? String(data.leadId) : undefined,
+        name: data?.name ? String(data.name) : undefined,
       }
     }
+  } catch (error) {
+    console.error('Existing client login request failed; trying prospect login.', error)
+  }
 
+  try {
+    const response = await fetch(PROSPECT_LOGIN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: normalizedEmail, password }),
+    })
     const data = asRecord(await parseResponse(response))
+
     return {
-      success: data?.success === true,
+      success: response.ok && data?.success === true,
       message:
         asString(data?.message) ||
-        (data?.success ? 'Login successful.' : 'Invalid email or password.'),
-      contactId: data?.contactId ? String(data.contactId) : undefined,
+        (response.ok ? 'Sign in successful.' : 'Invalid email address or password.'),
       leadId: data?.leadId ? String(data.leadId) : undefined,
-      name: data?.name ? String(data.name) : undefined,
+      name: asString(data?.fullName) || undefined,
     }
   } catch (error) {
-    console.error('Error logging in:', error)
+    console.error('Prospect login request failed:', error)
     return {
       success: false,
       message: 'We could not reach our servers. Please check your connection and try again.',
@@ -669,6 +842,21 @@ export async function getClientPortalDetails({
     const clientRecord = normalizeClientRecord(rawClient)
     const projectLookupData = await parseResponse(projectLookupRes)
     const projectLookupRoot = asRecord(projectLookupData)
+    const profileUser = asRecord(profileData?.user || profileData?.client || profileData?.data)
+    const sourceLeadId = asString(
+      profileData?.sourceLeadId ||
+      profileData?.originalLeadId ||
+      profileData?.convertedLeadId ||
+      profileUser?.sourceLeadId ||
+      profileUser?.originalLeadId ||
+      profileUser?.convertedLeadId ||
+      dashboardData?.sourceLeadId ||
+      dashboardData?.originalLeadId ||
+      dashboardData?.convertedLeadId ||
+      projectLookupRoot?.sourceLeadId ||
+      projectLookupRoot?.originalLeadId ||
+      projectLookupRoot?.convertedLeadId,
+    )
     let projectLookup =
       normalizeContactProjectLookup(projectLookupRoot?.project || projectLookupRoot?.data) ||
       normalizeContactProjectLookup(projectLookupData)
@@ -707,6 +895,7 @@ export async function getClientPortalDetails({
     return {
       success: profileRes.ok || dashboardRes.ok,
       message: asString(profileData?.message) || asString(dashboardData?.message) || '',
+      sourceLeadId,
       client: clientRecord,
       projects,
     }
@@ -898,17 +1087,332 @@ export async function getProjectFiles(projectId: string): Promise<ProjectFile[] 
   }
 }
 
+export async function getSiteVisitAppointment(
+  leadId?: string,
+  opportunityId?: string,
+  contactId?: string,
+): Promise<SiteVisitAppointment> {
+  const fallback: SiteVisitAppointment = {
+    success: false,
+    appointmentAvailable: false,
+    actionRequired: false,
+    appointmentConfirmed: false,
+    availableTimeSlots: [],
+  }
+  try {
+    const params = new URLSearchParams()
+    if (leadId) params.set('leadId', leadId)
+    if (opportunityId) params.set('opportunityId', opportunityId)
+    if (contactId) params.set('contactId', contactId)
+    const endpoint = contactId
+      ? `${CONVERTED_PROJECT_BASE_URL}/site-visits`
+      : `${REGISTRATION_BASE_URL}/lead/site-visit`
+    const response = await fetch(`${endpoint}?${params.toString()}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    })
+    const data = asRecord(await parseResponse(response))
+    return applySiteVisitStatusRules({
+      ...fallback,
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+      appointmentAvailable: asBoolean(data?.appointmentAvailable) ?? false,
+      actionRequired: asBoolean(data?.actionRequired) ?? false,
+      leadId: asString(data?.leadId),
+      appointmentSentDate: asString(data?.appointmentSentDate),
+      appointmentDate: asString(data?.appointmentDate),
+      appointmentTimeSlot: asString(data?.appointmentTimeSlot),
+      appointmentStatus: asString(data?.appointmentStatus),
+      appointmentConfirmed: asBoolean(data?.appointmentConfirmed) ?? false,
+      requestedDate: asString(data?.requestedDate),
+      requestedTimeSlot: asString(data?.requestedTimeSlot),
+      clientResponseMessage: asString(data?.clientResponseMessage),
+      availableTimeSlots: asArray(data?.availableTimeSlots).filter(
+        (slot): slot is string => typeof slot === 'string',
+      ),
+    })
+  } catch (error) {
+    console.error('Error fetching site visit appointment:', error)
+    return { ...fallback, message: 'Could not load the site visit appointment.' }
+  }
+}
+
+export async function getApprovedSiteVisitReport(
+  leadId?: string,
+  reportId?: string,
+  opportunityId?: string,
+  contactId?: string,
+): Promise<SiteVisitReportResponse> {
+  const params = new URLSearchParams()
+  if (leadId) params.set('leadId', leadId)
+  if (reportId) params.set('reportId', reportId)
+  if (opportunityId) params.set('opportunityId', opportunityId)
+  if (contactId) params.set('contactId', contactId)
+
+  try {
+    const endpoint = contactId
+      ? `${CONVERTED_PROJECT_BASE_URL}/site-visits`
+      : `${REGISTRATION_BASE_URL}/lead/site-visit-report`
+    const response = await fetch(
+      `${endpoint}?${params.toString()}`,
+      { method: 'GET', headers: { Accept: 'application/json' } },
+    )
+    const data = asRecord(await parseResponse(response))
+    const reportData = asRecord(data?.report)
+    const resolvedReportId = asString(reportData?.reportId)
+
+    if (!response.ok || data?.success !== true || !reportData || !resolvedReportId) {
+      return {
+        success: false,
+        reportAvailable: false,
+        message: asString(data?.message) || 'No Site Visit Report was returned for this customer.',
+      }
+    }
+
+    const documents = asArray(data?.documents)
+      .map((item): SiteVisitReportDocument | undefined => {
+        const document = asRecord(item)
+        const versionId = asString(document?.versionId)
+        const title = asString(document?.title)
+        if (!versionId || !title) return undefined
+        const documentParams = new URLSearchParams({
+          reportId: resolvedReportId,
+          versionId,
+        })
+        if (leadId) documentParams.set('leadId', leadId)
+        if (opportunityId) documentParams.set('opportunityId', opportunityId)
+        if (contactId) documentParams.set('contactId', contactId)
+        return {
+          documentId: asString(document?.documentId),
+          versionId,
+          title,
+          fileExtension: asString(document?.fileExtension),
+          contentSize: asNumber(document?.contentSize),
+          isImage: asBoolean(document?.isImage) ?? false,
+          downloadUrl: `${REGISTRATION_BASE_URL}/lead/site-visit-report?${documentParams.toString()}`,
+        }
+      })
+      .filter((document): document is SiteVisitReportDocument => Boolean(document))
+
+    return {
+      success: true,
+      reportAvailable: true,
+      message: asString(data?.message),
+      report: {
+        reportId: resolvedReportId,
+        reportName: asString(reportData.reportName),
+        recordType: asString(reportData.recordType),
+        leadId: asString(reportData.leadId),
+        opportunityId: asString(reportData.opportunityId),
+        siteVisitType: asString(reportData.siteVisitType),
+        projectStage: asString(reportData.projectStage),
+        siteVisitDate: asString(reportData.siteVisitDate),
+        siteVisitTimeSlot: asString(reportData.siteVisitTimeSlot),
+        siteAddress: asString(reportData.siteAddress),
+        roomsCount: asNumber(reportData.roomsCount),
+        siteAreaSqFt: asNumber(reportData.siteAreaSqFt),
+        usableAreaSqFt: asNumber(reportData.usableAreaSqFt),
+        description: asString(reportData.description),
+        estimatedBudgetDescription: asString(reportData.estimatedBudgetDescription),
+        estimatedCompletionDate: asString(reportData.estimatedCompletionDate),
+        estimatedCompletionMonths: asNumber(reportData.estimatedCompletionMonths),
+        totalEstimatedCost: asNumber(reportData.totalEstimatedCost),
+        status: asString(reportData.status),
+        supervisorName:
+          asString(reportData.supervisorDisplayName) ||
+          asString(reportData.supervisorFullName) ||
+          asString(reportData.supervisorUserFullName) ||
+          asString(asRecord(reportData.supervisor)?.Name) ||
+          asString(asRecord(reportData.supervisor)?.name) ||
+          asString(asRecord(reportData.Supervisor_User__r)?.Name) ||
+          asString(reportData.supervisorName),
+        layoutBlueprintUploaded: asBoolean(reportData.layoutBlueprintUploaded),
+        reviewChanges: asBoolean(reportData.reviewChanges),
+        reviewChangeReason: asString(reportData.reviewChangeReason),
+        clientApproval: asBoolean(reportData.clientApproval),
+        finalSubmitted: asBoolean(reportData.finalSubmitted),
+        managementApproval: asBoolean(reportData.managementApproval),
+        documents,
+      },
+    }
+  } catch (error) {
+    console.error('Error fetching approved site visit report:', error)
+    return {
+      success: false,
+      reportAvailable: false,
+      message: 'Could not load the approved Site Visit Report.',
+    }
+  }
+}
+
+export async function submitSiteVisitResponse(
+  payload: SiteVisitResponsePayload,
+): Promise<SiteVisitAppointment> {
+  const response = await fetch(`${REGISTRATION_BASE_URL}/lead/site-visit/response`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  const data = asRecord(await parseResponse(response))
+  return applySiteVisitStatusRules({
+    success: asBoolean(data?.success) ?? response.ok,
+    message: asString(data?.message),
+    appointmentAvailable: true,
+    actionRequired: false,
+    leadId: asString(data?.leadId),
+    opportunityId: asString(data?.opportunityId),
+    appointmentDate: asString(data?.appointmentDate),
+    appointmentTimeSlot: asString(data?.appointmentTimeSlot),
+    appointmentStatus: asString(data?.appointmentStatus),
+    appointmentConfirmed: asBoolean(data?.appointmentConfirmed) ?? false,
+    requestedDate: asString(data?.requestedDate),
+    requestedTimeSlot: asString(data?.requestedTimeSlot),
+    availableTimeSlots: [],
+  })
+}
+
+export async function getDesignApprovals(
+  contactId: string,
+  opportunityId?: string,
+): Promise<DesignApprovalsResponse> {
+  const params = new URLSearchParams({ contactId })
+  if (opportunityId) params.set('opportunityId', opportunityId)
+  try {
+    const response = await fetch(
+      `${REGISTRATION_BASE_URL}/opportunity/design-notification-approvals?${params.toString()}`,
+      { method: 'GET', headers: { Accept: 'application/json' } },
+    )
+    const data = asRecord(await parseResponse(response))
+    const responseData = asRecord(data?.data)
+    const designs = asArray(responseData?.designs).map((item): DesignApproval | undefined => {
+      const design = asRecord(item)
+      const id = asString(design?.designId)
+      const designOpportunityId = asString(design?.opportunityId) || opportunityId
+      if (!id || !designOpportunityId) return undefined
+      const files = asArray(design?.files).map((entry): DesignApprovalFile | undefined => {
+        const file = asRecord(entry)
+        const versionId = asString(file?.versionId)
+        if (!versionId) return undefined
+        const fileParams = new URLSearchParams({ opportunityId: designOpportunityId, contactId, designId: id, versionId })
+        const extension = asString(file?.extension)
+        const contentType = asString(file?.contentType)
+        return {
+          versionId,
+          title: asString(file?.title) || 'Design image',
+          fileExtension: extension,
+          isImage: contentType?.startsWith('image/') ?? ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension?.toLowerCase() || ''),
+          downloadUrl: `${REGISTRATION_BASE_URL}/opportunity/design-notification-approvals/file?${fileParams.toString()}`,
+        }
+      }).filter((file): file is DesignApprovalFile => Boolean(file))
+      return {
+        id,
+        opportunityId: designOpportunityId,
+        title: asString(design?.designName) || '3D Design',
+        projectName: asString(design?.opportunityName) || asString(responseData?.opportunityName),
+        status: asString(design?.status) || 'Sent',
+        comments: asString(design?.comments),
+        createdDate: asString(design?.createdDate),
+        canApprove: asBoolean(design?.canApprove) ?? false,
+        canRequestChanges: asBoolean(design?.canRequestChanges) ?? false,
+        files,
+      }
+    }).filter((design): design is DesignApproval => Boolean(design))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+      designs,
+    }
+  } catch (error) {
+    console.error('Error fetching design approvals:', error)
+    return { success: false, message: 'Could not load design approvals.', designs: [] }
+  }
+}
+
+export async function submitDesignApprovalDecision(
+  payload: DesignApprovalDecisionPayload,
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const response = await fetch(`${REGISTRATION_BASE_URL}/opportunity/design-notification-approvals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const data = asRecord(await parseResponse(response))
+    return {
+      success: asBoolean(data?.success) ?? response.ok,
+      message: asString(data?.message),
+    }
+  } catch (error) {
+    console.error('Error submitting design approval:', error)
+    return { success: false, message: 'Could not submit your decision.' }
+  }
+}
+
+function normalizeProjectDetails(data: Record<string, unknown> | null | undefined, responseOk: boolean): ProjectDetails {
+  return {
+    success: asBoolean(data?.success) ?? responseOk,
+    message: asString(data?.message),
+    leadId: asString(data?.leadId),
+    opportunityId: asString(data?.opportunityId),
+    projectSubmitted: asBoolean(data?.projectSubmitted) ?? false,
+    firstName: asString(data?.firstName),
+    lastName: asString(data?.lastName),
+    email: asString(data?.email),
+    phone: asString(data?.phone),
+    siteSpace: asString(data?.siteSpace),
+    typeOfProject: asString(data?.typeOfProject),
+    projectScope: asString(data?.projectScope),
+    planLevel: asString(data?.planLevel),
+    customerBudget:
+      asString(data?.customerBudget) ||
+      (asNumber(data?.customerBudget) != null ? String(asNumber(data?.customerBudget)) : undefined),
+    siteLocation: asString(data?.siteLocation),
+    projectDescription: asString(data?.projectDescription),
+  }
+}
+
+export async function getProjectDetails(
+  leadId?: string,
+  opportunityId?: string,
+  contactId?: string,
+): Promise<ProjectDetails> {
+  const params = new URLSearchParams()
+  if (leadId) params.set('leadId', leadId)
+  if (opportunityId) params.set('opportunityId', opportunityId)
+  if (contactId) params.set('contactId', contactId)
+  const endpoint = contactId
+    ? CONVERTED_PROJECT_BASE_URL
+    : `${REGISTRATION_BASE_URL}/lead/project-details`
+  const response = await fetch(`${endpoint}?${params.toString()}`, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  })
+  return normalizeProjectDetails(asRecord(await parseResponse(response)), response.ok)
+}
+
+export async function submitProjectDetails(payload: ProjectDetailsPayload): Promise<ProjectDetails> {
+  const response = await fetch(`${REGISTRATION_BASE_URL}/lead/project-details`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  return normalizeProjectDetails(asRecord(await parseResponse(response)), response.ok)
+}
+
 export async function registerLead(
   firstName: string,
   lastName: string,
   email: string,
   phone: string,
   company: string,
-): Promise<{ success: boolean; message?: string }> {
+  password?: string,
+  confirmPassword?: string,
+  sourceLeadId?: string,
+): Promise<{ success: boolean; message?: string; leadId?: string }> {
   if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
 
   try {
-    const response = await fetch(`${REGISTRATION_BASE_URL}/lead`, {
+    const response = await fetch(`${REGISTRATION_BASE_URL}/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -917,10 +1421,28 @@ export async function registerLead(
         email,
         phone,
         companyName: !company || company.trim() === '' ? 'Self' : company,
+        ...(password
+          ? {
+              password,
+              enterPassword: password,
+              Enter_Password__c: password,
+            }
+          : {}),
+        ...(confirmPassword
+          ? {
+              confirmPassword,
+              Confirm_password__c: confirmPassword,
+            }
+          : {}),
+        ...(sourceLeadId ? { sourceLeadId, additionalProject: true } : {}),
       }),
     })
     const data = asRecord(await parseResponse(response))
-    return { success: data?.success === true, message: asString(data?.message) }
+    return {
+      success: data?.success === true,
+      message: asString(data?.message),
+      leadId: asString(data?.leadId),
+    }
   } catch {
     return { success: false, message: 'An error occurred while registering.' }
   }

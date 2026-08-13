@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import { FiLogOut, FiMenu, FiPhone, FiX } from 'react-icons/fi'
+import { FiLogOut, FiMenu, FiPhone, FiUser, FiX } from 'react-icons/fi'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { dashboardTabs } from '../../constants/dashboardTabs'
 import { useAuth } from '../../context/AuthContext'
@@ -27,11 +27,7 @@ function getInitials(fullName: string) {
     .toUpperCase()
 }
 
-export default function NavigationMenu({
-  onOpenConsultation,
-}: {
-  onOpenConsultation: () => void
-}) {
+export default function NavigationMenu() {
   const navigate = useNavigate()
   const location = useLocation()
   const pathname = location.pathname
@@ -198,16 +194,10 @@ export default function NavigationMenu({
                     <button
                       type="button"
                       className="navigationMenu__action"
-                      onClick={() => navigate('/login')}
+                      onClick={() => navigate('/account')}
                     >
-                      Login
-                    </button>
-                    <button
-                      type="button"
-                      className="navigationMenu__action navigationMenu__action--accent"
-                      onClick={onOpenConsultation}
-                    >
-                      Book Consultation
+                      <FiUser aria-hidden="true" />
+                      Sign In / Sign Up
                     </button>
                     <a href={phoneHref} className="navigationMenu__iconButton" aria-label="Call Arelia">
                       <FiPhone aria-hidden="true" />
@@ -248,7 +238,16 @@ export default function NavigationMenu({
                     <span className="navigationMenu__profileName">{displayName}</span>
                   </div>
                 </div>
-              ) : null}
+              ) : (
+                <button
+                  type="button"
+                  className="navigationMenu__action navigationMenu__action--account"
+                  onClick={() => navigate('/account')}
+                >
+                  <FiUser aria-hidden="true" />
+                  <span>Sign In / Sign Up</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="navigationMenu__menuToggle"
@@ -289,21 +288,12 @@ export default function NavigationMenu({
                         type="button"
                         className="navigationMenu__action navigationMenu__action--drawer"
                         onClick={() => {
-                          navigate('/login')
+                          navigate('/account')
                           setIsMobileMenuOpen(false)
                         }}
                       >
-                        Login
-                      </button>
-                      <button
-                        type="button"
-                        className="navigationMenu__action navigationMenu__action--accent navigationMenu__action--drawer"
-                        onClick={() => {
-                          onOpenConsultation()
-                          setIsMobileMenuOpen(false)
-                        }}
-                      >
-                        Book Consultation
+                        <FiUser aria-hidden="true" />
+                        Sign In / Sign Up
                       </button>
                     </div>
                   </>

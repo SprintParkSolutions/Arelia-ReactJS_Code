@@ -21,6 +21,7 @@ import {
   FiDownload,
   FiDroplet,
   FiEdit3,
+  FiExternalLink,
   FiFileText,
   FiGrid,
   FiHeadphones,
@@ -46,20 +47,33 @@ import {
   getClientPortalDetails,
   getPaymentTerms,
   getProjectByContact,
+  getProjectDetails,
   getProjectFiles,
   getProjectStatus,
   getSupportCases,
+  getApprovedSiteVisitReport,
+  getDesignApprovals,
+  getSiteVisitAppointment,
+  submitSiteVisitResponse,
+  submitDesignApprovalDecision,
+  submitProjectDetails,
   getVendorTasks,
+  registerLead,
   type ClientPortalResponse,
   type ContactProjectLookup,
   type PaymentTerm,
   type ProjectFile,
+  type ProjectDetails,
+  type ProjectDetailsPayload,
   type ProjectImage,
   type ProjectStatusRecord,
   type ProjectVendor,
   type ProjectVendorTask,
   type ProjectVendorTasksResponse,
   type SupportCaseRecord,
+  type SiteVisitAppointment,
+  type SiteVisitReport,
+  type DesignApproval,
 } from "../services/salesforceApi";
 import {
   annotateNotificationWithProject,
@@ -80,6 +94,125 @@ const fadeUpItem = {
 // Centered placeholder shown when a tab has no data to display yet.
 function GlassEmptyState({ message }: { message: string }) {
   return <div className="dashboardEmptyState">{message}</div>;
+}
+
+const approvalOptions = [
+  { id: "design", label: "3D Design Approvals", icon: FiCalendar },
+  { id: "invoice", label: "Proforma Invoice Approvals", icon: FiFileText },
+  { id: "budget", label: "Budget Review Approvals", icon: FiCreditCard },
+] as const;
+
+function ApprovalsTab({ opportunityId, contactId }: { opportunityId?: string; contactId?: string }) {
+  const [activeApproval, setActiveApproval] = useState<(typeof approvalOptions)[number]["id"]>("design");
+  const [designs, setDesigns] = useState<DesignApproval[]>([]);
+  const [comments, setComments] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const activeLabel = approvalOptions.find((option) => option.id === activeApproval)?.label;
+
+  useEffect(() => {
+    if (!contactId || activeApproval !== "design") return;
+    let cancelled = false;
+    setIsLoading(true);
+    setError("");
+    void getDesignApprovals(contactId, opportunityId).then((result) => {
+      if (cancelled) return;
+      setDesigns(result.designs);
+      if (!result.success) setError(result.message || "Unable to load designs.");
+      setIsLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [activeApproval, contactId, opportunityId]);
+
+  const submitDecision = async (design: DesignApproval, status: "Approved" | "Changes Requested") => {
+    if (!contactId) return;
+    const remark = comments[design.id]?.trim() || "";
+    if (status === "Changes Requested" && !remark) {
+      setError("Please describe the changes you would like for this design.");
+      return;
+    }
+    setSavingId(design.id);
+    setError("");
+    const result = await submitDesignApprovalDecision({ opportunityId: design.opportunityId, contactId, designId: design.id, status, comments: remark });
+    if (result.success) {
+      setDesigns((current) => current.map((item) => item.id === design.id ? {
+        ...item,
+        status,
+        comments: remark || (status === "Approved" ? "Approved By Client" : ""),
+        canApprove: false,
+        canRequestChanges: false,
+      } : item));
+    } else {
+      setError(result.message || "Unable to submit your decision.");
+    }
+    setSavingId(null);
+  };
+
+  return (
+    <motion.section className="dashboardApprovals" initial="hidden" animate="visible" variants={{ visible: staggerTransition }}>
+      <motion.header className="dashboardApprovals__header" variants={fadeUpItem}>
+        <p className="dashboardSection__eyebrow">Approvals</p>
+        <h1>Review &amp; Approve</h1>
+        <p>Select a category to review items awaiting your approval.</p>
+      </motion.header>
+      <motion.div className="dashboardApprovals__tabs" role="tablist" aria-label="Approval categories" variants={fadeUpItem}>
+        {approvalOptions.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={activeApproval === id}
+            className={`dashboardApprovals__tab${activeApproval === id ? " is-active" : ""}`}
+            onClick={() => setActiveApproval(id)}
+          >
+            <Icon aria-hidden="true" />
+            <span>{label}</span>
+          </button>
+        ))}
+      </motion.div>
+      {activeApproval === "design" ? (
+        <motion.div className="dashboardApprovals__content" variants={fadeUpItem}>
+          {!contactId ? <GlassEmptyState message="Please sign in with a customer contact account to view design approvals." /> : null}
+          {isLoading ? <div className="dashboardState">Loading 3D designs...</div> : null}
+          {error ? <div className="dashboardError" role="alert">{error}</div> : null}
+          {!isLoading && contactId && designs.length === 0 && !error ? <GlassEmptyState message="No 3D design approvals are pending." /> : null}
+          {designs.map((design) => {
+            const isPending = design.canApprove || design.canRequestChanges;
+            return (
+              <article className="designApprovalCard" key={design.id}>
+                <div className="designApprovalCard__head">
+                  <div><span>{design.projectName || "Your project"}</span><h2>{design.title}</h2></div>
+                  <span className={`designApprovalCard__status${isPending ? " is-pending" : ""}`}>{design.status}</span>
+                </div>
+                <div className="designApprovalCard__gallery">
+                  {design.files.map((file) => file.isImage ? (
+                    <a key={file.versionId} href={file.downloadUrl} target="_blank" rel="noreferrer">
+                      <img src={file.downloadUrl} alt={file.title} loading="lazy" />
+                      <span>{file.title}</span>
+                    </a>
+                  ) : (
+                    <a className="designApprovalCard__file" key={file.versionId} href={file.downloadUrl} target="_blank" rel="noreferrer"><FiFileText /> {file.title}</a>
+                  ))}
+                  {design.files.length === 0 ? <div className="designApprovalCard__noFile">No design files attached.</div> : null}
+                </div>
+                {isPending ? (
+                  <div className="designApprovalCard__decision">
+                    <label htmlFor={`design-comments-${design.id}`}>Comments or requested changes</label>
+                    <textarea id={`design-comments-${design.id}`} value={comments[design.id] || ""} onChange={(event) => setComments((current) => ({ ...current, [design.id]: event.target.value }))} placeholder="Describe any changes needed..." />
+                    <div className="designApprovalCard__actions">
+                      <button type="button" className="is-secondary" disabled={savingId === design.id || !design.canRequestChanges} onClick={() => void submitDecision(design, "Changes Requested")}>Request Changes</button>
+                      <button type="button" className="is-primary" disabled={savingId === design.id || !design.canApprove} onClick={() => void submitDecision(design, "Approved")}><FiCheckCircle /> {savingId === design.id ? "Submitting..." : "Approve Design"}</button>
+                    </div>
+                  </div>
+                ) : design.comments ? <p className="designApprovalCard__submittedComment">Your comments: {design.comments}</p> : null}
+              </article>
+            );
+          })}
+        </motion.div>
+      ) : <motion.div variants={fadeUpItem}><GlassEmptyState message={`No ${activeLabel?.toLowerCase()} are pending.`} /></motion.div>}
+    </motion.section>
+  );
 }
 
 // Derives up to two uppercase initials from a client's full name for avatar badges.
@@ -201,6 +334,8 @@ function formatFileMeta(file: ProjectFile) {
 }
 
 type PortalNotificationType =
+  | "design"
+  | "siteVisit"
   | "status"
   | "vendor"
   | "payment"
@@ -218,6 +353,7 @@ type PortalNotification = {
   caseId?: string;
   projectId?: string;
   projectName?: string;
+  leadId?: string;
 };
 
 type NotificationDocument = {
@@ -249,6 +385,8 @@ const NOTIFICATION_POLL_INTERVAL_MS = 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
 const NOTIFICATIONS_PER_PAGE = 10;
 const SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX = "supportCaseProjectMap";
+const EMPTY_SITE_VISIT_NOTIFICATION_PATTERN =
+  /^(?:Project \d+: )?A site visit appointment is waiting for your approval or reschedule request\.$/;
 
 // Builds the per-contact-per-project localStorage keys used to persist the
 // last-seen snapshot (for diffing) and the notification list itself. Scoping
@@ -793,6 +931,7 @@ function NotificationBell({
 
 // Picks the icon shown next to a notification based on its type.
 function NotificationTypeIcon({ type }: { type: PortalNotificationType }) {
+  if (type === "design") return <FiCheckCircle />;
   if (type === "vendor") return <FiBriefcase />;
   if (type === "payment") return <FiCreditCard />;
   if (type === "paymentDue") return <FiClock />;
@@ -909,6 +1048,8 @@ function InfoCard({
 
 type QuickLinkTarget =
   | "profile"
+  | "siteVisit"
+  | "projectDetails"
   | "status"
   | "vendor"
   | "payment"
@@ -927,6 +1068,18 @@ const quickLinkDirectory: Array<{
     icon: FiUserCheck,
     label: "Profile & Overview",
     description: "Back to your account snapshot",
+  },
+  {
+    target: "siteVisit",
+    icon: FiCalendar,
+    label: "Site Visit Appointment & Report",
+    description: "Review or reschedule your site visit",
+  },
+  {
+    target: "projectDetails",
+    icon: FiHome,
+    label: "Project Details",
+    description: "Submit or review your project requirements",
   },
   {
     target: "status",
@@ -1014,6 +1167,608 @@ function QuickLinks({
 }
 
 // Project Status tab: phase timeline, completion percentage, and vendor summary for the active project.
+function SiteVisitTab({
+  leadId,
+  primaryLeadId,
+  opportunityId,
+  contactId,
+}: {
+  leadId?: string;
+  primaryLeadId?: string;
+  opportunityId?: string;
+  contactId?: string;
+}) {
+  const [appointment, setAppointment] = useState<SiteVisitAppointment | null>(null);
+  const [reports, setReports] = useState<Array<{
+    leadId: string;
+    report: SiteVisitReport;
+    projectNumber: number;
+    totalProjects: number;
+  }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isReportLoading, setIsReportLoading] = useState(true);
+  const [reportMessage, setReportMessage] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [isRescheduling, setIsRescheduling] = useState(false);
+  const [requestedDate, setRequestedDate] = useState("");
+  const [requestedTimeSlot, setRequestedTimeSlot] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setIsReportLoading(true);
+    let storedLeadIds: string[] = [];
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem(`areliaProjectLeadIds:${primaryLeadId}`) || "[]",
+      );
+      if (Array.isArray(stored)) {
+        storedLeadIds = stored.filter((id): id is string => typeof id === "string");
+      }
+    } catch {
+      /* Ignore malformed legacy project IDs. */
+    }
+    const relatedLeadIds = Array.from(
+      new Set([primaryLeadId, ...storedLeadIds].filter((id): id is string => Boolean(id))),
+    );
+    const reportTargets = relatedLeadIds.length > 0 ? relatedLeadIds : [undefined];
+
+    void Promise.all([
+      getSiteVisitAppointment(leadId, opportunityId, contactId),
+      Promise.all(
+        reportTargets.map(async (relatedLeadId, projectIndex) => ({
+          leadId: relatedLeadId || opportunityId || "opportunity",
+          projectNumber: projectIndex + 1,
+          result: await getApprovedSiteVisitReport(
+            relatedLeadId,
+            undefined,
+            opportunityId,
+            contactId,
+          ),
+        })),
+      ),
+    ]).then(([appointmentResult, reportResults]) => {
+      if (cancelled) return;
+      setAppointment(appointmentResult);
+      setReports(
+        reportResults
+          .filter(({ result }) => result.reportAvailable && Boolean(result.report))
+          .map(({ leadId: reportLeadId, projectNumber, result }) => ({
+            leadId: reportLeadId,
+            report: result.report as SiteVisitReport,
+            projectNumber,
+            totalProjects: reportTargets.length,
+        })),
+      );
+      setReportMessage(
+        reportResults.find(({ result }) => !result.reportAvailable)?.result.message || "",
+      );
+      setError(
+        appointmentResult.success
+          ? ""
+          : appointmentResult.message || "Unable to load the appointment.",
+      );
+      setIsLoading(false);
+      setIsReportLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [contactId, leadId, opportunityId, primaryLeadId]);
+
+  const submitResponse = async (response: "Approved" | "Reschedule Requested") => {
+    setIsSaving(true);
+    setError("");
+    try {
+      const result = await submitSiteVisitResponse({
+        ...(leadId ? { leadId } : {}),
+        ...(opportunityId ? { opportunityId } : {}),
+        ...(contactId ? { contactId } : {}),
+        response,
+        ...(response === "Reschedule Requested"
+          ? { requestedDate, requestedTimeSlot }
+          : {}),
+      });
+      if (!result.success) {
+        setError(result.message || "Unable to save your response.");
+        return;
+      }
+      setAppointment((current) => ({
+        ...result,
+        availableTimeSlots: current?.availableTimeSlots || [],
+        appointmentSentDate: current?.appointmentSentDate,
+      }));
+      setIsRescheduling(false);
+    } catch {
+      setError("Could not reach Salesforce. Please check your connection and try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const today = new Date();
+  const minDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+  const normalizedAppointmentStatus = appointment?.appointmentStatus?.trim().toLowerCase();
+  const isAwaitingCustomerResponse =
+    normalizedAppointmentStatus === "pending" ||
+    normalizedAppointmentStatus === "appointment rescheduled";
+  const isApproved =
+    normalizedAppointmentStatus === "approved" &&
+    appointment?.appointmentConfirmed === true;
+  const isRescheduled =
+    normalizedAppointmentStatus === "rescheduled" &&
+    Boolean(appointment?.requestedDate) &&
+    Boolean(appointment?.requestedTimeSlot);
+  const hasConfirmedResponse = isApproved || isRescheduled;
+  const previewDate = isRescheduled
+    ? appointment?.requestedDate
+    : appointment?.appointmentDate;
+  const previewSlot = isRescheduled
+    ? appointment?.requestedTimeSlot
+    : appointment?.appointmentTimeSlot;
+
+  return (
+    <motion.section className="siteVisit" initial="hidden" animate="visible" variants={{ visible: staggerTransition }}>
+      <motion.header className="siteVisit__header" variants={fadeUpItem}>
+        <p className="dashboardSection__eyebrow">Your appointment</p>
+        <h1>Site Visit Appointment &amp; Report</h1>
+        <p>Review the visit proposed by your Arelia team and confirm or request another time.</p>
+      </motion.header>
+
+      {isLoading ? <div className="dashboardState">Loading appointment details...</div> : null}
+      {!isLoading && error ? <div className="dashboardError">{error}</div> : null}
+      {!isLoading && !error && !appointment?.appointmentAvailable ? (
+        <GlassEmptyState message="No site visit appointment has been scheduled yet." />
+      ) : null}
+
+      {!isLoading && appointment?.appointmentAvailable ? (
+        <motion.div className="siteVisit__card" variants={fadeUpItem}>
+          {isAwaitingCustomerResponse ? (
+            <>
+              <div className="siteVisit__details">
+                <div><span>Appointment sent</span><strong>{formatDate(appointment.appointmentSentDate) || "Not available"}</strong></div>
+                <div><span>Visit date</span><strong>{formatDate(appointment.appointmentDate) || "Not available"}</strong></div>
+                <div><span>Time slot</span><strong>{appointment.appointmentTimeSlot || "Not available"}</strong></div>
+              </div>
+
+              {!isRescheduling ? (
+                <div className="siteVisit__actions">
+                  <button className="siteVisit__primary" type="button" disabled={isSaving} onClick={() => void submitResponse("Approved")}>
+                    <FiCheckCircle /> {isSaving ? "Saving..." : "Approve"}
+                  </button>
+                  <button className="siteVisit__secondary" type="button" disabled={isSaving} onClick={() => setIsRescheduling(true)}>
+                    <FiCalendar /> Reschedule
+                  </button>
+                </div>
+              ) : (
+                <form className="siteVisit__form" onSubmit={(event) => { event.preventDefault(); void submitResponse("Reschedule Requested"); }}>
+                  <label>
+                    <span>Preferred date</span>
+                    <input type="date" min={minDate} value={requestedDate} onChange={(event) => setRequestedDate(event.target.value)} required />
+                  </label>
+                  <label>
+                    <span>Available time slot</span>
+                    <select value={requestedTimeSlot} onChange={(event) => setRequestedTimeSlot(event.target.value)} required>
+                      <option value="">Select a time slot</option>
+                      {appointment.availableTimeSlots.map((slot) => <option key={slot} value={slot}>{slot}</option>)}
+                    </select>
+                  </label>
+                  <div className="siteVisit__actions">
+                    <button className="siteVisit__primary" type="submit" disabled={isSaving}>{isSaving ? "Saving..." : "Save new appointment"}</button>
+                    <button className="siteVisit__secondary" type="button" disabled={isSaving} onClick={() => setIsRescheduling(false)}>Cancel</button>
+                  </div>
+                </form>
+              )}
+            </>
+          ) : hasConfirmedResponse ? (
+            <div className="siteVisit__confirmation">
+              <span className="siteVisit__confirmationIcon"><FiCheckCircle /></span>
+              <div>
+                <p>{isRescheduled ? "Response submitted" : "Appointment approved"}</p>
+                <h2>{formatDate(previewDate) || "Date unavailable"}</h2>
+                <strong><FiClock /> {previewSlot || "Time unavailable"}</strong>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="siteVisit__details">
+                <div><span>Appointment sent</span><strong>{formatDate(appointment.appointmentSentDate) || "Not available"}</strong></div>
+                <div><span>Visit date</span><strong>{formatDate(appointment.appointmentDate) || "Not available"}</strong></div>
+                <div><span>Time slot</span><strong>{appointment.appointmentTimeSlot || "Not available"}</strong></div>
+              </div>
+              <p className="siteVisit__notice">
+                This appointment is not currently awaiting a customer response.
+              </p>
+            </>
+          )}
+        </motion.div>
+      ) : null}
+
+      {isReportLoading ? (
+        <div className="siteVisitReport"><div className="dashboardState">Loading approved reports...</div></div>
+      ) : reports.length > 0 ? (
+        <div className="siteVisitReportList">
+          {reports.map(({ leadId: reportLeadId, report, projectNumber, totalProjects }) => (
+            <SiteVisitReportCard
+              key={`${reportLeadId}:${report.reportId}`}
+              report={report}
+              projectNumber={projectNumber}
+              totalProjects={totalProjects}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="siteVisitReport">
+          <p className="siteVisitReport__empty">{reportMessage || "No Site Visit Report is available for this project yet."}</p>
+        </div>
+      )}
+    </motion.section>
+  );
+}
+
+function SiteVisitReportCard({
+  report,
+  projectNumber,
+  totalProjects,
+}: {
+  report: SiteVisitReport;
+  projectNumber: number;
+  totalProjects: number;
+}) {
+  return (
+    <motion.div className="siteVisitReport" variants={fadeUpItem}>
+      <div className="siteVisitReport__heading">
+        <div>
+          <p className="dashboardSection__eyebrow">Management approved</p>
+          <h2>{totalProjects > 1 ? `Project ${projectNumber} Site Visit Report` : "Site Visit Report"}</h2>
+        </div>
+        {report.status ? <span className="dashboardSection__chip">{report.status}</span> : null}
+      </div>
+      <div className="siteVisitReport__summary">
+        <SiteVisitReportField label="Report" value={report.reportName} />
+        <SiteVisitReportField label="Visit type" value={report.siteVisitType} />
+        <SiteVisitReportField label="Project stage" value={report.projectStage} />
+        <SiteVisitReportField label="Visit date" value={formatDate(report.siteVisitDate)} />
+        <SiteVisitReportField label="Time slot" value={report.siteVisitTimeSlot} />
+        <SiteVisitReportField label="Supervisor" value={report.supervisorName} />
+        <SiteVisitReportField label="Site address" value={report.siteAddress} />
+        <SiteVisitReportField label="Rooms" value={report.roomsCount != null ? String(report.roomsCount) : undefined} />
+        <SiteVisitReportField label="Site area" value={report.siteAreaSqFt != null ? `${report.siteAreaSqFt.toLocaleString("en-IN")} sq ft` : undefined} />
+        <SiteVisitReportField label="Usable area" value={report.usableAreaSqFt != null ? `${report.usableAreaSqFt.toLocaleString("en-IN")} sq ft` : undefined} />
+        <SiteVisitReportField label="Estimated cost" value={report.totalEstimatedCost != null ? `₹${report.totalEstimatedCost.toLocaleString("en-IN")}` : undefined} />
+        <SiteVisitReportField label="Estimated completion" value={formatDate(report.estimatedCompletionDate) || (report.estimatedCompletionMonths != null ? `${report.estimatedCompletionMonths} months` : undefined)} />
+      </div>
+      {report.description || report.estimatedBudgetDescription ? (
+        <div className="siteVisitReport__notes">
+          {report.description ? <div><span>Description</span><p>{report.description}</p></div> : null}
+          {report.estimatedBudgetDescription ? <div><span>Budget notes</span><p>{report.estimatedBudgetDescription}</p></div> : null}
+        </div>
+      ) : null}
+      <div className="siteVisitReport__documents">
+        <h3>Report documents</h3>
+        {report.documents.length > 0 ? (
+          <div className="siteVisitReport__documentGrid">
+            {report.documents.map((document) => (
+              <article key={document.versionId} className="siteVisitReport__document">
+                <span className="siteVisitReport__documentIcon">{document.isImage ? <FiImage /> : <FiFileText />}</span>
+                <div><strong>{document.title}</strong><small>{[document.fileExtension?.toUpperCase(), document.contentSize ? formatFileSize(document.contentSize) : ""].filter(Boolean).join(" · ")}</small></div>
+                <div className="siteVisitReport__documentActions">
+                  <a href={document.downloadUrl} target="_blank" rel="noopener noreferrer">
+                    <FiExternalLink /> Open
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => void downloadSiteVisitDocument(
+                      document.downloadUrl,
+                      document.title,
+                      document.fileExtension,
+                    )}
+                  >
+                    <FiDownload /> Download
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : <p className="siteVisitReport__empty">No documents are attached to this report.</p>}
+      </div>
+    </motion.div>
+  );
+}
+
+function SiteVisitReportField({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
+  return <div><span>{label}</span><strong>{value}</strong></div>;
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+async function downloadSiteVisitDocument(url: string, title: string, extension?: string) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Document download failed");
+    const blob = await response.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const normalizedExtension = extension?.replace(/^\./, "");
+    anchor.href = objectUrl;
+    anchor.download = normalizedExtension && !title.toLowerCase().endsWith(`.${normalizedExtension.toLowerCase()}`)
+      ? `${title}.${normalizedExtension}`
+      : title;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(objectUrl);
+  } catch (error) {
+    console.error("Unable to download Site Visit Report document:", error);
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+}
+
+const PROJECT_TYPES = ["Home", "Office", "Only Project Plan"] as const;
+const PLAN_LEVELS = ["Standard", "Premium", "Luxury"] as const;
+const PROJECT_SCOPES: Record<string, string[]> = {
+  Home: [
+    "Full Home Interiors", "Home Decor", "Kitchen", "Bed Room", "Hall Interior",
+    "1RK", "1BHK", "2BHK", "3BHK", "4BHK", "5BHK",
+  ],
+  Office: [
+    "Conference Hall", "Fully Office Interiors", "Office Decor", "Office Space",
+    "Dining Hall", "Cabins",
+  ],
+  "Only Project Plan": [
+    "Full Home Interiors", "Home Decor", "Kitchen", "Bed Room", "Hall Interior",
+    "Conference Hall", "Fully Office Interiors", "Office Decor", "Office Space",
+    "Dining Hall", "Cabins", "1RK", "1BHK", "2BHK", "3BHK", "4BHK", "5BHK",
+  ],
+};
+
+const EMPTY_PROJECT_DETAILS_FORM: Omit<ProjectDetailsPayload, "leadId"> = {
+  siteSpace: "",
+  typeOfProject: "",
+  projectScope: "",
+  planLevel: "",
+  customerBudget: "",
+  siteLocation: "",
+  projectDescription: "",
+};
+
+function ProjectDetailsTab({
+  leadId,
+  opportunityId,
+  contactId,
+  customer,
+  addProjectRequestKey,
+}: {
+  leadId?: string;
+  opportunityId?: string;
+  contactId?: string;
+  customer?: { name?: string; email?: string; phone?: string } | null;
+  addProjectRequestKey: number;
+}) {
+  const [projects, setProjects] = useState<ProjectDetails[]>([]);
+  const [form, setForm] = useState(EMPTY_PROJECT_DETAILS_FORM);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAddingProject, setIsAddingProject] = useState(false);
+  const [error, setError] = useState("");
+
+  const applyFormDetails = (result?: ProjectDetails) => {
+    setForm({
+      siteSpace: result?.siteSpace || "",
+      typeOfProject: result?.typeOfProject || "",
+      projectScope: result?.projectScope || "",
+      planLevel: result?.planLevel || "",
+      customerBudget: result?.customerBudget || "",
+      siteLocation: result?.siteLocation || "",
+      projectDescription: result?.projectDescription || "",
+    });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsLoading(true);
+    setError("");
+    const storageKey = `areliaProjectLeadIds:${leadId}`;
+    let storedLeadIds: string[] = [];
+    try {
+      const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
+      if (Array.isArray(stored)) storedLeadIds = stored.filter((id): id is string => typeof id === "string");
+    } catch { /* Ignore malformed legacy storage. */ }
+    const projectLeadIds = Array.from(
+      new Set([leadId, ...storedLeadIds].filter((id): id is string => Boolean(id))),
+    );
+    const projectTargets = projectLeadIds.length > 0 ? projectLeadIds : [undefined];
+    void Promise.all(projectTargets.map((id, index) =>
+      getProjectDetails(id, index === 0 ? opportunityId : undefined, contactId),
+    ))
+      .then((results) => {
+        if (cancelled) return;
+        const successful = results.filter((result) => result.success);
+        if (successful.length === 0) {
+          setError(results[0]?.message || "Unable to load project details.");
+          return;
+        }
+        setProjects(successful);
+        const primary = successful.find((result) => result.leadId === leadId) || successful[0];
+        if (!primary.projectSubmitted) applyFormDetails(primary);
+      })
+      .catch(() => {
+        if (!cancelled) setError("Could not reach Salesforce. Please try again.");
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [contactId, leadId, opportunityId]);
+
+  useEffect(() => {
+    if (addProjectRequestKey <= 0) return;
+    setIsAddingProject(true);
+    applyFormDetails();
+    setError("");
+  }, [addProjectRequestKey]);
+
+  const updateField = (field: keyof typeof form, value: string) => {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === "typeOfProject" ? { projectScope: "" } : {}),
+    }));
+    setError("");
+  };
+
+  const primaryDetails = projects.find((item) => item.leadId === leadId) || projects[0];
+  const resolvedCustomerName =
+    customer?.name ||
+    [primaryDetails?.firstName, primaryDetails?.lastName].filter(Boolean).join(" ");
+  const resolvedCustomerEmail = customer?.email || primaryDetails?.email || "";
+  const resolvedCustomerPhone = customer?.phone || primaryDetails?.phone || "";
+
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    setError("");
+    try {
+      let targetLeadId = leadId;
+      if (isAddingProject) {
+        const nameParts = (resolvedCustomerName || "Customer").trim().split(/\s+/);
+        const lastName = nameParts.length > 1 ? nameParts.pop() || "Customer" : "Customer";
+        const firstName = nameParts.join(" ") || resolvedCustomerName || "Customer";
+        const leadResult = await registerLead(
+          firstName,
+          lastName,
+          resolvedCustomerEmail,
+          resolvedCustomerPhone.replace(/\D/g, "").slice(-10),
+          "Self",
+          undefined,
+          undefined,
+          leadId,
+        );
+        if (!leadResult.success || !leadResult.leadId) {
+          setError(leadResult.message || "Unable to create the new project record.");
+          return;
+        }
+        targetLeadId = leadResult.leadId;
+      }
+
+      const result = await submitProjectDetails({
+        ...(targetLeadId ? { leadId: targetLeadId } : {}),
+        ...(!isAddingProject && opportunityId ? { opportunityId } : {}),
+        ...(!isAddingProject && contactId ? { contactId } : {}),
+        ...form,
+      });
+      if (!result.success) {
+        if (result.projectSubmitted) {
+          const latest = await getProjectDetails(targetLeadId);
+          if (latest.success) setProjects((current) => [...current.filter((item) => item.leadId !== targetLeadId), latest]);
+        }
+        setError(result.message || "Unable to submit project details.");
+        return;
+      }
+      const identitySource = projects.find((item) => item.leadId === leadId);
+      const submittedProject: ProjectDetails = {
+        ...form,
+        success: true,
+        message: result.message,
+        leadId: result.leadId || targetLeadId,
+        projectSubmitted: true,
+        firstName: identitySource?.firstName || resolvedCustomerName.trim().split(/\s+/).slice(0, -1).join(" "),
+        lastName: identitySource?.lastName || resolvedCustomerName.trim().split(/\s+/).slice(-1)[0],
+        email: identitySource?.email || resolvedCustomerEmail,
+        phone: identitySource?.phone || resolvedCustomerPhone,
+      };
+      setProjects((current) => [...current.filter((item) => item.leadId !== targetLeadId), submittedProject]);
+      if (isAddingProject) {
+        const storageKey = `areliaProjectLeadIds:${leadId}`;
+        const currentIds = projects.map((item) => item.leadId).filter((id): id is string => Boolean(id));
+        localStorage.setItem(storageKey, JSON.stringify(Array.from(new Set([...currentIds, targetLeadId]))));
+      }
+      setIsAddingProject(false);
+      applyFormDetails();
+    } catch {
+      setError("Could not reach Salesforce. Please check your connection and try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const scopeOptions = PROJECT_SCOPES[form.typeOfProject] || [];
+  const customerName = resolvedCustomerName;
+  const showForm = isAddingProject || Boolean(primaryDetails && !primaryDetails.projectSubmitted);
+  const submittedProjects = projects.filter((item) => item.projectSubmitted);
+
+  if (isLoading) return <div className="dashboardState">Loading project details...</div>;
+
+  return (
+    <motion.section className="projectDetails" initial="hidden" animate="visible" variants={{ visible: staggerTransition }}>
+      <motion.header className="projectDetails__header" variants={fadeUpItem}>
+        <p className="dashboardSection__eyebrow">Your requirements</p>
+        <h1>Project Details</h1>
+        <p>{showForm ? "Tell us about your space, plans, and expectations." : "Review the project requirements you submitted."}</p>
+      </motion.header>
+
+      {error ? <div className="dashboardError projectDetails__error">{error}</div> : null}
+
+      {showForm ? (
+        <motion.form className="projectDetails__form" onSubmit={handleSubmit} variants={fadeUpItem}>
+          <div className="projectDetails__identity">
+            <ProjectDetailPreview label="Customer" value={customerName} />
+            <ProjectDetailPreview label="Email" value={resolvedCustomerEmail} />
+            <ProjectDetailPreview label="Phone" value={resolvedCustomerPhone} />
+          </div>
+          <div className="projectDetails__fields">
+            <label><span>Total site space (sq. ft.)</span><input type="number" min="1" step="any" value={form.siteSpace} onChange={(event) => updateField("siteSpace", event.target.value)} placeholder="Enter area" required /></label>
+            <label><span>Type of project</span><select value={form.typeOfProject} onChange={(event) => updateField("typeOfProject", event.target.value)} required><option value="">Select project type</option>{PROJECT_TYPES.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+            <label><span>Project scope</span><select value={form.projectScope} onChange={(event) => updateField("projectScope", event.target.value)} disabled={!form.typeOfProject} required><option value="">Select project scope</option>{scopeOptions.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+            <label><span>Plan level</span><select value={form.planLevel} onChange={(event) => updateField("planLevel", event.target.value)} required><option value="">Select plan level</option>{PLAN_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}</select></label>
+            <label><span>Budget (INR)</span><input type="number" min="1" step="any" value={form.customerBudget} onChange={(event) => updateField("customerBudget", event.target.value)} placeholder="Enter budget" required /></label>
+            <label className="projectDetails__wide"><span>Full site address</span><textarea value={form.siteLocation} onChange={(event) => updateField("siteLocation", event.target.value)} placeholder="Full address of the project site" required /></label>
+            <label className="projectDetails__wide"><span>Project notes / expectations</span><textarea value={form.projectDescription} onChange={(event) => updateField("projectDescription", event.target.value)} placeholder="Tell us about your space and expectations" required /></label>
+          </div>
+          <div className="projectDetails__submitRow">
+            <p>Once submitted, these details cannot be edited.</p>
+            <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Submitting..." : "Submit project details"}<FiArrowRight /></button>
+          </div>
+        </motion.form>
+      ) : null}
+
+      {submittedProjects.length > 0 ? (
+        <div className="projectDetails__projectList">
+          {submittedProjects.map((details, index) => (
+            <motion.div className="projectDetails__preview" variants={fadeUpItem} key={details.leadId || index}>
+              <div className="projectDetails__success">
+                <span><FiCheckCircle /></span>
+                <div><strong>Project {index + 1} details submitted</strong><p>This response is locked and cannot be edited.</p></div>
+              </div>
+              <div className="projectDetails__previewGrid">
+                <ProjectDetailPreview label="Customer" value={[details.firstName, details.lastName].filter(Boolean).join(" ") || customerName} />
+                <ProjectDetailPreview label="Email" value={details.email} />
+                <ProjectDetailPreview label="Phone" value={details.phone} />
+                <ProjectDetailPreview label="Site space" value={details.siteSpace ? `${details.siteSpace} sq. ft.` : undefined} />
+                <ProjectDetailPreview label="Type of project" value={details.typeOfProject} />
+                <ProjectDetailPreview label="Project scope" value={details.projectScope} />
+                <ProjectDetailPreview label="Plan level" value={details.planLevel} />
+                <ProjectDetailPreview label="Customer budget" value={details.customerBudget ? `₹${Number(details.customerBudget).toLocaleString("en-IN")}` : undefined} />
+                <ProjectDetailPreview label="Site location" value={details.siteLocation} wide />
+                <ProjectDetailPreview label="Project description" value={details.projectDescription} wide />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      ) : null}
+    </motion.section>
+  );
+}
+
+function ProjectDetailPreview({ label, value, wide = false }: { label: string; value?: string | null; wide?: boolean }) {
+  return <div className={`projectDetails__previewItem${wide ? " projectDetails__previewItem--wide" : ""}`}><span>{label}</span><strong>{value || "Not available"}</strong></div>;
+}
+
 function ProjectStatusTab({
   contactId,
   projectId,
@@ -2798,17 +3553,25 @@ export function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
+  const [addProjectRequestKey, setAddProjectRequestKey] = useState(0);
   const [highlightDocumentUrl, setHighlightDocumentUrl] = useState<
     string | null
   >(null);
   const [highlightCaseId, setHighlightCaseId] = useState<string | null>(null);
+  const [activeSiteVisitLeadId, setActiveSiteVisitLeadId] = useState<string | null>(
+    () => authClient?.leadId || localStorage.getItem("leadId"),
+  );
   const [notifications, setNotifications] = useState<PortalNotification[]>(
     () => {
-      const initialContactId =
-        authClient?.contactId || localStorage.getItem("contactId") || "";
-      if (!initialContactId) return [];
+      const initialNotificationOwnerId =
+        authClient?.contactId ||
+        localStorage.getItem("contactId") ||
+        authClient?.leadId ||
+        localStorage.getItem("leadId") ||
+        "";
+      if (!initialNotificationOwnerId) return [];
       return readStoredNotifications(
-        getCustomerNotificationStorageKeys(initialContactId).list,
+        getCustomerNotificationStorageKeys(initialNotificationOwnerId).list,
       );
     },
   );
@@ -2893,6 +3656,8 @@ export function DashboardPage() {
   }, [authClient?.contactId, authClient?.email, authClient?.leadId]);
 
   const client = portalData?.client;
+  const resolvedClientName = client?.name || authClient?.name || "";
+  const resolvedClientEmail = client?.email || authClient?.email || "";
   const projects =
     contactProjects.length > 0
       ? contactProjects.map((project) => ({
@@ -2919,8 +3684,174 @@ export function DashboardPage() {
   const activeProjectBudget = contactProjects.find(
     (project) => (project.id || project.projectName) === activeProjectId,
   )?.budget;
+  const profileContactId =
+    client?.type === "Contact" && client.id.startsWith("003") ? client.id : "";
   const contactId =
-    authClient?.contactId || localStorage.getItem("contactId") || "";
+    authClient?.contactId ||
+    localStorage.getItem("contactId") ||
+    profileContactId;
+  const notificationLeadId =
+    authClient?.leadId || localStorage.getItem("leadId") || "";
+  const effectiveLeadId = notificationLeadId || portalData?.sourceLeadId || "";
+  const notificationStorageOwnerId = contactId || notificationLeadId;
+
+  // Auth data may resolve after the first render. Reload the complete stored
+  // history once the customer's stable storage identity becomes available.
+  useEffect(() => {
+    if (!notificationStorageOwnerId) return undefined;
+    const hydration = window.setTimeout(() => {
+      const storageKey = getCustomerNotificationStorageKeys(
+        notificationStorageOwnerId,
+      ).list;
+      const storedNotifications = readStoredNotifications(storageKey);
+      const validNotifications = storedNotifications.filter(
+        (notification) =>
+          notification.type !== "siteVisit" ||
+          !EMPTY_SITE_VISIT_NOTIFICATION_PATTERN.test(notification.message),
+      );
+      if (validNotifications.length !== storedNotifications.length) {
+        writeStoredNotifications(storageKey, validNotifications);
+      }
+      setNotifications(validNotifications);
+    }, 0);
+    return () => window.clearTimeout(hydration);
+  }, [notificationStorageOwnerId]);
+
+  // Surface each new appointment that needs a customer decision. The
+  // appointment signature is persisted so polling and page reloads cannot
+  // create duplicate notifications for the same proposed date/time.
+  useEffect(() => {
+    if (!notificationLeadId || !notificationStorageOwnerId) return undefined;
+
+    async function checkSiteVisitAppointment() {
+      let storedLeadIds: string[] = [];
+      try {
+        const stored = JSON.parse(
+          window.localStorage.getItem(`areliaProjectLeadIds:${notificationLeadId}`) || "[]",
+        );
+        if (Array.isArray(stored)) {
+          storedLeadIds = stored.filter((id): id is string => typeof id === "string");
+        }
+      } catch {
+        /* Ignore malformed legacy project IDs. */
+      }
+
+      const relatedLeadIds = Array.from(new Set([notificationLeadId, ...storedLeadIds]));
+      const appointments = await Promise.all(
+        relatedLeadIds.map(async (leadId) => ({
+          leadId,
+          appointment: await getSiteVisitAppointment(leadId),
+        })),
+      );
+
+      const newNotifications: PortalNotification[] = [];
+      appointments.forEach(({ leadId, appointment }, index) => {
+        const normalizedStatus = appointment.appointmentStatus?.trim().toLowerCase();
+        const hasScheduledDateAndTime = Boolean(
+          appointment.appointmentDate && appointment.appointmentTimeSlot,
+        );
+        const needsResponse =
+          appointment.success &&
+          appointment.appointmentAvailable &&
+          appointment.actionRequired &&
+          hasScheduledDateAndTime &&
+          (normalizedStatus === "pending" ||
+            normalizedStatus === "appointment rescheduled");
+        if (!needsResponse) return;
+
+        const signature = [
+          normalizedStatus,
+          appointment.appointmentSentDate,
+          appointment.appointmentDate,
+          appointment.appointmentTimeSlot,
+        ].join("|");
+        const seenKey = `portalSiteVisitNotification:${notificationStorageOwnerId}:${leadId}`;
+        if (window.localStorage.getItem(seenKey) === signature) return;
+        window.localStorage.setItem(seenKey, signature);
+
+        const visitDate = formatDate(appointment.appointmentDate);
+        const schedule = [visitDate, appointment.appointmentTimeSlot]
+          .filter(Boolean)
+          .join(" at ");
+        const projectLabel = relatedLeadIds.length > 1 ? `Project ${index + 1}: ` : "";
+        const message = schedule
+          ? `${projectLabel}A site visit appointment for ${schedule} is waiting for your approval or reschedule request.`
+          : `${projectLabel}A site visit appointment is waiting for your approval or reschedule request.`;
+        newNotifications.push({
+          id: `site-visit-${leadId}-${Date.now()}`,
+          type: "siteVisit",
+          message,
+          timestamp: Date.now(),
+          read: false,
+          leadId,
+        });
+      });
+
+      if (newNotifications.length === 0) return;
+      setNotifications((previous) => {
+        const next = [...newNotifications, ...previous].slice(0, MAX_STORED_NOTIFICATIONS);
+        writeStoredNotifications(
+          getCustomerNotificationStorageKeys(notificationStorageOwnerId).list,
+          next,
+        );
+        return next;
+      });
+    }
+
+    void checkSiteVisitAppointment();
+    const interval = window.setInterval(
+      () => void checkSiteVisitAppointment(),
+      NOTIFICATION_POLL_INTERVAL_MS,
+    );
+    return () => window.clearInterval(interval);
+  }, [notificationLeadId, notificationStorageOwnerId]);
+
+  // Architecture Designs remain in Salesforce as the source of truth. A
+  // per-design marker prevents a Sent record from generating duplicate bell
+  // notifications across polling cycles or page reloads.
+  useEffect(() => {
+    if (!contactId || !notificationStorageOwnerId) return undefined;
+
+    async function checkDesignApprovals() {
+      const result = await getDesignApprovals(contactId);
+      if (!result.success) return;
+
+      const pending = result.designs.filter(
+        (design) => design.canApprove || design.canRequestChanges,
+      );
+      const additions: PortalNotification[] = [];
+      for (const design of pending) {
+        const seenKey = `portalDesignNotification:${notificationStorageOwnerId}:${design.id}`;
+        if (window.localStorage.getItem(seenKey) === design.status) continue;
+        window.localStorage.setItem(seenKey, design.status);
+        additions.push({
+          id: `design-${design.id}`,
+          type: "design",
+          message: `${design.projectName || "Your project"}: a 3D design is ready for your approval or review changes request.`,
+          timestamp: design.createdDate ? new Date(design.createdDate).getTime() : Date.now(),
+          read: false,
+          projectId: design.opportunityId,
+          projectName: design.projectName,
+        });
+      }
+      if (additions.length === 0) return;
+      setNotifications((previous) => {
+        const next = [...additions, ...previous].slice(0, MAX_STORED_NOTIFICATIONS);
+        writeStoredNotifications(
+          getCustomerNotificationStorageKeys(notificationStorageOwnerId).list,
+          next,
+        );
+        return next;
+      });
+    }
+
+    void checkDesignApprovals();
+    const interval = window.setInterval(
+      () => void checkDesignApprovals(),
+      NOTIFICATION_POLL_INTERVAL_MS,
+    );
+    return () => window.clearInterval(interval);
+  }, [contactId, notificationStorageOwnerId]);
 
   // Polls the same data the individual tabs already fetch on their own, so a
   // status/vendor/payment/document change is surfaced as a notification even
@@ -3139,7 +4070,10 @@ export function DashboardPage() {
 
   const desktopNavItems = [
     { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
+    { id: "projectDetails", label: "Project Details", icon: FiHome },
+    { id: "siteVisit", label: "Site Visit Appointment & Report", icon: FiCalendar },
     { id: "notifications", label: "Notifications", icon: FiBell },
+    { id: "approvals", label: "Approvals", icon: FiCheckCircle },
     { id: "status", label: "Project Status", icon: FiCalendar },
     { id: "vendor", label: "Vendor Tasks", icon: FiBriefcase },
     { id: "payment", label: "Payment Terms", icon: FiCreditCard },
@@ -3172,9 +4106,9 @@ export function DashboardPage() {
       const updated = prev.map((item) =>
         item.id === notification.id ? { ...item, read: true } : item,
       );
-      if (contactId) {
+      if (notificationStorageOwnerId) {
         writeStoredNotifications(
-          getCustomerNotificationStorageKeys(contactId).list,
+          getCustomerNotificationStorageKeys(notificationStorageOwnerId).list,
           updated,
         );
       }
@@ -3182,6 +4116,9 @@ export function DashboardPage() {
     });
     if (notification.projectId) {
       setSelectedProjectId(notification.projectId);
+    }
+    if (notification.type === "siteVisit" && notification.leadId) {
+      setActiveSiteVisitLeadId(notification.leadId);
     }
     setIsNotificationPanelOpen(false);
     if (notification.type === "documents" && notification.documentUrl) {
@@ -3195,16 +4132,22 @@ export function DashboardPage() {
       return;
     }
     handleTabChange(
-      notification.type === "paymentDue" ? "payment" : notification.type,
+      notification.type === "paymentDue"
+        ? "payment"
+        : notification.type === "design"
+          ? "approvals"
+        : notification.type === "siteVisit"
+          ? "siteVisit"
+          : notification.type,
     );
   };
 
   const handleDeleteNotification = (notificationId: string) => {
     setNotifications((prev) => {
       const updated = prev.filter((n) => n.id !== notificationId);
-      if (contactId) {
+      if (notificationStorageOwnerId) {
         writeStoredNotifications(
-          getCustomerNotificationStorageKeys(contactId).list,
+          getCustomerNotificationStorageKeys(notificationStorageOwnerId).list,
           updated,
         );
       }
@@ -3215,9 +4158,9 @@ export function DashboardPage() {
   const handleMarkAllNotificationsRead = () => {
     setNotifications((prev) => {
       const updated = prev.map((item) => ({ ...item, read: true }));
-      if (contactId) {
+      if (notificationStorageOwnerId) {
         writeStoredNotifications(
-          getCustomerNotificationStorageKeys(contactId).list,
+          getCustomerNotificationStorageKeys(notificationStorageOwnerId).list,
           updated,
         );
       }
@@ -3299,8 +4242,8 @@ export function DashboardPage() {
               isOpen={isProfileMenuOpen}
               onToggle={() => setIsProfileMenuOpen((value) => !value)}
               onClose={() => setIsProfileMenuOpen(false)}
-              clientName={client?.name}
-              clientEmail={client?.email}
+              clientName={resolvedClientName}
+              clientEmail={resolvedClientEmail}
               onLogoutRequest={() => {
                 setIsProfileMenuOpen(false);
                 setShowLogoutConfirm(true);
@@ -3465,8 +4408,8 @@ export function DashboardPage() {
                 isOpen={isProfileMenuOpen}
                 onToggle={() => setIsProfileMenuOpen((value) => !value)}
                 onClose={() => setIsProfileMenuOpen(false)}
-                clientName={client?.name}
-                clientEmail={client?.email}
+              clientName={resolvedClientName}
+              clientEmail={resolvedClientEmail}
                 onLogoutRequest={() => {
                   setIsProfileMenuOpen(false);
                   setShowLogoutConfirm(true);
@@ -3525,7 +4468,7 @@ export function DashboardPage() {
                           className="dashboardHero__avatar"
                           aria-hidden="true"
                         >
-                          {getInitials(client?.name)}
+                          {getInitials(resolvedClientName)}
                         </span>
                         <div className="dashboardHero__copy dashboardHero__copy--minimal">
                           <p className="dashboardHero__eyebrow">
@@ -3533,11 +4476,11 @@ export function DashboardPage() {
                           </p>
                           <h1 className="dashboardHero__title">
                             Welcome back
-                            {client?.name ? (
+                            {resolvedClientName ? (
                               <>
                                 ,
                                 <span className="dashboardHero__titleName">
-                                  {client.name}
+                                  {resolvedClientName}
                                 </span>
                               </>
                             ) : null}
@@ -3596,11 +4539,25 @@ export function DashboardPage() {
                               : "Your current project"}
                           </h2>
                         </div>
-                        {projects.length > 1 ? (
-                          <span className="dashboardSection__chip">
-                            {projects.length} active projects
-                          </span>
-                        ) : null}
+                        <div className="dashboardSection__profileActions">
+                          {projects.length > 1 ? (
+                            <span className="dashboardSection__chip">
+                              {projects.length} active projects
+                            </span>
+                          ) : null}
+                          {authClient?.leadId ? (
+                            <button
+                              type="button"
+                              className="dashboardAddProjectButton"
+                              onClick={() => {
+                                setAddProjectRequestKey((value) => value + 1);
+                                handleTabChange("projectDetails");
+                              }}
+                            >
+                              <FiHome /> Add Project
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="dashboardProjectRow">
@@ -3791,6 +4748,26 @@ export function DashboardPage() {
                   </>
                 ) : null}
 
+                {deferredDashboardTab === "siteVisit" ? (
+                  <SiteVisitTab
+                    key={activeSiteVisitLeadId || effectiveLeadId || activeProjectId || contactId || "site-visit"}
+                    leadId={activeSiteVisitLeadId || effectiveLeadId || undefined}
+                    primaryLeadId={effectiveLeadId || activeSiteVisitLeadId || undefined}
+                    opportunityId={activeProjectId}
+                    contactId={contactId}
+                  />
+                ) : null}
+
+                {deferredDashboardTab === "projectDetails" ? (
+                  <ProjectDetailsTab
+                    leadId={effectiveLeadId || undefined}
+                    opportunityId={activeProjectId}
+                    contactId={contactId}
+                    customer={client}
+                    addProjectRequestKey={addProjectRequestKey}
+                  />
+                ) : null}
+
                 {deferredDashboardTab === "status" ? (
                   <ProjectStatusTab
                     contactId={contactId}
@@ -3833,6 +4810,9 @@ export function DashboardPage() {
                     onDeleteNotification={handleDeleteNotification}
                     onNavigate={handleTabChange}
                   />
+                ) : null}
+                {deferredDashboardTab === "approvals" ? (
+                  <ApprovalsTab opportunityId={activeProjectId} contactId={contactId} />
                 ) : null}
                 {deferredDashboardTab === "cases" ? (
                   <CasesTab

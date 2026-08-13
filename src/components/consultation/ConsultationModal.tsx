@@ -67,9 +67,9 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
 
             <ConsultationForm
               mode="modal"
-              title="Book your consultation"
+              title="Start Your Design Journey"
               description="A few details are enough to start a refined conversation about your project, timeline, and design direction."
-              submitLabel="Request Consultation"
+              submitLabel="Plan My Space"
               onSuccess={onClose}
             />
           </motion.div>

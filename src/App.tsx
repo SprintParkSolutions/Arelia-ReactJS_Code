@@ -18,6 +18,8 @@ import { AboutPage } from './pages/AboutPage'
 import ServicesSection from './pages/ServicesSection'
 import { ContactUsPage } from './pages/ContactUsPage'
 import { Login as LoginPage } from './pages/Login'
+import { AccountPage } from './pages/AccountPage'
+import { SignUpPage } from './pages/SignUpPage'
 import { DashboardPage } from './pages/DashboardPage'
 import { PaymentGatewayPage } from './pages/PaymentGatewayPage'
 import { PaymentResultPage } from './pages/PaymentResultPage'
@@ -52,6 +54,7 @@ export default function App() {
   const location = useLocation()
 
   const isLoginPage = location.pathname === '/login'
+  const isAccountPage = location.pathname === '/account' || location.pathname === '/signup'
   const isDashboardPage =
     (location.pathname === '/dashboard' || location.pathname.startsWith('/payment')) && isAuthenticated
 
@@ -87,12 +90,8 @@ export default function App() {
           deferMs={2500}
         />
 
-        {!isDashboardPage ? (
-          <NavigationMenu
-            onOpenConsultation={() =>
-              setIsConsultationOpen(true)
-            }
-          />
+        {!isDashboardPage && !isAccountPage ? (
+          <NavigationMenu />
         ) : null}
 
         <div className="app-shell__content">
@@ -161,6 +160,16 @@ export default function App() {
                 />
 
                 <Route
+                  path="/account"
+                  element={<AccountPage />}
+                />
+
+                <Route
+                  path="/signup"
+                  element={<SignUpPage />}
+                />
+
+                <Route
                   path="/login"
                   element={<LoginPage />}
                 />
@@ -222,12 +231,12 @@ export default function App() {
             </motion.div>
           </AnimatePresence>
 
-          {!isLoginPage && !isDashboardPage ? (
+          {!isLoginPage && !isAccountPage && !isDashboardPage ? (
             <Footer />
           ) : null}
         </div>
 
-        {!isAuthenticated && !isLoginPage ? (
+        {!isAuthenticated && !isLoginPage && !isAccountPage ? (
           <SocialSidebar />
         ) : null}
 
