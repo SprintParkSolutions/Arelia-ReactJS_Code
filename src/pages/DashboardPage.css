@@ -642,30 +642,48 @@
 }
 
 .dashboardApprovals__content { display: grid; gap: 1.25rem; }
-.designApprovalCard { overflow: hidden; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid rgba(233,193,118,.2); border-radius: 1.5rem; background: linear-gradient(145deg, rgba(27,26,23,.92), rgba(10,11,12,.94)); }
+.dashboardSuccess { padding: 1rem 1.1rem; border: 1px solid rgba(121, 212, 161, 0.32); border-radius: 1rem; background: linear-gradient(135deg, rgba(92, 148, 120, 0.18), rgba(12, 20, 16, 0.88)); color: #daf3e6; box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
+.designApprovalCard { overflow: hidden; position: relative; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid rgba(233,193,118,.18); border-radius: 1.75rem; background:
+  radial-gradient(circle at top right, rgba(233,193,118,.1), transparent 28%),
+  linear-gradient(145deg, rgba(27,26,23,.96), rgba(10,11,12,.98)); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
 .designApprovalCard__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; }
 .designApprovalCard__head span:first-child { color: #dcb874; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.designApprovalCard__head h2 { margin: .35rem 0 0; color: #f8f6f2; font-size: 1.35rem; }
-.designApprovalCard__status { padding: .45rem .75rem; border: 1px solid rgba(110,220,150,.3); border-radius: 999px; color: #9ee4b5; font-size: .7rem; font-weight: 700; text-transform: uppercase; }
+.designApprovalCard__head h2 { margin: .35rem 0 0; color: #f8f6f2; font-size: clamp(1.35rem, 2vw, 1.8rem); line-height: 1.1; }
+.designApprovalCard__status { padding: .55rem .9rem; border: 1px solid rgba(110,220,150,.3); border-radius: 999px; color: #9ee4b5; font-size: .7rem; font-weight: 700; text-transform: uppercase; backdrop-filter: blur(12px); }
 .designApprovalCard__status.is-pending { border-color: rgba(233,193,118,.35); color: #e9c176; }
-.designApprovalCard__gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
-.designApprovalCard__gallery a { overflow: hidden; position: relative; min-height: 180px; border: 1px solid rgba(255,255,255,.08); border-radius: 1rem; background: #080808; color: #f8f6f2; text-decoration: none; }
-.designApprovalCard__gallery img { width: 100%; height: 240px; object-fit: cover; display: block; transition: transform 240ms ease; }
-.designApprovalCard__gallery a:hover img { transform: scale(1.025); }
-.designApprovalCard__gallery a > span { position: absolute; inset: auto 0 0; padding: 2rem 1rem .8rem; background: linear-gradient(transparent, rgba(0,0,0,.88)); font-size: .8rem; }
-.designApprovalCard__gallery .designApprovalCard__file { display: flex; align-items: center; justify-content: center; gap: .65rem; color: #e9c176; }
+.designApprovalCard__hero { margin-bottom: 1rem; }
+.designApprovalCard__heroMedia,
+.designApprovalCard__heroFile { overflow: hidden; display: grid; position: relative; min-height: 240px; border: 1px solid rgba(255,255,255,.08); border-radius: 1.2rem; background: #080808; color: #f8f6f2; text-decoration: none; }
+.designApprovalCard__heroMedia img { width: 100%; height: min(52vw, 420px); min-height: 260px; object-fit: cover; display: block; transition: transform 280ms ease, filter 280ms ease; }
+.designApprovalCard__heroMedia:hover img { transform: scale(1.03); filter: saturate(1.05); }
+.designApprovalCard__heroOverlay { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; position: absolute; inset: auto 0 0; padding: 2.5rem 1.15rem 1rem; background: linear-gradient(transparent, rgba(0,0,0,.88)); }
+.designApprovalCard__heroOverlay strong,
+.designApprovalCard__heroOverlay span { color: #f8f6f2; }
+.designApprovalCard__heroOverlay span { font-size: .78rem; opacity: .78; }
+.designApprovalCard__heroFile { grid-template-columns: auto 1fr; align-items: center; gap: 1rem; padding: 1.25rem; }
+.designApprovalCard__heroFile svg { font-size: 1.75rem; color: #e9c176; }
+.designApprovalCard__heroFile strong { display: block; margin-bottom: .25rem; }
+.designApprovalCard__heroFile span { color: rgba(248,246,242,.66); font-size: .84rem; }
+.designApprovalCard__thumbRow { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .8rem; margin-bottom: .6rem; }
+.designApprovalCard__thumb { overflow: hidden; display: grid; gap: .5rem; padding: .65rem; border: 1px solid rgba(255,255,255,.08); border-radius: 1rem; background: rgba(255,255,255,.02); color: #f8f6f2; text-decoration: none; transition: transform 180ms ease, border-color 180ms ease, background 180ms ease; }
+.designApprovalCard__thumb:hover { transform: translateY(-2px); border-color: rgba(233,193,118,.32); background: rgba(233,193,118,.05); }
+.designApprovalCard__thumb img { width: 100%; height: 90px; border-radius: .75rem; object-fit: cover; display: block; }
+.designApprovalCard__thumb span { overflow: hidden; color: rgba(248,246,242,.78); font-size: .78rem; text-overflow: ellipsis; white-space: nowrap; }
+.designApprovalCard__thumb.is-file { place-items: center; min-height: 108px; text-align: center; }
+.designApprovalCard__thumb.is-file svg { color: #e9c176; font-size: 1.25rem; }
 .designApprovalCard__noFile { padding: 2rem; border: 1px dashed rgba(255,255,255,.1); border-radius: 1rem; color: rgba(248,246,242,.55); text-align: center; }
 .designApprovalCard__decision { display: grid; gap: .75rem; padding-top: 1.25rem; }
 .designApprovalCard__decision label { color: rgba(248,246,242,.72); font-size: .8rem; font-weight: 600; }
-.designApprovalCard__decision textarea { min-height: 100px; resize: vertical; padding: .9rem 1rem; border: 1px solid rgba(233,193,118,.24); border-radius: .85rem; outline: none; background: rgba(0,0,0,.28); color: #f8f6f2; font: inherit; }
-.designApprovalCard__decision textarea:focus { border-color: rgba(233,193,118,.7); }
+.designApprovalCard__decision textarea { min-height: 112px; resize: vertical; padding: 1rem 1.05rem; border: 1px solid rgba(233,193,118,.24); border-radius: 1rem; outline: none; background: linear-gradient(180deg, rgba(0,0,0,.32), rgba(15,16,18,.58)); color: #f8f6f2; font: inherit; transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.designApprovalCard__decision textarea:focus { border-color: rgba(233,193,118,.7); box-shadow: 0 0 0 4px rgba(233,193,118,.08); transform: translateY(-1px); }
 .designApprovalCard__actions { display: flex; justify-content: flex-end; gap: .75rem; }
-.designApprovalCard__actions button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .8rem 1.1rem; border: 1px solid #dcb46c; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; }
-.designApprovalCard__actions .is-primary { background: #e5bf79; color: #17130d; }
-.designApprovalCard__actions .is-secondary { background: transparent; color: #e5bf79; }
+.designApprovalCard__actions button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 48px; padding: .9rem 1.25rem; border: 1px solid #dcb46c; border-radius: 999px; font: inherit; font-weight: 700; cursor: pointer; transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease; }
+.designApprovalCard__actions .is-primary { background: linear-gradient(135deg, #f0ce88, #d9ad61); color: #17130d; box-shadow: 0 14px 28px rgba(217, 173, 97, 0.22); }
+.designApprovalCard__actions .is-secondary { background: rgba(255,255,255,.02); color: #e5bf79; }
+.designApprovalCard__actions button:hover:not(:disabled) { transform: translateY(-2px); }
 .designApprovalCard__actions button:disabled { cursor: wait; opacity: .55; }
 .designApprovalCard__submittedComment { margin: 1rem 0 0; color: rgba(248,246,242,.65); }
-@media (max-width: 600px) { .designApprovalCard__head, .designApprovalCard__actions { flex-direction: column; } .designApprovalCard__actions button { width: 100%; } }
+@media (max-width: 600px) { .designApprovalCard__head, .designApprovalCard__actions { flex-direction: column; } .designApprovalCard__actions button { width: 100%; } .designApprovalCard__heroOverlay { flex-direction: column; align-items: flex-start; } .designApprovalCard__thumbRow { grid-template-columns: 1fr 1fr; } }
 
 .siteVisit {
   width: min(100%, 1080px);

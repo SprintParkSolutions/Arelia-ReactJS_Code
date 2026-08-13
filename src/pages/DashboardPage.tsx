@@ -102,13 +102,14 @@ const approvalOptions = [
   { id: "budget", label: "Budget Review Approvals", icon: FiCreditCard },
 ] as const;
 
-function ApprovalsTab({ opportunityId, contactId }: { opportunityId?: string; contactId?: string }) {
+function ApprovalsTab({ contactId }: { contactId?: string }) {
   const [activeApproval, setActiveApproval] = useState<(typeof approvalOptions)[number]["id"]>("design");
   const [designs, setDesigns] = useState<DesignApproval[]>([]);
   const [comments, setComments] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const activeLabel = approvalOptions.find((option) => option.id === activeApproval)?.label;
 
   useEffect(() => {
@@ -116,14 +117,15 @@ function ApprovalsTab({ opportunityId, contactId }: { opportunityId?: string; co
     let cancelled = false;
     setIsLoading(true);
     setError("");
-    void getDesignApprovals(contactId, opportunityId).then((result) => {
+    setSuccessMessage("");
+    void getDesignApprovals(contactId).then((result) => {
       if (cancelled) return;
       setDesigns(result.designs);
       if (!result.success) setError(result.message || "Unable to load designs.");
       setIsLoading(false);
     });
     return () => { cancelled = true; };
-  }, [activeApproval, contactId, opportunityId]);
+  }, [activeApproval, contactId]);
 
   const submitDecision = async (design: DesignApproval, status: "Approved" | "Changes Requested") => {
     if (!contactId) return;
@@ -134,7 +136,15 @@ function ApprovalsTab({ opportunityId, contactId }: { opportunityId?: string; co
     }
     setSavingId(design.id);
     setError("");
-    const result = await submitDesignApprovalDecision({ opportunityId: design.opportunityId, contactId, designId: design.id, status, comments: remark });
+    setSuccessMessage("");
+    const result = await submitDesignApprovalDecision({
+      opportunityId: design.opportunityId,
+      contactId,
+      designId: design.id,
+      status,
+      comments: remark,
+      apiBaseUrl: design.apiBaseUrl,
+    });
     if (result.success) {
       setDesigns((current) => current.map((item) => item.id === design.id ? {
         ...item,
@@ -143,6 +153,7 @@ function ApprovalsTab({ opportunityId, contactId }: { opportunityId?: string; co
         canApprove: false,
         canRequestChanges: false,
       } : item));
+      setSuccessMessage(result.message || (status === "Approved" ? "Design approved successfully." : "Change request submitted successfully."));
     } else {
       setError(result.message || "Unable to submit your decision.");
     }
@@ -176,26 +187,54 @@ function ApprovalsTab({ opportunityId, contactId }: { opportunityId?: string; co
           {!contactId ? <GlassEmptyState message="Please sign in with a customer contact account to view design approvals." /> : null}
           {isLoading ? <div className="dashboardState">Loading 3D designs...</div> : null}
           {error ? <div className="dashboardError" role="alert">{error}</div> : null}
+          {!error && successMessage ? <div className="dashboardSuccess" role="status">{successMessage}</div> : null}
           {!isLoading && contactId && designs.length === 0 && !error ? <GlassEmptyState message="No 3D design approvals are pending." /> : null}
           {designs.map((design) => {
             const isPending = design.canApprove || design.canRequestChanges;
+            const heroFile = design.files.find((file) => file.isImage) || design.files[0];
             return (
-              <article className="designApprovalCard" key={design.id}>
+              <motion.article className="designApprovalCard" key={design.id} variants={fadeUpItem}>
                 <div className="designApprovalCard__head">
                   <div><span>{design.projectName || "Your project"}</span><h2>{design.title}</h2></div>
                   <span className={`designApprovalCard__status${isPending ? " is-pending" : ""}`}>{design.status}</span>
                 </div>
-                <div className="designApprovalCard__gallery">
-                  {design.files.map((file) => file.isImage ? (
-                    <a key={file.versionId} href={file.downloadUrl} target="_blank" rel="noreferrer">
-                      <img src={file.downloadUrl} alt={file.title} loading="lazy" />
-                      <span>{file.title}</span>
-                    </a>
-                  ) : (
-                    <a className="designApprovalCard__file" key={file.versionId} href={file.downloadUrl} target="_blank" rel="noreferrer"><FiFileText /> {file.title}</a>
-                  ))}
-                  {design.files.length === 0 ? <div className="designApprovalCard__noFile">No design files attached.</div> : null}
+                <div className="designApprovalCard__hero">
+                  {heroFile ? (
+                    heroFile.isImage ? (
+                      <a className="designApprovalCard__heroMedia" href={heroFile.downloadUrl} target="_blank" rel="noreferrer">
+                        <img src={heroFile.downloadUrl} alt={heroFile.title} loading="lazy" />
+                        <div className="designApprovalCard__heroOverlay">
+                          <strong>{heroFile.title}</strong>
+                          <span>{design.files.length} attachment{design.files.length === 1 ? "" : "s"}</span>
+                        </div>
+                      </a>
+                    ) : (
+                      <a className="designApprovalCard__heroFile" href={heroFile.downloadUrl} target="_blank" rel="noreferrer">
+                        <FiFileText />
+                        <div>
+                          <strong>{heroFile.title}</strong>
+                          <span>Open attachment</span>
+                        </div>
+                      </a>
+                    )
+                  ) : <div className="designApprovalCard__noFile">No design files attached.</div>}
                 </div>
+                {design.files.length > 1 ? (
+                  <div className="designApprovalCard__thumbRow">
+                    {design.files.slice(0, 4).map((file) => (
+                      <a
+                        key={file.versionId}
+                        className={`designApprovalCard__thumb${file.isImage ? "" : " is-file"}`}
+                        href={file.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {file.isImage ? <img src={file.downloadUrl} alt={file.title} loading="lazy" /> : <FiFileText />}
+                        <span>{file.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
                 {isPending ? (
                   <div className="designApprovalCard__decision">
                     <label htmlFor={`design-comments-${design.id}`}>Comments or requested changes</label>
@@ -206,7 +245,7 @@ function ApprovalsTab({ opportunityId, contactId }: { opportunityId?: string; co
                     </div>
                   </div>
                 ) : design.comments ? <p className="designApprovalCard__submittedComment">Your comments: {design.comments}</p> : null}
-              </article>
+              </motion.article>
             );
           })}
         </motion.div>
@@ -1311,16 +1350,6 @@ function SiteVisitTab({
     Boolean(appointment?.requestedDate) &&
     Boolean(appointment?.requestedTimeSlot);
   const hasConfirmedResponse = isApproved || isRescheduled;
-  const debugValues = [
-    { label: "Input leadId", value: leadId },
-    { label: "Input primaryLeadId", value: primaryLeadId },
-    { label: "Input opportunityId", value: opportunityId },
-    { label: "Input contactId", value: contactId },
-    { label: "Backend appointment leadId", value: appointment?.leadId },
-    { label: "Backend appointment opportunityId", value: appointment?.opportunityId },
-    { label: "First report leadId", value: reports[0]?.report?.leadId },
-    { label: "First report opportunityId", value: reports[0]?.report?.opportunityId },
-  ];
   const previewDate = isRescheduled
     ? appointment?.requestedDate
     : appointment?.appointmentDate;
@@ -1335,20 +1364,6 @@ function SiteVisitTab({
         <h1>Site Visit Appointment &amp; Report</h1>
         <p>Review the visit proposed by your Arelia team and confirm or request another time.</p>
       </motion.header>
-
-      <motion.div className="siteVisitReport" variants={fadeUpItem}>
-        <div className="siteVisitReport__heading">
-          <div>
-            <p className="dashboardSection__eyebrow">Debug values</p>
-            <h2>Resolved IDs</h2>
-          </div>
-        </div>
-        <div className="siteVisitReport__summary">
-          {debugValues.map(({ label, value }) => (
-            <SiteVisitReportField key={label} label={label} value={value || "null"} />
-          ))}
-        </div>
-      </motion.div>
 
       {isLoading ? <div className="dashboardState">Loading appointment details...</div> : null}
       {!isLoading && error ? <div className="dashboardError">{error}</div> : null}
@@ -4846,7 +4861,7 @@ export function DashboardPage() {
                   />
                 ) : null}
                 {deferredDashboardTab === "approvals" ? (
-                  <ApprovalsTab opportunityId={activeProjectId} contactId={contactId} />
+                  <ApprovalsTab contactId={contactId} />
                 ) : null}
                 {deferredDashboardTab === "cases" ? (
                   <CasesTab

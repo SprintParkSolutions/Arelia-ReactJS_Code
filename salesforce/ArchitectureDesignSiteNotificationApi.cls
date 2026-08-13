@@ -130,7 +130,19 @@ global without sharing class ArchitectureDesignSiteNotificationApi {
         matches[0].Comments__c = input.status == STATUS_APPROVED && String.isBlank(comments)
             ? 'Approved By Client'
             : comments;
-        update matches[0];
+        try {
+            Database.SaveResult saveResult = Database.update(matches[0], AccessLevel.SYSTEM_MODE);
+            if (!saveResult.isSuccess()) {
+                String message = saveResult.getErrors().isEmpty()
+                    ? 'Unable to submit the design decision.'
+                    : saveResult.getErrors()[0].getMessage();
+                writeError(400, message);
+                return;
+            }
+        } catch (Exception error) {
+            writeError(400, error.getMessage());
+            return;
+        }
 
         writeJson(200, new Map<String, Object>{
             'success' => true,

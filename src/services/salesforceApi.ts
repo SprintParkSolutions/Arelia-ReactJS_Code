@@ -6,6 +6,8 @@ export const SITE_PATH = rawSitePath ? `/${rawSitePath.replace(/^\/+|\/+$/g, '')
 
 const REGISTRATION_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/registration`
 const CONVERTED_PROJECT_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/converted-customer/project`
+const DESIGN_APPROVALS_BASE_URL = `${REGISTRATION_BASE_URL}/opportunity/design-approvals`
+const LEGACY_DESIGN_APPROVALS_BASE_URL = `${REGISTRATION_BASE_URL}/opportunity/design-notification-approvals`
 const LOGIN_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileLogin`
 const PROSPECT_LOGIN_URL = `${REGISTRATION_BASE_URL}/lead/login`
 const FORGOT_PASSWORD_BASE_URL = `${BASE_URL}${SITE_PATH}/services/apexrest/mobileForgotPassword`
@@ -69,6 +71,7 @@ export type DesignApproval = {
   canApprove: boolean
   canRequestChanges: boolean
   files: DesignApprovalFile[]
+  apiBaseUrl?: string
 }
 
 export type DesignApprovalsResponse = {
@@ -83,6 +86,7 @@ export type DesignApprovalDecisionPayload = {
   designId: string
   status: 'Approved' | 'Changes Requested'
   comments?: string
+  apiBaseUrl?: string
 }
 
 export type SiteVisitReportDocument = {
@@ -1318,11 +1322,26 @@ export async function getDesignApprovals(
   const params = new URLSearchParams({ contactId })
   if (opportunityId) params.set('opportunityId', opportunityId)
   try {
-    const response = await fetch(
-      `${REGISTRATION_BASE_URL}/opportunity/design-notification-approvals?${params.toString()}`,
-      { method: 'GET', headers: { Accept: 'application/json' } },
-    )
-    const data = asRecord(await parseResponse(response))
+    const endpoints = [DESIGN_APPROVALS_BASE_URL, LEGACY_DESIGN_APPROVALS_BASE_URL]
+    let data: Record<string, unknown> | undefined
+    let responseOk = false
+    let endpointUsed = DESIGN_APPROVALS_BASE_URL
+
+    for (const endpoint of endpoints) {
+      const response = await fetch(
+        `${endpoint}?${params.toString()}`,
+        { method: 'GET', headers: { Accept: 'application/json' } },
+      )
+      const parsed = asRecord(await parseResponse(response))
+      if (response.ok && (asBoolean(parsed?.success) ?? true)) {
+        data = parsed
+        responseOk = true
+        endpointUsed = endpoint
+        break
+      }
+      if (!data) data = parsed
+    }
+
     const responseData = asRecord(data?.data)
     const designs = asArray(responseData?.designs).map((item): DesignApproval | undefined => {
       const design = asRecord(item)
@@ -1341,7 +1360,7 @@ export async function getDesignApprovals(
           title: asString(file?.title) || 'Design image',
           fileExtension: extension,
           isImage: contentType?.startsWith('image/') ?? ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension?.toLowerCase() || ''),
-          downloadUrl: `${REGISTRATION_BASE_URL}/opportunity/design-notification-approvals/file?${fileParams.toString()}`,
+          downloadUrl: `${endpointUsed}/file?${fileParams.toString()}`,
         }
       }).filter((file): file is DesignApprovalFile => Boolean(file))
       return {
@@ -1355,10 +1374,11 @@ export async function getDesignApprovals(
         canApprove: asBoolean(design?.canApprove) ?? false,
         canRequestChanges: asBoolean(design?.canRequestChanges) ?? false,
         files,
+        apiBaseUrl: endpointUsed,
       }
     }).filter((design): design is DesignApproval => Boolean(design))
     return {
-      success: asBoolean(data?.success) ?? response.ok,
+      success: asBoolean(data?.success) ?? responseOk,
       message: asString(data?.message),
       designs,
     }
@@ -1372,16 +1392,31 @@ export async function submitDesignApprovalDecision(
   payload: DesignApprovalDecisionPayload,
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    const response = await fetch(`${REGISTRATION_BASE_URL}/opportunity/design-notification-approvals`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify(payload),
-    })
-    const data = asRecord(await parseResponse(response))
-    return {
-      success: asBoolean(data?.success) ?? response.ok,
-      message: asString(data?.message),
+    const preferredEndpoint = payload.apiBaseUrl
+    const endpoints = [preferredEndpoint, DESIGN_APPROVALS_BASE_URL, LEGACY_DESIGN_APPROVALS_BASE_URL]
+      .filter((endpoint, index, array): endpoint is string => Boolean(endpoint) && array.indexOf(endpoint) === index)
+    let firstMessage: string | undefined
+    for (const endpoint of endpoints) {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          opportunityId: payload.opportunityId,
+          contactId: payload.contactId,
+          designId: payload.designId,
+          status: payload.status,
+          comments: payload.comments,
+        }),
+      })
+      const data = asRecord(await parseResponse(response))
+      const success = asBoolean(data?.success) ?? response.ok
+      const message = asString(data?.message)
+      if (success) {
+        return { success: true, message }
+      }
+      if (!firstMessage) firstMessage = message
     }
+    return { success: false, message: firstMessage || 'Unable to submit your decision.' }
   } catch (error) {
     console.error('Error submitting design approval:', error)
     return { success: false, message: 'Could not submit your decision.' }
