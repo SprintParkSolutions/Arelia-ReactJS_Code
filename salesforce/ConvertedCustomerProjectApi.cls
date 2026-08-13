@@ -1,5 +1,11 @@
 @RestResource(urlMapping='/converted-customer/project/*')
 global without sharing class ConvertedCustomerProjectApi {
+    private class SiteVisitContext {
+        Id contactId;
+        Id leadId;
+        Id opportunityId;
+    }
+
     @HttpGet
     global static void getProject() {
         RestRequest request = RestContext.request;
@@ -7,20 +13,23 @@ global without sharing class ConvertedCustomerProjectApi {
         response.addHeader('Content-Type', 'application/json');
 
         try {
-            Id contactId = parseId(request.params.get('contactId'), '003');
-            Id opportunityId = parseId(request.params.get('opportunityId'), '006');
-            Opportunity project = resolveOpportunity(contactId, opportunityId);
+            SiteVisitContext context = resolveSiteVisitContext(
+                parseId(request.params.get('contactId'), '003'),
+                parseId(request.params.get('leadId'), '00Q'),
+                parseId(request.params.get('opportunityId'), '006')
+            );
+            Opportunity project = resolveOpportunity(context.contactId, context.leadId, context.opportunityId);
             if (project == null) {
                 write(response, 404, new Map<String, Object>{
                     'success' => false,
-                    'message' => 'No Opportunity is associated with this Contact.'
+                    'message' => 'No Opportunity is associated with this Contact or Lead.'
                 });
                 return;
             }
 
             String path = request.requestURI == null ? '' : request.requestURI.toLowerCase();
             if (path.endsWith('/site-visits')) {
-                write(response, 200, siteVisitPayload(project, contactId));
+                write(response, 200, siteVisitPayload(project, context));
             } else {
                 write(response, 200, projectPayload(project));
             }
@@ -32,7 +41,7 @@ global without sharing class ConvertedCustomerProjectApi {
         }
     }
 
-    private static Opportunity resolveOpportunity(Id contactId, Id opportunityId) {
+    private static Opportunity resolveOpportunity(Id contactId, Id leadId, Id opportunityId) {
         String fields = 'Id, Name, AccountId, ContactId, Primary_Contact__c, Email__c, ' +
             'Lead_Name__c, Lead_Phone__c, Site_Space__c, Type_of_Project__c, ' +
             'Project_Type__c, Project_Scope__c, Plan_Level__c, Budget__c, ' +
@@ -50,6 +59,23 @@ global without sharing class ConvertedCustomerProjectApi {
             );
             return rows.isEmpty() ? null : rows[0];
         }
+
+        if (leadId != null) {
+            List<Lead> leadRows = [
+                SELECT ConvertedOpportunityId
+                FROM Lead
+                WHERE Id = :leadId
+                LIMIT 1
+            ];
+            if (!leadRows.isEmpty() && leadRows[0].ConvertedOpportunityId != null) {
+                Id convertedOpportunityId = leadRows[0].ConvertedOpportunityId;
+                List<Opportunity> rows = Database.query(
+                    'SELECT ' + fields + ' FROM Opportunity WHERE Id = :convertedOpportunityId LIMIT 1'
+                );
+                if (!rows.isEmpty()) return rows[0];
+            }
+        }
+
         if (contactId == null) return null;
 
         List<Lead> converted = [
@@ -95,14 +121,13 @@ global without sharing class ConvertedCustomerProjectApi {
         };
     }
 
-    private static Map<String, Object> siteVisitPayload(Opportunity project, Id contactId) {
-        List<Map<String, Object>> reports = querySiteVisitReports(project.Id, contactId);
+    private static Map<String, Object> siteVisitPayload(Opportunity project, SiteVisitContext context) {
+        List<Map<String, Object>> reports = querySiteVisitReports(context);
         return new Map<String, Object>{
             'success' => true,
-            'message' => reports.isEmpty()
-                ? 'No Site Visit Report is linked to this Contact, its converted Leads, or Opportunities.'
-                : 'Site Visit Report loaded.',
-            'opportunityId' => project.Id,
+            'message' => reports.isEmpty() ? 'No Site Visit Report is linked to this Contact, its converted Leads, or Opportunities.': 'Site Visit Report loaded.',
+            'leadId' => context.leadId,
+            'opportunityId' => context.opportunityId == null ? project.Id : context.opportunityId,
             'appointmentAvailable' => project.Appointment_Date__c != null || project.Appointment_Status__c != null,
             'actionRequired' => project.Appointment_Confirmed__c != true,
             'appointmentConfirmed' => project.Appointment_Confirmed__c == true,
@@ -120,80 +145,142 @@ global without sharing class ConvertedCustomerProjectApi {
         };
     }
 
-    // Finds the Site Visit Report child and its Opportunity lookup without
-    // hard-coding an org-specific custom object or lookup API name.
-    private static List<Map<String, Object>> querySiteVisitReports(Id opportunityId, Id contactId) {
-        Schema.DescribeSObjectResult objectDescribe = Site_Visit_Report__c.SObjectType.getDescribe();
-        Map<String, Schema.SObjectField> fields = objectDescribe.fields.getMap();
-        List<String> selectedFields = new List<String>{
-            'Id', 'Name', 'Opportunity__c', 'Lead__c', 'CreatedDate'
-        };
-            for (String candidate : new List<String>{
-                'Site_Visit_Type__c', 'Project_Stage__c', 'Site_Visit_Date__c',
-                'Site_Visit_Time_Slot__c', 'Site_Address__c', 'Description__c',
-                'Status__c', 'Final_Submitted__c', 'Management_Approval__c',
-                'Total_Estimated_Cost__c', 'Estimated_Completion_Date__c'
-            }) if (fields.containsKey(candidate)) selectedFields.add(candidate);
+    private static List<Map<String, Object>> querySiteVisitReports(SiteVisitContext context) {
+        Id resolvedLeadId = context == null ? null : context.leadId;
+        Id resolvedOpportunityId = context == null ? null : context.opportunityId;
 
-        Set<Id> convertedLeadIds = new Set<Id>();
-        Set<Id> relatedOpportunityIds = new Set<Id>{ opportunityId };
-        List<Lead> sourceLeads = contactId == null
-            ? [SELECT Id, ConvertedOpportunityId FROM Lead
-               WHERE IsConverted = true AND ConvertedOpportunityId = :opportunityId]
-            : [SELECT Id, ConvertedOpportunityId FROM Lead
-               WHERE IsConverted = true AND ConvertedContactId = :contactId];
-        for (Lead sourceLead : sourceLeads) {
-            convertedLeadIds.add(sourceLead.Id);
-            if (sourceLead.ConvertedOpportunityId != null) {
-                relatedOpportunityIds.add(sourceLead.ConvertedOpportunityId);
-            }
+        if (resolvedLeadId == null && resolvedOpportunityId == null) {
+            return new List<Map<String, Object>>();
         }
 
-        if (contactId != null) {
-            for (Opportunity relatedProject : [
-                SELECT Id FROM Opportunity
-                WHERE Primary_Contact__c = :contactId OR ContactId = :contactId
-            ]) relatedOpportunityIds.add(relatedProject.Id);
+        List<Site_Visit_Report__c> rows;
+        if (resolvedOpportunityId != null && resolvedLeadId != null) {
+            rows = [
+                SELECT Id, Name, Opportunity__c, Opportunity__r.Name, Lead__c, Lead__r.Name,
+                    RecordTypeId, RecordType.Name, CreatedDate,
+                    Site_Visit_Type__c, Project_Stage__c, Site_Visit_Date__c,
+                    Site_Visit_Time_Slot__c, Site_Address__c, Description__c,
+                    Site_Visit_Report_Status__c, Is_Final_Submitted__c, Management_Approval__c,
+                    Total_Estimated_Cost__c, Estimated_Completion_Date__c,
+                    Rooms_Count__c, Site_Area_Sq_Ft__c, Usable_Area_Sq_Ft__c,
+                    Estimated_Budget_Description__c, Estimated_Completion_Months__c,
+                    Negotiate__c, Negotiation_Reason__c, Client_Approval__c,
+                    Layout_Blueprint_Uploaded__c, Supervisor_User__r.Name
+                FROM Site_Visit_Report__c
+                WHERE Opportunity__c = :resolvedOpportunityId OR Lead__c = :resolvedLeadId
+                ORDER BY CreatedDate DESC
+            ];
+        } else if (resolvedOpportunityId != null) {
+            rows = [
+                SELECT Id, Name, Opportunity__c, Opportunity__r.Name, Lead__c, Lead__r.Name,
+                    RecordTypeId, RecordType.Name, CreatedDate,
+                    Site_Visit_Type__c, Project_Stage__c, Site_Visit_Date__c,
+                    Site_Visit_Time_Slot__c, Site_Address__c, Description__c,
+                    Site_Visit_Report_Status__c, Is_Final_Submitted__c, Management_Approval__c,
+                    Total_Estimated_Cost__c, Estimated_Completion_Date__c,
+                    Rooms_Count__c, Site_Area_Sq_Ft__c, Usable_Area_Sq_Ft__c,
+                    Estimated_Budget_Description__c, Estimated_Completion_Months__c,
+                    Negotiate__c, Negotiation_Reason__c, Client_Approval__c,
+                    Layout_Blueprint_Uploaded__c, Supervisor_User__r.Name
+                FROM Site_Visit_Report__c
+                WHERE Opportunity__c = :resolvedOpportunityId
+                ORDER BY CreatedDate DESC
+            ];
+        } else {
+            rows = [
+                SELECT Id, Name, Opportunity__c, Opportunity__r.Name, Lead__c, Lead__r.Name,
+                    RecordTypeId, RecordType.Name, CreatedDate,
+                    Site_Visit_Type__c, Project_Stage__c, Site_Visit_Date__c,
+                    Site_Visit_Time_Slot__c, Site_Address__c, Description__c,
+                    Site_Visit_Report_Status__c, Is_Final_Submitted__c, Management_Approval__c,
+                    Total_Estimated_Cost__c, Estimated_Completion_Date__c,
+                    Rooms_Count__c, Site_Area_Sq_Ft__c, Usable_Area_Sq_Ft__c,
+                    Estimated_Budget_Description__c, Estimated_Completion_Months__c,
+                    Negotiate__c, Negotiation_Reason__c, Client_Approval__c,
+                    Layout_Blueprint_Uploaded__c, Supervisor_User__r.Name
+                FROM Site_Visit_Report__c
+                WHERE Lead__c = :resolvedLeadId
+                ORDER BY CreatedDate DESC
+            ];
         }
-
-        List<SObject> rows = Database.query(
-            'SELECT ' + String.join(selectedFields, ',') +
-            ' FROM Site_Visit_Report__c' +
-            ' WHERE Opportunity__c IN :relatedOpportunityIds' +
-            (convertedLeadIds.isEmpty() ? '' : ' OR Lead__c IN :convertedLeadIds') +
-            ' ORDER BY CreatedDate DESC'
-        );
         List<Map<String, Object>> results = new List<Map<String, Object>>();
-        for (SObject row : rows) {
-                Map<String, Object> item = (Map<String, Object>)JSON.deserializeUntyped(JSON.serialize(row));
-                item.put('reportId', row.get('Id'));
-                item.put('reportName', row.get('Name'));
-                item.put('opportunityId', row.get('Opportunity__c'));
-                item.put('leadId', row.get('Lead__c'));
-                copyAlias(item, row, fields, 'Site_Visit_Type__c', 'siteVisitType');
-                copyAlias(item, row, fields, 'Project_Stage__c', 'projectStage');
-                copyAlias(item, row, fields, 'Site_Visit_Date__c', 'siteVisitDate');
-                copyAlias(item, row, fields, 'Site_Visit_Time_Slot__c', 'siteVisitTimeSlot');
-                copyAlias(item, row, fields, 'Site_Address__c', 'siteAddress');
-                copyAlias(item, row, fields, 'Description__c', 'description');
-                copyAlias(item, row, fields, 'Status__c', 'status');
-                copyAlias(item, row, fields, 'Final_Submitted__c', 'finalSubmitted');
-                copyAlias(item, row, fields, 'Management_Approval__c', 'managementApproval');
-                copyAlias(item, row, fields, 'Total_Estimated_Cost__c', 'totalEstimatedCost');
-                copyAlias(item, row, fields, 'Estimated_Completion_Date__c', 'estimatedCompletionDate');
-                results.add(item);
+        for (Site_Visit_Report__c row : rows) {
+            results.add(new Map<String, Object>{
+                'reportId' => row.Id,
+                'reportName' => row.Name,
+                'recordType' => row.RecordType == null ? null : row.RecordType.Name,
+                'opportunityId' => row.Opportunity__c,
+                'opportunityName' => row.Opportunity__r == null ? null : row.Opportunity__r.Name,
+                'leadId' => row.Lead__c,
+                'leadName' => row.Lead__r == null ? null : row.Lead__r.Name,
+                'siteVisitType' => row.Site_Visit_Type__c,
+                'projectStage' => row.Project_Stage__c,
+                'siteVisitDate' => row.Site_Visit_Date__c,
+                'siteVisitTimeSlot' => row.Site_Visit_Time_Slot__c,
+                'siteAddress' => row.Site_Address__c,
+                'description' => row.Description__c,
+                'status' => row.Site_Visit_Report_Status__c,
+                'finalSubmitted' => row.Is_Final_Submitted__c,
+                'managementApproval' => row.Management_Approval__c,
+                'totalEstimatedCost' => row.Total_Estimated_Cost__c,
+                'estimatedCompletionDate' => row.Estimated_Completion_Date__c,
+                'roomsCount' => row.Rooms_Count__c,
+                'siteAreaSqFt' => row.Site_Area_Sq_Ft__c,
+                'usableAreaSqFt' => row.Usable_Area_Sq_Ft__c,
+                'estimatedBudgetDescription' => row.Estimated_Budget_Description__c,
+                'estimatedCompletionMonths' => row.Estimated_Completion_Months__c,
+                'reviewChanges' => row.Negotiate__c,
+                'reviewChangeReason' => row.Negotiation_Reason__c,
+                'clientApproval' => row.Client_Approval__c,
+                'layoutBlueprintUploaded' => row.Layout_Blueprint_Uploaded__c,
+                'supervisorName' => row.Supervisor_User__r == null ? null : row.Supervisor_User__r.Name
+            });
         }
         return results;
     }
 
-    private static void copyAlias(
-        Map<String, Object> target,
-        SObject source,
-        Map<String, Schema.SObjectField> fields,
-        String fieldName,
-        String alias
-    ) {
-        if (fields.containsKey(fieldName)) target.put(alias, source.get(fieldName));
+    private static SiteVisitContext resolveSiteVisitContext(Id contactId, Id leadId, Id opportunityId) {
+        SiteVisitContext context = new SiteVisitContext();
+        context.contactId = contactId;
+        context.leadId = leadId;
+        context.opportunityId = opportunityId;
+
+        if (context.leadId != null || context.contactId != null || context.opportunityId != null) {
+            List<Lead> leadRows;
+            if (context.leadId != null) {
+                leadRows = [
+                    SELECT Id, ConvertedContactId, ConvertedOpportunityId
+                    FROM Lead
+                    WHERE Id = :context.leadId
+                    LIMIT 1
+                ];
+            } else if (context.opportunityId != null) {
+                leadRows = [
+                    SELECT Id, ConvertedContactId, ConvertedOpportunityId
+                    FROM Lead
+                    WHERE IsConverted = true AND ConvertedOpportunityId = :context.opportunityId
+                    ORDER BY ConvertedDate DESC
+                    LIMIT 1
+                ];
+            } else {
+                leadRows = [
+                    SELECT Id, ConvertedContactId, ConvertedOpportunityId
+                    FROM Lead
+                    WHERE IsConverted = true AND ConvertedContactId = :context.contactId
+                    ORDER BY ConvertedDate DESC
+                    LIMIT 1
+                ];
+            }
+
+            if (!leadRows.isEmpty()) {
+                Lead sourceLead = leadRows[0];
+                context.leadId = sourceLead.Id;
+                if (context.contactId == null) context.contactId = sourceLead.ConvertedContactId;
+                if (context.opportunityId == null) context.opportunityId = sourceLead.ConvertedOpportunityId;
+            }
+        }
+
+        return context;
     }
 
     private static Id parseId(String value, String prefix) {

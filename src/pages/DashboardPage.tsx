@@ -1209,37 +1209,47 @@ function SiteVisitTab({
     } catch {
       /* Ignore malformed legacy project IDs. */
     }
-    const relatedLeadIds = Array.from(
-      new Set([primaryLeadId, ...storedLeadIds].filter((id): id is string => Boolean(id))),
-    );
-    const reportTargets = relatedLeadIds.length > 0 ? relatedLeadIds : [undefined];
+    void getSiteVisitAppointment(leadId, opportunityId, contactId).then(async (appointmentResult) => {
+      if (cancelled) return;
+      setAppointment(appointmentResult);
 
-    void Promise.all([
-      getSiteVisitAppointment(leadId, opportunityId, contactId),
-      Promise.all(
+      const resolvedLeadId = appointmentResult.leadId || primaryLeadId || leadId;
+      const resolvedOpportunityId = appointmentResult.opportunityId || opportunityId;
+      const reportLeadTargets = Array.from(
+        new Set([resolvedLeadId, ...storedLeadIds].filter((id): id is string => Boolean(id))),
+      );
+      const reportTargets = reportLeadTargets.length > 0 ? reportLeadTargets : [undefined];
+
+      const reportResults = await Promise.all(
         reportTargets.map(async (relatedLeadId, projectIndex) => ({
-          leadId: relatedLeadId || opportunityId || "opportunity",
+          leadId: relatedLeadId || resolvedOpportunityId || "opportunity",
           projectNumber: projectIndex + 1,
           result: await getApprovedSiteVisitReport(
             relatedLeadId,
             undefined,
-            opportunityId,
+            resolvedOpportunityId,
             contactId,
           ),
         })),
-      ),
-    ]).then(([appointmentResult, reportResults]) => {
+      );
+
       if (cancelled) return;
-      setAppointment(appointmentResult);
       setReports(
         reportResults
-          .filter(({ result }) => result.reportAvailable && Boolean(result.report))
-          .map(({ leadId: reportLeadId, projectNumber, result }) => ({
-            leadId: reportLeadId,
-            report: result.report as SiteVisitReport,
-            projectNumber,
-            totalProjects: reportTargets.length,
-        })),
+          .flatMap(({ leadId: reportLeadId, projectNumber, result }) => {
+            const availableReports = result.reports && result.reports.length > 0
+              ? result.reports
+              : result.report
+                ? [result.report]
+                : [];
+
+            return availableReports.map((report) => ({
+              leadId: report.leadId || reportLeadId,
+              report,
+              projectNumber,
+              totalProjects: reportTargets.length,
+            }));
+          }),
       );
       setReportMessage(
         reportResults.find(({ result }) => !result.reportAvailable)?.result.message || "",
@@ -1301,6 +1311,16 @@ function SiteVisitTab({
     Boolean(appointment?.requestedDate) &&
     Boolean(appointment?.requestedTimeSlot);
   const hasConfirmedResponse = isApproved || isRescheduled;
+  const debugValues = [
+    { label: "Input leadId", value: leadId },
+    { label: "Input primaryLeadId", value: primaryLeadId },
+    { label: "Input opportunityId", value: opportunityId },
+    { label: "Input contactId", value: contactId },
+    { label: "Backend appointment leadId", value: appointment?.leadId },
+    { label: "Backend appointment opportunityId", value: appointment?.opportunityId },
+    { label: "First report leadId", value: reports[0]?.report?.leadId },
+    { label: "First report opportunityId", value: reports[0]?.report?.opportunityId },
+  ];
   const previewDate = isRescheduled
     ? appointment?.requestedDate
     : appointment?.appointmentDate;
@@ -1315,6 +1335,20 @@ function SiteVisitTab({
         <h1>Site Visit Appointment &amp; Report</h1>
         <p>Review the visit proposed by your Arelia team and confirm or request another time.</p>
       </motion.header>
+
+      <motion.div className="siteVisitReport" variants={fadeUpItem}>
+        <div className="siteVisitReport__heading">
+          <div>
+            <p className="dashboardSection__eyebrow">Debug values</p>
+            <h2>Resolved IDs</h2>
+          </div>
+        </div>
+        <div className="siteVisitReport__summary">
+          {debugValues.map(({ label, value }) => (
+            <SiteVisitReportField key={label} label={label} value={value || "null"} />
+          ))}
+        </div>
+      </motion.div>
 
       {isLoading ? <div className="dashboardState">Loading appointment details...</div> : null}
       {!isLoading && error ? <div className="dashboardError">{error}</div> : null}
@@ -3692,8 +3726,8 @@ export function DashboardPage() {
     profileContactId;
   const notificationLeadId =
     authClient?.leadId || localStorage.getItem("leadId") || "";
-  const effectiveLeadId = notificationLeadId || portalData?.sourceLeadId || "";
-  const notificationStorageOwnerId = contactId || notificationLeadId;
+  const effectiveLeadId = portalData?.sourceLeadId || notificationLeadId || "";
+  const notificationStorageOwnerId = contactId || effectiveLeadId;
 
   // Auth data may resolve after the first render. Reload the complete stored
   // history once the customer's stable storage identity becomes available.
@@ -3721,13 +3755,13 @@ export function DashboardPage() {
   // appointment signature is persisted so polling and page reloads cannot
   // create duplicate notifications for the same proposed date/time.
   useEffect(() => {
-    if (!notificationLeadId || !notificationStorageOwnerId) return undefined;
+    if (!effectiveLeadId || !notificationStorageOwnerId) return undefined;
 
     async function checkSiteVisitAppointment() {
       let storedLeadIds: string[] = [];
       try {
         const stored = JSON.parse(
-          window.localStorage.getItem(`areliaProjectLeadIds:${notificationLeadId}`) || "[]",
+          window.localStorage.getItem(`areliaProjectLeadIds:${effectiveLeadId}`) || "[]",
         );
         if (Array.isArray(stored)) {
           storedLeadIds = stored.filter((id): id is string => typeof id === "string");
@@ -3736,7 +3770,7 @@ export function DashboardPage() {
         /* Ignore malformed legacy project IDs. */
       }
 
-      const relatedLeadIds = Array.from(new Set([notificationLeadId, ...storedLeadIds]));
+      const relatedLeadIds = Array.from(new Set([effectiveLeadId, ...storedLeadIds]));
       const appointments = await Promise.all(
         relatedLeadIds.map(async (leadId) => ({
           leadId,
@@ -3804,7 +3838,7 @@ export function DashboardPage() {
       NOTIFICATION_POLL_INTERVAL_MS,
     );
     return () => window.clearInterval(interval);
-  }, [notificationLeadId, notificationStorageOwnerId]);
+  }, [effectiveLeadId, notificationStorageOwnerId]);
 
   // Architecture Designs remain in Salesforce as the source of truth. A
   // per-design marker prevents a Sent record from generating duplicate bell

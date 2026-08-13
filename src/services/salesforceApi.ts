@@ -130,6 +130,7 @@ export type SiteVisitReportResponse = {
   reportAvailable: boolean
   message?: string
   report?: SiteVisitReport
+  reports?: SiteVisitReport[]
 }
 
 export type ProjectDetails = {
@@ -1119,6 +1120,7 @@ export async function getSiteVisitAppointment(
       appointmentAvailable: asBoolean(data?.appointmentAvailable) ?? false,
       actionRequired: asBoolean(data?.actionRequired) ?? false,
       leadId: asString(data?.leadId),
+      opportunityId: asString(data?.opportunityId),
       appointmentSentDate: asString(data?.appointmentSentDate),
       appointmentDate: asString(data?.appointmentDate),
       appointmentTimeSlot: asString(data?.appointmentTimeSlot),
@@ -1143,25 +1145,24 @@ export async function getApprovedSiteVisitReport(
   opportunityId?: string,
   contactId?: string,
 ): Promise<SiteVisitReportResponse> {
-  const params = new URLSearchParams()
-  if (leadId) params.set('leadId', leadId)
-  if (reportId) params.set('reportId', reportId)
-  if (opportunityId) params.set('opportunityId', opportunityId)
-  if (contactId) params.set('contactId', contactId)
-
-  try {
-    const endpoint = contactId
-      ? `${CONVERTED_PROJECT_BASE_URL}/site-visits`
-      : `${REGISTRATION_BASE_URL}/lead/site-visit-report`
+  async function fetchReport(endpoint: string): Promise<SiteVisitReportResponse> {
     const response = await fetch(
       `${endpoint}?${params.toString()}`,
       { method: 'GET', headers: { Accept: 'application/json' } },
     )
     const data = asRecord(await parseResponse(response))
-    const reportData = asRecord(data?.report)
-    const resolvedReportId = asString(reportData?.reportId)
+    const reportItems = asArray(data?.reports)
+      .map((item) => normalizeSiteVisitReport(asRecord(item)))
+      .filter((item): item is SiteVisitReport => Boolean(item))
+    const singleReport = normalizeSiteVisitReport(asRecord(data?.report))
+    const reports = reportItems.length > 0
+      ? reportItems
+      : singleReport
+        ? [singleReport]
+        : []
+    const primaryReport = reports[0]
 
-    if (!response.ok || data?.success !== true || !reportData || !resolvedReportId) {
+    if (!response.ok || data?.success !== true || reports.length === 0 || !primaryReport?.reportId) {
       return {
         success: false,
         reportAvailable: false,
@@ -1176,7 +1177,7 @@ export async function getApprovedSiteVisitReport(
         const title = asString(document?.title)
         if (!versionId || !title) return undefined
         const documentParams = new URLSearchParams({
-          reportId: resolvedReportId,
+          reportId: primaryReport.reportId,
           versionId,
         })
         if (leadId) documentParams.set('leadId', leadId)
@@ -1198,43 +1199,36 @@ export async function getApprovedSiteVisitReport(
       success: true,
       reportAvailable: true,
       message: asString(data?.message),
-      report: {
-        reportId: resolvedReportId,
-        reportName: asString(reportData.reportName),
-        recordType: asString(reportData.recordType),
-        leadId: asString(reportData.leadId),
-        opportunityId: asString(reportData.opportunityId),
-        siteVisitType: asString(reportData.siteVisitType),
-        projectStage: asString(reportData.projectStage),
-        siteVisitDate: asString(reportData.siteVisitDate),
-        siteVisitTimeSlot: asString(reportData.siteVisitTimeSlot),
-        siteAddress: asString(reportData.siteAddress),
-        roomsCount: asNumber(reportData.roomsCount),
-        siteAreaSqFt: asNumber(reportData.siteAreaSqFt),
-        usableAreaSqFt: asNumber(reportData.usableAreaSqFt),
-        description: asString(reportData.description),
-        estimatedBudgetDescription: asString(reportData.estimatedBudgetDescription),
-        estimatedCompletionDate: asString(reportData.estimatedCompletionDate),
-        estimatedCompletionMonths: asNumber(reportData.estimatedCompletionMonths),
-        totalEstimatedCost: asNumber(reportData.totalEstimatedCost),
-        status: asString(reportData.status),
-        supervisorName:
-          asString(reportData.supervisorDisplayName) ||
-          asString(reportData.supervisorFullName) ||
-          asString(reportData.supervisorUserFullName) ||
-          asString(asRecord(reportData.supervisor)?.Name) ||
-          asString(asRecord(reportData.supervisor)?.name) ||
-          asString(asRecord(reportData.Supervisor_User__r)?.Name) ||
-          asString(reportData.supervisorName),
-        layoutBlueprintUploaded: asBoolean(reportData.layoutBlueprintUploaded),
-        reviewChanges: asBoolean(reportData.reviewChanges),
-        reviewChangeReason: asString(reportData.reviewChangeReason),
-        clientApproval: asBoolean(reportData.clientApproval),
-        finalSubmitted: asBoolean(reportData.finalSubmitted),
-        managementApproval: asBoolean(reportData.managementApproval),
-        documents,
-      },
+      report: { ...primaryReport, documents },
+      reports: reports.map((report, index) => (
+        index === 0 ? { ...report, documents } : { ...report, documents: report.documents || [] }
+      )),
     }
+  }
+
+  const params = new URLSearchParams()
+  if (leadId) params.set('leadId', leadId)
+  if (reportId) params.set('reportId', reportId)
+  if (opportunityId) params.set('opportunityId', opportunityId)
+  if (contactId) params.set('contactId', contactId)
+
+  try {
+    if (contactId) {
+      const convertedResult = await fetchReport(`${CONVERTED_PROJECT_BASE_URL}/site-visits`)
+      if (convertedResult.reportAvailable || !leadId) {
+        return convertedResult
+      }
+
+      const fallbackParams = new URLSearchParams()
+      if (leadId) fallbackParams.set('leadId', leadId)
+      if (reportId) fallbackParams.set('reportId', reportId)
+      if (opportunityId) fallbackParams.set('opportunityId', opportunityId)
+      params.delete('contactId')
+      const leadResult = await fetchReport(`${REGISTRATION_BASE_URL}/lead/site-visit-report`)
+      return leadResult
+    }
+
+    return await fetchReport(`${REGISTRATION_BASE_URL}/lead/site-visit-report`)
   } catch (error) {
     console.error('Error fetching approved site visit report:', error)
     return {
@@ -1242,6 +1236,52 @@ export async function getApprovedSiteVisitReport(
       reportAvailable: false,
       message: 'Could not load the approved Site Visit Report.',
     }
+  }
+}
+
+function normalizeSiteVisitReport(
+  reportData?: Record<string, unknown>,
+): SiteVisitReport | undefined {
+  if (!reportData) return undefined
+
+  const reportId = asString(reportData.reportId)
+  if (!reportId) return undefined
+
+  return {
+    reportId,
+    reportName: asString(reportData.reportName),
+    recordType: asString(reportData.recordType),
+    leadId: asString(reportData.leadId),
+    opportunityId: asString(reportData.opportunityId),
+    siteVisitType: asString(reportData.siteVisitType),
+    projectStage: asString(reportData.projectStage),
+    siteVisitDate: asString(reportData.siteVisitDate),
+    siteVisitTimeSlot: asString(reportData.siteVisitTimeSlot),
+    siteAddress: asString(reportData.siteAddress),
+    roomsCount: asNumber(reportData.roomsCount),
+    siteAreaSqFt: asNumber(reportData.siteAreaSqFt),
+    usableAreaSqFt: asNumber(reportData.usableAreaSqFt),
+    description: asString(reportData.description),
+    estimatedBudgetDescription: asString(reportData.estimatedBudgetDescription),
+    estimatedCompletionDate: asString(reportData.estimatedCompletionDate),
+    estimatedCompletionMonths: asNumber(reportData.estimatedCompletionMonths),
+    totalEstimatedCost: asNumber(reportData.totalEstimatedCost),
+    status: asString(reportData.status),
+    supervisorName:
+      asString(reportData.supervisorDisplayName) ||
+      asString(reportData.supervisorFullName) ||
+      asString(reportData.supervisorUserFullName) ||
+      asString(asRecord(reportData.supervisor)?.Name) ||
+      asString(asRecord(reportData.supervisor)?.name) ||
+      asString(asRecord(reportData.Supervisor_User__r)?.Name) ||
+      asString(reportData.supervisorName),
+    layoutBlueprintUploaded: asBoolean(reportData.layoutBlueprintUploaded),
+    reviewChanges: asBoolean(reportData.reviewChanges),
+    reviewChangeReason: asString(reportData.reviewChangeReason),
+    clientApproval: asBoolean(reportData.clientApproval),
+    finalSubmitted: asBoolean(reportData.finalSubmitted),
+    managementApproval: asBoolean(reportData.managementApproval),
+    documents: [],
   }
 }
 
