@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, SubmitEvent } from 'react'
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input'
+import flags from 'react-phone-number-input/flags'
+import 'react-phone-number-input/style.css'
 import './ConsultationForm.css'
 import { registerLead, sendOtp, generateOTP } from '../../services/salesforceApi'
 import { OtpVerification } from './OtpVerification'
@@ -57,8 +60,8 @@ function validate(values: ConsultationFormValues) {
 
   if (!values.phone.trim()) {
     errors.phone = 'Phone number is required'
-  } else if (values.phone.length !== 10) {
-    errors.phone = 'Phone number must be 10 digits'
+  } else if (!isValidPhoneNumber(values.phone)) {
+    errors.phone = 'Enter a valid phone number'
   }
 
   return errors
@@ -95,13 +98,14 @@ export function ConsultationForm({
       return
     }
 
-    if (name === 'phone') {
-      if (!/^\d*$/.test(value)) return
-      if (value.length > 10) return
-    }
-
     setValues((current) => ({ ...current, [name]: value }))
     setErrors((current) => ({ ...current, [name]: undefined }))
+    setStatusMessage('')
+  }
+
+  const handlePhoneChange = (value?: string) => {
+    setValues((current) => ({ ...current, phone: value || '' }))
+    setErrors((current) => ({ ...current, phone: undefined }))
     setStatusMessage('')
   }
 
@@ -284,19 +288,24 @@ export function ConsultationForm({
               <span className="consultation-form__error">{errors.email}</span>
             </label>
 
-            <label className="consultation-form__field">
-              <span className="consultation-form__label">Phone</span>
-              <input
-                type="tel"
+            <div className="consultation-form__field">
+              <label className="consultation-form__label" htmlFor="phone">Phone</label>
+              <PhoneInput
+                id="phone"
+                className="consultation-form__phone"
+                international
+                limitMaxLength
+                defaultCountry="IN"
+                countryCallingCodeEditable={false}
+                flags={flags}
                 name="phone"
                 value={values.phone}
-                onChange={handleChange}
+                onChange={handlePhoneChange}
                 placeholder="Phone Number"
                 autoComplete="tel"
-                inputMode="numeric"
               />
               <span className="consultation-form__error">{errors.phone}</span>
-            </label>
+            </div>
 
             <label className="consultation-form__field consultation-form__field--full">
               <span className="consultation-form__label">Company</span>
