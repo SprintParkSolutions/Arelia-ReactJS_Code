@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, SubmitEvent } from 'react'
-import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input'
+import PhoneInput, { isValidPhoneNumber, parsePhoneNumber } from 'react-phone-number-input'
 import flags from 'react-phone-number-input/flags'
 import 'react-phone-number-input/style.css'
 import './ConsultationForm.css'
@@ -67,6 +67,12 @@ function validate(values: ConsultationFormValues) {
   return errors
 }
 
+function formatPhoneForSubmission(phone: string): string {
+  const parsed = parsePhoneNumber(phone)
+  if (!parsed) return phone
+  return `+${parsed.countryCallingCode} ${parsed.nationalNumber}`
+}
+
 export function ConsultationForm({
   mode = 'modal',
   onSuccess,
@@ -126,7 +132,7 @@ export function ConsultationForm({
       const otp = generateOTP()
       setGeneratedOtp(otp)
       setOtpErrorMessage('')
-      setFormDataForVerification(values)
+      setFormDataForVerification({ ...values, phone: formatPhoneForSubmission(values.phone) })
 
       const otpResult = await sendOtp(values.email, otp)
 
