@@ -212,10 +212,20 @@
   letter-spacing: 0.14em;
 }
 
-.contact-page__hero-form-shell .consultation-form__field input {
+.contact-page__hero-form-shell .consultation-form__field input:not(.PhoneInputInput) {
   min-height: 3.35rem;
   border-radius: 1.2rem;
   background: rgba(255, 255, 255, 0.07);
+  font-size: 1rem;
+}
+
+.contact-page__hero-form-shell .consultation-form__phone {
+  min-height: 3.35rem;
+  border-radius: 1.2rem;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.contact-page__hero-form-shell .consultation-form__phone .PhoneInputInput {
   font-size: 1rem;
 }
 
