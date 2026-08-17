@@ -1569,11 +1569,8 @@ const PROJECT_SCOPES: Record<string, string[]> = {
     "Conference Hall", "Fully Office Interiors", "Office Decor", "Office Space",
     "Dining Hall", "Cabins",
   ],
-  "Only Project Plan": [
-    "Full Home Interiors", "Home Decor", "Kitchen", "Bed Room", "Hall Interior",
-    "Conference Hall", "Fully Office Interiors", "Office Decor", "Office Space",
-    "Dining Hall", "Cabins", "1RK", "1BHK", "2BHK", "3BHK", "4BHK", "5BHK",
-  ],
+  "Interior Combo Package": [],
+  "Only Project Plan": []
 };
 
 const EMPTY_PROJECT_DETAILS_FORM: Omit<ProjectDetailsPayload, "leadId"> = {
