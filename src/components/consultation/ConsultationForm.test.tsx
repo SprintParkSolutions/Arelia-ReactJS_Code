@@ -95,7 +95,7 @@ describe('ConsultationForm', () => {
         'Arelia',
         'Space',
         'hello@arelia.com',
-        '9876543210',
+        '+919876543210',
         'Arelia Space',
       )
     })
