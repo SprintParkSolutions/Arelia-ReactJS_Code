@@ -53,6 +53,8 @@ export type SupportCaseRecord = {
   priority?: string
   category?: string
   createdDate?: string
+  projectId?: string
+  projectName?: string
 }
 
 export type ClientPortalResponse = {
@@ -67,6 +69,7 @@ export type ProjectVendor = {
   vendorName: string
   vendorCategory?: string
   completionPercentage?: number
+  status?: string
 }
 
 export type VendorTaskMediaItem = {
@@ -261,6 +264,11 @@ function normalizeClientRecord(rawClient: unknown): PortalClientRecord | undefin
 function normalizeSupportCaseRecord(rawCase: unknown): SupportCaseRecord | undefined {
   const item = asRecord(rawCase)
   if (!item) return undefined
+  const projectRelation =
+    asRecord(item.Project__r) ||
+    asRecord(item.project) ||
+    asRecord(item.projectRecord) ||
+    asRecord(item.relatedProject)
 
   const caseId = asString(item.caseId || item.Id)
   const subject = asString(item.subject || item.Subject)
@@ -275,6 +283,26 @@ function normalizeSupportCaseRecord(rawCase: unknown): SupportCaseRecord | undef
     priority: asString(item.priority || item.Priority),
     category: asString(item.category || item.Type),
     createdDate: asString(item.createdDate || item.CreatedDate),
+    projectId: asString(
+      item.projectId ||
+      item.ProjectId ||
+      item.Project__c ||
+      item.projectLookupId ||
+      projectRelation?.id ||
+      projectRelation?.projectId ||
+      projectRelation?.Id,
+    ),
+    projectName: asString(
+      item.projectName ||
+      item.ProjectName ||
+      item.Project_Name__c ||
+      item.Project ||
+      item.project ||
+      projectRelation?.Name ||
+      projectRelation?.name ||
+      projectRelation?.projectName ||
+      projectRelation?.Project_Name__c,
+    ),
   }
 }
 
@@ -291,6 +319,15 @@ function normalizeProjectVendor(rawVendor: unknown): ProjectVendor | undefined {
     vendorCategory: asString(vendor.vendorCategory || vendor.category || vendor.Category),
     completionPercentage: roundPercentage(
       vendor.completionPercentage || vendor.progress || vendor.percentComplete,
+    ),
+    status: asString(
+      vendor.status ||
+        vendor.assignmentStatus ||
+        vendor.vendorStatus ||
+        vendor.phaseStatus ||
+        vendor.Status ||
+        vendor.Assignment_Status__c ||
+        vendor.Vendor_Status__c,
     ),
   }
 }
@@ -346,6 +383,15 @@ function normalizeProjectFile(rawFile: unknown): ProjectFile | undefined {
 
   const title = asString(file.title || file.name || file.Name)
   const downloadUrl = absolutizeSalesforceUrl(file.downloadUrl || file.url || file.fileUrl)
+  const previewUrl = absolutizeSalesforceUrl(
+    file.previewUrl ||
+      file.preview ||
+      file.playUrl ||
+      file.videoUrl ||
+      file.streamUrl ||
+      file.mediaUrl ||
+      file.filePreviewUrl,
+  )
   if (!title || !downloadUrl) return undefined
 
   return {
@@ -355,7 +401,7 @@ function normalizeProjectFile(rawFile: unknown): ProjectFile | undefined {
     versionId: asString(file.versionId),
     fileSize: asNumber(file.fileSize || file.contentSize),
     downloadUrl,
-    previewUrl: absolutizeSalesforceUrl(file.previewUrl),
+    previewUrl,
   }
 }
 

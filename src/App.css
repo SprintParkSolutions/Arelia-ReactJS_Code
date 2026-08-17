@@ -80,6 +80,7 @@ body {
 }
 
 .app-shell__routeStage {
+  position: relative;
   width: 100%;
 }
 

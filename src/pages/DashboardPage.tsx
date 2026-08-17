@@ -4,6 +4,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useMemo,
   useTransition,
   type ReactNode,
   type SubmitEvent,
@@ -56,9 +57,14 @@ import {
   type ProjectImage,
   type ProjectStatusRecord,
   type ProjectVendor,
+  type ProjectVendorTask,
   type ProjectVendorTasksResponse,
   type SupportCaseRecord,
 } from "../services/salesforceApi";
+import {
+  annotateNotificationWithProject,
+  type CustomerNotificationEntry,
+} from "../utils/customerNotifications";
 import "./DashboardPage.css";
 
 const staggerTransition = {
@@ -143,11 +149,23 @@ function formatTaskStatusKey(status?: string) {
   return (status || "pending").toLowerCase().replace(/\s+/g, "-");
 }
 
+function getVendorProgressStatus(completion: number) {
+  if (completion >= 100) return "Completed";
+  if (completion > 0) return "In progress";
+  return "Not started";
+}
+
 // Determines whether a file's type should render in the image gallery vs the document list.
 function isImageFileType(fileType?: string) {
   if (!fileType) return false;
   const normalized = fileType.trim().toUpperCase();
   return ["PNG", "JPG", "JPEG", "WEBP", "GIF", "BMP"].includes(normalized);
+}
+
+function isVideoFileType(fileType?: string) {
+  if (!fileType) return false;
+  const normalized = fileType.trim().toUpperCase();
+  return ["MP4", "MOV", "AVI", "WEBM", "M4V"].includes(normalized);
 }
 
 // Builds the "type • size" caption shown under a document card, falling back to formatFileMeta.
@@ -198,6 +216,8 @@ type PortalNotification = {
   read: boolean;
   documentUrl?: string;
   caseId?: string;
+  projectId?: string;
+  projectName?: string;
 };
 
 type NotificationDocument = {
@@ -216,13 +236,19 @@ type NotificationSnapshot = {
   completionPercentage?: number;
   vendors: Record<string, number>;
   vendorCategories: Record<string, string>;
+  vendorStatuses: Record<string, string>;
+  vendorTasks: Record<string, { vendorName: string; taskName: string; status?: string }>;
   paymentTerms: Record<string, boolean>;
   documents: NotificationDocument[];
   cases: Record<string, NotificationCase>;
 };
 
-const NOTIFICATION_POLL_INTERVAL_MS = 3 * 60 * 1000;
+type NotificationVisibilityFilter = "unread" | "all";
+
+const NOTIFICATION_POLL_INTERVAL_MS = 60 * 1000;
 const MAX_STORED_NOTIFICATIONS = 30;
+const NOTIFICATIONS_PER_PAGE = 10;
+const SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX = "supportCaseProjectMap";
 
 // Builds the per-contact-per-project localStorage keys used to persist the
 // last-seen snapshot (for diffing) and the notification list itself. Scoping
@@ -232,6 +258,12 @@ function getNotificationStorageKeys(contactId: string, projectId: string) {
   return {
     snapshot: `portalNotifSnapshot:${contactId}:${projectId}`,
     list: `portalNotifications:${contactId}:${projectId}`,
+  };
+}
+
+function getCustomerNotificationStorageKeys(contactId: string) {
+  return {
+    list: `portalNotifications:${contactId}:all`,
   };
 }
 
@@ -306,16 +338,34 @@ function writeStoredNotifications(
 // decide which notifications to raise on the next poll.
 function buildNotificationSnapshot(
   project: ProjectStatusRecord | undefined,
+  vendorTasksByVendor: Record<string, ProjectVendorTask[]>,
   terms: PaymentTerm[],
   files: ProjectFile[],
   supportCases: SupportCaseRecord[],
 ): NotificationSnapshot {
   const vendors: Record<string, number> = {};
   const vendorCategories: Record<string, string> = {};
+  const vendorStatuses: Record<string, string> = {};
   project?.vendors.forEach((vendor) => {
     vendors[vendor.vendorName] = Math.round(vendor.completionPercentage || 0);
     if (vendor.vendorCategory)
       vendorCategories[vendor.vendorName] = vendor.vendorCategory;
+    if (vendor.status) vendorStatuses[vendor.vendorName] = vendor.status;
+  });
+
+  const vendorTasks: Record<
+    string,
+    { vendorName: string; taskName: string; status?: string }
+  > = {};
+  Object.entries(vendorTasksByVendor).forEach(([vendorName, tasks]) => {
+    tasks.forEach((task) => {
+      const taskKey = `${vendorName}::${task.taskName}`;
+      vendorTasks[taskKey] = {
+        vendorName,
+        taskName: task.taskName,
+        status: task.status,
+      };
+    });
   });
 
   const paymentTerms: Record<string, boolean> = {};
@@ -333,7 +383,18 @@ function buildNotificationSnapshot(
     .filter(Boolean) as NotificationDocument[];
 
   const cases: Record<string, NotificationCase> = {};
-  supportCases.forEach((item) => {
+  // Only include support cases that are relevant to this project. If the
+  // case is tied to a specific project (projectId or projectName), ensure it
+  // matches the provided project; otherwise exclude it to avoid the same case
+  // appearing for every project owned by the same contact.
+  const relevantCases = supportCases.filter((item) => {
+    if (!item) return false;
+    if (!project) return false;
+    if (item.projectId && project.id) return item.projectId === project.id;
+    if (item.projectName) return item.projectName === project.projectName;
+    return false;
+  });
+  relevantCases.forEach((item) => {
     cases[item.caseId] = { subject: item.subject, status: item.status };
   });
 
@@ -345,6 +406,8 @@ function buildNotificationSnapshot(
         : undefined,
     vendors,
     vendorCategories,
+    vendorStatuses,
+    vendorTasks,
     paymentTerms,
     documents,
     cases,
@@ -362,11 +425,9 @@ function mergeNotificationDocuments(
   return Array.from(byKey.values());
 }
 
-type NotificationEntry = {
-  type: PortalNotificationType;
-  message: string;
-  documentUrl?: string;
-  caseId?: string;
+type NotificationEntry = CustomerNotificationEntry & {
+  projectId?: string;
+  projectName?: string;
 };
 
 // Compares two notification snapshots and produces one notification entry
@@ -375,6 +436,7 @@ type NotificationEntry = {
 function diffNotificationSnapshots(
   previous: NotificationSnapshot,
   next: NotificationSnapshot,
+  projectName?: string,
 ): NotificationEntry[] {
   const entries: NotificationEntry[] = [];
 
@@ -405,12 +467,39 @@ function diffNotificationSnapshots(
     if (prevCompletion == null || prevCompletion === completion) return;
     const displayLabel =
       (next.vendorCategories ?? {})[vendorName] || vendorName;
+    const previousStatus = getVendorProgressStatus(prevCompletion);
+    const nextStatus = getVendorProgressStatus(completion);
     entries.push({
       type: "vendor",
       message:
         completion >= 100
-          ? `${displayLabel} finished all assigned tasks.`
-          : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%.`,
+          ? `${displayLabel} finished all assigned tasks. Status: ${nextStatus}.`
+          : previousStatus !== nextStatus
+            ? `${displayLabel} status changed from ${previousStatus} to ${nextStatus} (${prevCompletion}% to ${completion}%).`
+            : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%. Status: ${nextStatus}.`,
+    });
+  });
+
+  Object.entries(next.vendorStatuses).forEach(([vendorName, status]) => {
+    const previousStatus = previous.vendorStatuses[vendorName];
+    if (!status || previousStatus == null || previousStatus === status) return;
+    const displayLabel =
+      (next.vendorCategories ?? {})[vendorName] || vendorName;
+    entries.push({
+      type: "vendor",
+      message: `${displayLabel} assignment status changed from "${previousStatus}" to "${status}".`,
+    });
+  });
+
+  Object.entries(next.vendorTasks).forEach(([taskKey, taskInfo]) => {
+    const previousTask = previous.vendorTasks[taskKey];
+    if (!previousTask) return;
+    if (!taskInfo.status || previousTask.status === taskInfo.status) return;
+    const displayLabel =
+      (next.vendorCategories ?? {})[taskInfo.vendorName] || taskInfo.vendorName;
+    entries.push({
+      type: "vendor",
+      message: `${displayLabel} task "${taskInfo.taskName}" changed from "${previousTask.status || "Unknown"}" to "${taskInfo.status}".`,
     });
   });
 
@@ -462,7 +551,9 @@ function diffNotificationSnapshots(
     }
   });
 
-  return entries;
+  return entries.map((entry) =>
+    annotateNotificationWithProject(entry, projectName),
+  );
 }
 
 // Formats a timestamp as "Just now" / "Xm ago" / "Xh ago" / "Xd ago" for the notification list.
@@ -476,6 +567,58 @@ function formatRelativeTime(timestamp: number) {
   return `${diffDay}d ago`;
 }
 
+// Formats a timestamp into the local date string (e.g. "02 Jul 2026").
+function formatTimestamp(timestamp: number) {
+  try {
+    return formatDate(new Date(timestamp).toISOString()) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function readSupportCaseProjectMap(contactId: string) {
+  try {
+    const raw = window.localStorage.getItem(
+      `${SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX}:${contactId}`,
+    );
+    return raw
+      ? (JSON.parse(raw) as Record<
+          string,
+          { projectId?: string; projectName?: string }
+        >)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeSupportCaseProjectMap(
+  contactId: string,
+  map: Record<string, { projectId?: string; projectName?: string }>,
+) {
+  try {
+    window.localStorage.setItem(
+      `${SUPPORT_CASE_PROJECT_MAP_STORAGE_PREFIX}:${contactId}`,
+      JSON.stringify(map),
+    );
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
+function formatNotificationCount(count: number) {
+  if (count <= 0) return null;
+  return count > 99 ? "99+" : String(count);
+}
+
+function normalizeProjectMatchValue(value?: string | null) {
+  return (value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/-+$/g, "")
+    .toLowerCase();
+}
+
 // Bell trigger + dropdown panel listing notifications, with mark-all-read and clear-all actions.
 function NotificationBell({
   notifications,
@@ -484,7 +627,7 @@ function NotificationBell({
   onClose,
   onNotificationClick,
   onMarkAllRead,
-  onClearAll,
+  onDeleteNotification,
   wrapperClassName = "dashboardWorkspace__notifications",
 }: {
   notifications: PortalNotification[];
@@ -493,12 +636,23 @@ function NotificationBell({
   onClose: () => void;
   onNotificationClick: (notification: PortalNotification) => void;
   onMarkAllRead: () => void;
-  onClearAll: () => void;
+  onDeleteNotification?: (id: string) => void;
   wrapperClassName?: string;
 }) {
+  const [activeFilter, setActiveFilter] =
+    useState<NotificationVisibilityFilter>("unread");
   const unreadCount = notifications.filter(
     (notification) => !notification.read,
   ).length;
+  const filteredNotifications =
+    activeFilter === "unread"
+      ? notifications.filter((notification) => !notification.read)
+      : notifications;
+  const hasUnreadNotifications = unreadCount > 0;
+  const emptyMessage =
+    activeFilter === "unread"
+      ? "No unread notifications right now."
+      : "You're all caught up.";
 
   return (
     <div className={wrapperClassName}>
@@ -548,47 +702,85 @@ function NotificationBell({
                         Mark all read
                       </button>
                     ) : null}
-                    <button
-                      type="button"
-                      className="dashboardWorkspace__notificationsClear"
-                      onClick={onClearAll}
-                    >
-                      Clear all
-                    </button>
+                    {onDeleteNotification ? null : null}
                   </div>
                 ) : null}
               </div>
 
-              {notifications.length === 0 ? (
+              {notifications.length > 0 ? (
+                <div className="dashboardNotificationsFilter">
+                  <button
+                    type="button"
+                    className={`dashboardNotificationsFilter__chip${
+                      activeFilter === "unread" ? " is-active" : ""
+                    }`}
+                    onClick={() => setActiveFilter("unread")}
+                  >
+                    Unread
+                    {hasUnreadNotifications ? (
+                      <span className="dashboardNotificationsFilter__count">
+                        {unreadCount}
+                      </span>
+                    ) : null}
+                  </button>
+                  <button
+                    type="button"
+                    className={`dashboardNotificationsFilter__chip${
+                      activeFilter === "all" ? " is-active" : ""
+                    }`}
+                    onClick={() => setActiveFilter("all")}
+                  >
+                    All notifications
+                    <span className="dashboardNotificationsFilter__count">
+                      {notifications.length}
+                    </span>
+                  </button>
+                </div>
+              ) : null}
+
+              {filteredNotifications.length === 0 ? (
                 <p className="dashboardWorkspace__notificationsEmpty">
-                  You're all caught up.
+                  {emptyMessage}
                 </p>
               ) : (
                 <ul className="dashboardWorkspace__notificationsList">
-                  {notifications.map((notification) => (
-                    <li key={notification.id}>
-                      <button
-                        type="button"
-                        className={`dashboardWorkspace__notificationItem${
-                          notification.read ? "" : " is-unread"
-                        }`}
-                        onClick={() => onNotificationClick(notification)}
-                      >
-                        <span
-                          className="dashboardWorkspace__notificationIcon"
-                          aria-hidden="true"
+                  {filteredNotifications.map((notification) => (
+                      <li key={notification.id} className="dashboardWorkspace__notificationRow">
+                        <button
+                          type="button"
+                          className={`dashboardWorkspace__notificationItem${
+                            notification.read ? "" : " is-unread"
+                          }`}
+                          onClick={() => onNotificationClick(notification)}
                         >
-                          <NotificationTypeIcon type={notification.type} />
-                        </span>
-                        <span className="dashboardWorkspace__notificationCopy">
-                          <span>{notification.message}</span>
-                          <small>
-                            {formatRelativeTime(notification.timestamp)}
-                          </small>
-                        </span>
-                      </button>
-                    </li>
-                  ))}
+                          <span
+                            className="dashboardWorkspace__notificationIcon"
+                            aria-hidden="true"
+                          >
+                            <NotificationTypeIcon type={notification.type} />
+                          </span>
+                          <span className="dashboardWorkspace__notificationCopy">
+                            <span>{notification.message}</span>
+                            <small>
+                              {formatRelativeTime(notification.timestamp)}
+                              {" \u00B7 "}
+                              {formatTimestamp(notification.timestamp)}
+                            </small>
+                          </span>
+                        </button>
+                        {onDeleteNotification ? (
+                          <button
+                            type="button"
+                            className="dashboardWorkspace__notificationDelete"
+                            aria-label="Delete notification"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteNotification(notification.id);
+                            }}
+                          />
+                        ) : null}
+                      </li>
+                    ))}
                 </ul>
               )}
             </motion.div>
@@ -721,7 +913,8 @@ type QuickLinkTarget =
   | "vendor"
   | "payment"
   | "documents"
-  | "cases";
+  | "cases"
+  | "notifications";
 
 const quickLinkDirectory: Array<{
   target: QuickLinkTarget;
@@ -1624,21 +1817,45 @@ function DocumentsTab({
 }) {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [images, setImages] = useState<ProjectImage[]>([]);
+  const [videos, setVideos] = useState<ProjectFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeMediaTab, setActiveMediaTab] = useState<"photos" | "documents">(
+  const [activeMediaTab, setActiveMediaTab] = useState<
+    "photos" | "videos" | "documents"
+  >(
     "photos",
   );
   const [selectedPreview, setSelectedPreview] = useState<{
     title: string;
     subtitle?: string;
     href: string;
+    openHref?: string;
+    downloadHref?: string;
     meta?: string;
+    mediaType: "image" | "video";
   } | null>(null);
-  const [highlightedDocKey, setHighlightedDocKey] = useState<string | null>(
-    null,
-  );
+  const [videoPlaybackFailed, setVideoPlaybackFailed] = useState(false);
   const documentCardRefs = useRef<Record<string, HTMLElement | null>>({});
-  const processedHighlightDocUrlRef = useRef<string | null>(null);
+  const highlightedDocKey =
+    highlightDocumentUrl &&
+    files.some((file) => file.downloadUrl === highlightDocumentUrl)
+      ? highlightDocumentUrl
+      : null;
+  const openPreview = (preview: {
+    title: string;
+    subtitle?: string;
+    href: string;
+    openHref?: string;
+    downloadHref?: string;
+    meta?: string;
+    mediaType: "image" | "video";
+  }) => {
+    setVideoPlaybackFailed(false);
+    setSelectedPreview(preview);
+  };
+  const closePreview = () => {
+    setVideoPlaybackFailed(false);
+    setSelectedPreview(null);
+  };
 
   useEffect(() => {
     async function loadMedia() {
@@ -1651,7 +1868,12 @@ function DocumentsTab({
       const filesRes = await getProjectFiles(projectId);
 
       if (Array.isArray(filesRes)) {
-        setFiles(filesRes.filter((file) => !isImageFileType(file.fileType)));
+        setFiles(
+          filesRes.filter(
+            (file) =>
+              !isImageFileType(file.fileType) && !isVideoFileType(file.fileType),
+          ),
+        );
         setImages(
           filesRes
             .filter((file) => isImageFileType(file.fileType))
@@ -1663,30 +1885,19 @@ function DocumentsTab({
               previewUrl: file.previewUrl || file.downloadUrl,
             })),
         );
+        setVideos(
+          filesRes.filter((file) => isVideoFileType(file.fileType)),
+        );
       } else {
         setFiles([]);
         setImages([]);
+        setVideos([]);
       }
 
       setIsLoading(false);
     }
     void loadMedia();
   }, [projectId]);
-
-  // Adjust local highlight state directly during render instead of in an
-  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
-  // ref guards it so each incoming highlightDocumentUrl is only applied once.
-  if (
-    highlightDocumentUrl &&
-    files.length > 0 &&
-    processedHighlightDocUrlRef.current !== highlightDocumentUrl
-  ) {
-    processedHighlightDocUrlRef.current = highlightDocumentUrl;
-    if (files.some((file) => file.downloadUrl === highlightDocumentUrl)) {
-      setActiveMediaTab("documents");
-      setHighlightedDocKey(highlightDocumentUrl);
-    }
-  }
 
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
@@ -1700,16 +1911,15 @@ function DocumentsTab({
     if (!highlightedDocKey) return undefined;
     const node = documentCardRefs.current[highlightedDocKey];
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
-    const timeout = window.setTimeout(() => setHighlightedDocKey(null), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [highlightedDocKey, activeMediaTab]);
+    return undefined;
+  }, [highlightedDocKey]);
 
   useEffect(() => {
     if (!selectedPreview) return undefined;
 
     const originalOverflow = document.body.style.overflow;
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedPreview(null);
+      if (event.key === "Escape") closePreview();
     };
 
     document.body.style.overflow = "hidden";
@@ -1723,20 +1933,22 @@ function DocumentsTab({
 
   if (isLoading)
     return <p className="dashboard-loading">Loading project media...</p>;
-  if (files.length === 0 && images.length === 0) {
+  if (files.length === 0 && images.length === 0 && videos.length === 0) {
     return (
-      <GlassEmptyState message="No files or images have been uploaded to this project yet." />
+      <GlassEmptyState message="No files, images, or videos have been uploaded to this project yet." />
     );
   }
 
   const hasPhotos = images.length > 0;
+  const hasVideos = videos.length > 0;
   const hasDocuments = files.length > 0;
-  const effectiveTab: "photos" | "documents" =
-    hasPhotos && hasDocuments
-      ? activeMediaTab
-      : hasPhotos
-        ? "photos"
-        : "documents";
+  const mediaTabs = [
+    hasPhotos ? "photos" : null,
+    hasVideos ? "videos" : null,
+    hasDocuments ? "documents" : null,
+  ].filter(Boolean) as Array<"photos" | "videos" | "documents">;
+  const effectiveTab: "photos" | "videos" | "documents" =
+    mediaTabs.includes(activeMediaTab) ? activeMediaTab : mediaTabs[0];
 
   return (
     <>
@@ -1762,32 +1974,50 @@ function DocumentsTab({
           ) : null}
         </div>
 
-        {hasPhotos && hasDocuments ? (
+        {mediaTabs.length > 1 ? (
           <div className="dashboardMediaToggle" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === "photos"}
-              className={`dashboardMediaToggle__btn${effectiveTab === "photos" ? " is-active" : ""}`}
-              onClick={() => setActiveMediaTab("photos")}
-            >
-              <span>Project Photos</span>
-              <span className="dashboardMediaToggle__count">
-                {images.length}
-              </span>
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={effectiveTab === "documents"}
-              className={`dashboardMediaToggle__btn${effectiveTab === "documents" ? " is-active" : ""}`}
-              onClick={() => setActiveMediaTab("documents")}
-            >
-              <span>Project Documents</span>
-              <span className="dashboardMediaToggle__count">
-                {files.length}
-              </span>
-            </button>
+            {hasPhotos ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "photos"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "photos" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("photos")}
+              >
+                <span>Project Photos</span>
+                <span className="dashboardMediaToggle__count">
+                  {images.length}
+                </span>
+              </button>
+            ) : null}
+            {hasVideos ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "videos"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "videos" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("videos")}
+              >
+                <span>Project Videos</span>
+                <span className="dashboardMediaToggle__count">
+                  {videos.length}
+                </span>
+              </button>
+            ) : null}
+            {hasDocuments ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={effectiveTab === "documents"}
+                className={`dashboardMediaToggle__btn${effectiveTab === "documents" ? " is-active" : ""}`}
+                onClick={() => setActiveMediaTab("documents")}
+              >
+                <span>Project Documents</span>
+                <span className="dashboardMediaToggle__count">
+                  {files.length}
+                </span>
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -1801,11 +2031,14 @@ function DocumentsTab({
                 variants={fadeUpItem}
                 whileHover={{ y: -3, transition: { duration: 0.2 } }}
                 onClick={() =>
-                  setSelectedPreview({
+                  openPreview({
                     title: img.title,
                     href: img.imageUrl,
+                    openHref: img.imageUrl,
+                    downloadHref: img.imageUrl,
                     subtitle: "Project image",
                     meta: "Private archive image",
+                    mediaType: "image",
                   })
                 }
               >
@@ -1825,6 +2058,45 @@ function DocumentsTab({
                   <p>Click to preview</p>
                 </div>
               </motion.button>
+            ))}
+          </div>
+        ) : effectiveTab === "videos" ? (
+          <div className="dashboardVideoGrid">
+            {videos.map((video, index) => (
+              <motion.article
+                key={`${video.downloadUrl}-${index}`}
+                className="dashboardDocumentCard dashboardVideoCard"
+                variants={fadeUpItem}
+                whileHover={{ y: -3, transition: { duration: 0.2 } }}
+              >
+                <div className="dashboardVideoCard__preview">
+                  <video
+                    src={video.previewUrl || video.downloadUrl}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    controlsList="nodownload"
+                  />
+                </div>
+                <div className="dashboardVideoCard__body">
+                  <div className="dashboardDocumentCard__body dashboardVideoCard__copy">
+                    <strong>{video.title}</strong>
+                    <p>{formatReadableFileMeta(video)}</p>
+                  </div>
+                </div>
+                <div className="dashboardVideoCard__actions">
+                  <a
+                    href={video.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={video.title}
+                    className="dashboardDocumentCard__download"
+                  >
+                    <FiDownload aria-hidden="true" />
+                    <span>Download</span>
+                  </a>
+                </div>
+              </motion.article>
             ))}
           </div>
         ) : (
@@ -1883,7 +2155,7 @@ function DocumentsTab({
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={() => setSelectedPreview(null)}
+                    onClick={closePreview}
                   />
                   <motion.div
                     className="dashboardPreview__shell"
@@ -1903,7 +2175,9 @@ function DocumentsTab({
                       <div className="dashboardPreview__header">
                         <div className="dashboardPreview__headerCopy">
                           <p className="dashboardPreview__eyebrow">
-                            Image Preview
+                            {selectedPreview.mediaType === "video"
+                              ? "Video Preview"
+                              : "Image Preview"}
                           </p>
                           <h3 id="dashboard-preview-title">
                             {selectedPreview.title}
@@ -1916,7 +2190,7 @@ function DocumentsTab({
                           type="button"
                           className="dashboardPreview__close"
                           aria-label="Close preview"
-                          onClick={() => setSelectedPreview(null)}
+                          onClick={closePreview}
                         >
                           <FiX aria-hidden="true" />
                         </button>
@@ -1926,14 +2200,44 @@ function DocumentsTab({
                         <div className="dashboardPreview__metaBar">
                           <span>{selectedPreview.title}</span>
                           <span>
-                            {selectedPreview.meta || "Private archive image"}
+                            {selectedPreview.meta ||
+                              (selectedPreview.mediaType === "video"
+                                ? "Private archive video"
+                                : "Private archive image")}
                           </span>
                         </div>
                         <div className="dashboardPreview__image">
-                          <img
-                            src={selectedPreview.href}
-                            alt={selectedPreview.title}
-                          />
+                          {selectedPreview.mediaType === "video" ? (
+                            <>
+                              <video
+                                className="dashboardPreview__video"
+                                controls
+                                autoPlay
+                                playsInline
+                                preload="metadata"
+                                onError={() => setVideoPlaybackFailed(true)}
+                              >
+                                <source
+                                  src={selectedPreview.href}
+                                  type="video/mp4"
+                                />
+                                <source src={selectedPreview.href} />
+                              </video>
+                              {videoPlaybackFailed ? (
+                                <div className="dashboardPreview__videoFallback">
+                                  <strong>Inline playback is not available for this video.</strong>
+                                  <p>
+                                    You can still open it in a new tab or download it directly.
+                                  </p>
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <img
+                              src={selectedPreview.href}
+                              alt={selectedPreview.title}
+                            />
+                          )}
                         </div>
                       </div>
 
@@ -1943,14 +2247,30 @@ function DocumentsTab({
                           <p>{selectedPreview.meta}</p>
                         </div>
                         <a
-                          href={selectedPreview.href}
+                          href={
+                            selectedPreview.mediaType === "video"
+                              ? selectedPreview.openHref || selectedPreview.href
+                              : selectedPreview.downloadHref || selectedPreview.href
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
-                          download={selectedPreview.title}
                           className="dashboardPreview__cta"
                         >
-                          Download
+                          {selectedPreview.mediaType === "video"
+                            ? "Open Video"
+                            : "Download"}
                         </a>
+                        {selectedPreview.mediaType === "video" ? (
+                          <a
+                            href={selectedPreview.downloadHref || selectedPreview.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={selectedPreview.title}
+                            className="dashboardPreview__cta"
+                          >
+                            Download Video
+                          </a>
+                        ) : null}
                       </div>
                     </div>
                   </motion.div>
@@ -1969,6 +2289,203 @@ function slugifyStatus(value?: string) {
   return (value || "unknown").toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
+// Full-page Notifications tab: lists all notifications with absolute dates.
+function NotificationsTab({
+  notifications,
+  onNotificationClick,
+  onMarkAllRead,
+  onNavigate,
+  onDeleteNotification,
+}: {
+  notifications: PortalNotification[];
+  onNotificationClick: (n: PortalNotification) => void;
+  onMarkAllRead: () => void;
+  onNavigate: (tab: QuickLinkTarget) => void;
+  onDeleteNotification?: (id: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [activeFilter, setActiveFilter] =
+    useState<NotificationVisibilityFilter>("unread");
+  const unreadNotifications = useMemo(
+    () => notifications.filter((notification) => !notification.read),
+    [notifications],
+  );
+  const visibleNotifications =
+    activeFilter === "unread" ? unreadNotifications : notifications;
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return visibleNotifications;
+    return visibleNotifications.filter((n) => {
+      const parts = [n.message, n.projectName || "", n.type || ""].join(" ").toLowerCase();
+      return parts.includes(q) || (n.caseId || "").toLowerCase().includes(q);
+    });
+  }, [visibleNotifications, query]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / NOTIFICATIONS_PER_PAGE));
+  const safePage = Math.min(page, totalPages - 1);
+  const unreadCount = unreadNotifications.length;
+  const readCount = Math.max(0, notifications.length - unreadCount);
+  const emptyTitle =
+    activeFilter === "unread"
+      ? "No unread notifications right now."
+      : "No notifications yet.";
+  const emptyDescription = query
+    ? "Try another search term, project name, or case number."
+    : activeFilter === "unread"
+      ? "You're caught up. Switch to All notifications to review earlier updates."
+      : "New project updates, files, payments, and case alerts will appear here.";
+
+  return (
+    <motion.section
+      className="dashboardSection"
+      initial="hidden"
+      animate="visible"
+      variants={{ visible: staggerTransition }}
+    >
+      <div className="dashboardSection__heading">
+        <div>
+          <p className="dashboardSection__eyebrow">Notifications</p>
+          <h2 className="dashboardSection__title">Recent activity</h2>
+          <p className="dashboardSection__lead">
+            Unread notifications are shown first by default, with full history available anytime.
+          </p>
+        </div>
+        <div className="dashboardSection__chip dashboardSection__chip--button">
+          <button type="button" onClick={onMarkAllRead}>Mark all read</button>
+        </div>
+      </div>
+
+      <div className="dashboardNotificationsTab__toolbar">
+        <div className="dashboardNotificationsTab__summary">
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Unread</span>
+            <strong>{unreadCount}</strong>
+          </div>
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Read</span>
+            <strong>{readCount}</strong>
+          </div>
+          <div className="dashboardNotificationsTab__metric">
+            <span className="dashboardNotificationsTab__metricLabel">Total</span>
+            <strong>{notifications.length}</strong>
+          </div>
+        </div>
+
+        <div className="dashboardNotificationsTab__controls">
+          <div className="dashboardNotificationsFilter">
+            <button
+            type="button"
+            className={`dashboardNotificationsFilter__chip${
+              activeFilter === "unread" ? " is-active" : ""
+            }`}
+            onClick={() => {
+              setActiveFilter("unread");
+              setPage(0);
+            }}
+          >
+              Unread
+              {unreadCount > 0 ? (
+                <span className="dashboardNotificationsFilter__count">
+                  {unreadCount}
+                </span>
+              ) : null}
+            </button>
+            <button
+            type="button"
+            className={`dashboardNotificationsFilter__chip${
+              activeFilter === "all" ? " is-active" : ""
+            }`}
+            onClick={() => {
+              setActiveFilter("all");
+              setPage(0);
+            }}
+          >
+              All notifications
+              <span className="dashboardNotificationsFilter__count">
+                {notifications.length}
+              </span>
+            </button>
+          </div>
+          <input
+            aria-label="Search notifications"
+            className="dashboardNotificationsTab__search"
+            placeholder="Search notifications, project, or case id..."
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(0);
+            }}
+          />
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <motion.div
+          className="dashboardNotificationsTab__empty"
+          variants={fadeUpItem}
+        >
+          <div className="dashboardNotificationsTab__emptyIcon" aria-hidden="true">
+            <FiBell />
+          </div>
+          <div className="dashboardNotificationsTab__emptyCopy">
+            <strong>
+              {query ? "No notifications match your search." : emptyTitle}
+            </strong>
+            <p>{emptyDescription}</p>
+          </div>
+        </motion.div>
+      ) : (
+        <>
+          <ul className="dashboardWorkspace__notificationsList dashboardNotificationsTab__list">
+            {filtered
+              .slice(safePage * NOTIFICATIONS_PER_PAGE, (safePage + 1) * NOTIFICATIONS_PER_PAGE)
+              .map((notification) => (
+                <li key={notification.id} className="dashboardWorkspace__notificationRow">
+                  <button
+                    type="button"
+                    className={`dashboardWorkspace__notificationItem${notification.read ? '' : ' is-unread'}`}
+                    onClick={() => onNotificationClick(notification)}
+                  >
+                    <span className="dashboardWorkspace__notificationIcon" aria-hidden="true">
+                      <NotificationTypeIcon type={notification.type} />
+                    </span>
+                    <span className="dashboardWorkspace__notificationCopy">
+                      <span>{notification.message}</span>
+                      <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
+                    </span>
+                    <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true">
+                      <FiArrowRight />
+                    </span>
+                  </button>
+                  {onDeleteNotification ? (
+                    <button
+                      type="button"
+                      className="dashboardWorkspace__notificationDelete"
+                      aria-label="Delete notification"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteNotification(notification.id);
+                      }}
+                    />
+                  ) : null}
+                </li>
+              ))}
+          </ul>
+          {totalPages > 1 ? (
+            <div className="dashboardNotificationsTab__pagination">
+              <button type="button" onClick={() => setPage(Math.max(0, safePage - 1))} disabled={safePage === 0}>Prev</button>
+              <span>{safePage * NOTIFICATIONS_PER_PAGE + 1}-{Math.min((safePage + 1) * NOTIFICATIONS_PER_PAGE, filtered.length)} of {filtered.length}</span>
+              <button type="button" onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))} disabled={safePage === totalPages - 1}>Next</button>
+            </div>
+          ) : null}
+        </>
+      )}
+
+      <QuickLinks exclude={"profile"} onNavigate={onNavigate} />
+    </motion.section>
+  );
+}
+
 // Buckets a case's granular Salesforce status (New, In Progress, Escalated, ...)
 // into the simple Open/Closed view customers filter by.
 function isClosedCaseStatus(status?: string) {
@@ -1982,25 +2499,30 @@ type CaseStatusFilter = "All" | "Open" | "Closed";
 // notification click).
 function CasesTab({
   contactId,
+  projects,
   onNavigate,
   highlightCaseId,
   onHighlightHandled,
   onOpenSupportModal,
+  refreshKey,
 }: {
   contactId: string;
+  projects: Array<{ id: string; name: string }>;
   onNavigate: (tab: QuickLinkTarget) => void;
   highlightCaseId?: string | null;
   onHighlightHandled?: () => void;
   onOpenSupportModal: () => void;
+  refreshKey: number;
 }) {
   const [cases, setCases] = useState<SupportCaseRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<CaseStatusFilter>("All");
-  const [highlightedCaseId, setHighlightedCaseId] = useState<string | null>(
-    null,
-  );
+  const [projectFilter, setProjectFilter] = useState("all");
   const caseCardRefs = useRef<Record<string, HTMLElement | null>>({});
-  const processedHighlightCaseIdRef = useRef<string | null>(null);
+  const effectiveHighlightedCaseId =
+    highlightCaseId && cases.some((item) => item.caseId === highlightCaseId)
+      ? highlightCaseId
+      : null;
 
   useEffect(() => {
     async function loadCases() {
@@ -2010,25 +2532,42 @@ function CasesTab({
       }
       setIsLoading(true);
       const result = await getSupportCases(contactId);
-      setCases(result || []);
+      const storedProjectMap = readSupportCaseProjectMap(contactId);
+      const list = (result || [])
+        .map((item) => {
+          const storedProject = storedProjectMap[item.caseId];
+          return {
+            ...item,
+            projectId: item.projectId || storedProject?.projectId,
+            projectName: item.projectName || storedProject?.projectName,
+          };
+        })
+        .slice()
+        .sort((left, right) => {
+        const leftTime = left.createdDate
+          ? new Date(left.createdDate).getTime()
+          : 0;
+        const rightTime = right.createdDate
+          ? new Date(right.createdDate).getTime()
+          : 0;
+        return rightTime - leftTime;
+        });
+
+      const nextStoredProjectMap = { ...storedProjectMap };
+      list.forEach((item) => {
+        if (item.caseId && (item.projectId || item.projectName)) {
+          nextStoredProjectMap[item.caseId] = {
+            projectId: item.projectId,
+            projectName: item.projectName,
+          };
+        }
+      });
+      writeSupportCaseProjectMap(contactId, nextStoredProjectMap);
+      setCases(list);
       setIsLoading(false);
     }
     void loadCases();
-  }, [contactId]);
-
-  // Adjust local highlight state directly during render instead of in an
-  // effect (see https://react.dev/learn/you-might-not-need-an-effect) - the
-  // ref guards it so each incoming highlightCaseId is only applied once.
-  if (
-    highlightCaseId &&
-    cases.length > 0 &&
-    processedHighlightCaseIdRef.current !== highlightCaseId
-  ) {
-    processedHighlightCaseIdRef.current = highlightCaseId;
-    if (cases.some((item) => item.caseId === highlightCaseId)) {
-      setHighlightedCaseId(highlightCaseId);
-    }
-  }
+  }, [contactId, refreshKey]);
 
   // Tell the parent we've consumed this highlight request so it clears the
   // prop; this is the legitimate effect part - notifying an external owner.
@@ -2039,12 +2578,11 @@ function CasesTab({
   }, [highlightCaseId, cases, onHighlightHandled]);
 
   useEffect(() => {
-    if (!highlightedCaseId) return undefined;
-    const node = caseCardRefs.current[highlightedCaseId];
+    if (!effectiveHighlightedCaseId) return undefined;
+    const node = caseCardRefs.current[effectiveHighlightedCaseId];
     node?.scrollIntoView({ behavior: "smooth", block: "center" });
-    const timeout = window.setTimeout(() => setHighlightedCaseId(null), 2500);
-    return () => window.clearTimeout(timeout);
-  }, [highlightedCaseId]);
+    return undefined;
+  }, [effectiveHighlightedCaseId]);
 
   if (isLoading)
     return <p className="dashboard-loading">Loading your cases...</p>;
@@ -2056,8 +2594,37 @@ function CasesTab({
     { key: "Open", count: openCases.length },
     { key: "Closed", count: closedCases.length },
   ];
-  const visibleCases =
+  const visibleCasesByStatus =
     statusFilter === "All" ? cases : statusFilter === "Open" ? openCases : closedCases;
+  const findMatchingProject = (item: SupportCaseRecord) => {
+    const normalizedProjectId = normalizeProjectMatchValue(item.projectId);
+    const normalizedProjectName = normalizeProjectMatchValue(item.projectName);
+    return projects.find((project) => {
+      const projectIdMatch =
+        normalizedProjectId &&
+        normalizeProjectMatchValue(project.id) === normalizedProjectId;
+      const projectNameMatch =
+        normalizedProjectName &&
+        normalizeProjectMatchValue(project.name) === normalizedProjectName;
+      const projectIdLooksLikeName =
+        normalizedProjectId &&
+        normalizeProjectMatchValue(project.name) === normalizedProjectId;
+      return Boolean(projectIdMatch || projectNameMatch || projectIdLooksLikeName);
+    });
+  };
+  const resolvedProjectName = (item: SupportCaseRecord) =>
+    item.projectName ||
+    findMatchingProject(item)?.name ||
+    "Project not assigned";
+  const projectOptions = [
+    { id: "all", name: "All projects" },
+    ...projects.map((project) => ({ id: project.id, name: project.name })),
+  ];
+  const visibleCases = visibleCasesByStatus.filter((item) => {
+    if (projectFilter === "all") return true;
+    const matchedProject = findMatchingProject(item);
+    return matchedProject?.id === projectFilter;
+  });
 
   return (
     <motion.section
@@ -2105,6 +2672,30 @@ function CasesTab({
             ))}
           </div>
 
+          <div className="dashboardCaseFilters">
+            <div className="dashboardCaseFilters__summary">
+              <strong>Total Cases: {visibleCases.length}</strong>
+              <span>
+                {projectFilter === "all"
+                  ? "cases shown across all projects"
+                  : `cases shown for ${
+                      projectOptions.find((project) => project.id === projectFilter)
+                        ?.name || "selected project"
+                    }`}
+              </span>
+            </div>
+            <FormSelect
+              label="Project Filter"
+              value={projectFilter}
+              options={projectOptions.map((project) => ({
+                label: project.name,
+                value: project.id,
+              }))}
+              onChange={setProjectFilter}
+              className="dashboardCaseFilters__project"
+            />
+          </div>
+
           <div className="dashboardCaseGrid">
             {visibleCases.map((item) => (
               <motion.article
@@ -2113,7 +2704,7 @@ function CasesTab({
                   caseCardRefs.current[item.caseId] = node;
                 }}
                 className={`dashboardCaseCard${
-                  highlightedCaseId === item.caseId
+                  effectiveHighlightedCaseId === item.caseId
                     ? " dashboardCaseCard--highlighted"
                     : ""
                 }`}
@@ -2131,6 +2722,9 @@ function CasesTab({
                   </span>
                 </div>
                 <h3 className="dashboardCaseCard__title">{item.subject}</h3>
+                <p className="dashboardCaseCard__projectName">
+                  {resolvedProjectName(item)}
+                </p>
                 <div className="dashboardCaseCard__descriptionBlock">
                   <span className="dashboardCaseCard__descriptionLabel">Description</span>
                   <p className="dashboardCaseCard__description">
@@ -2138,6 +2732,10 @@ function CasesTab({
                   </p>
                 </div>
                 <div className="dashboardCaseCard__meta">
+                  <span>
+                    <FiFileText aria-hidden="true" />
+                    {item.caseId}
+                  </span>
                   {item.category ? (
                     <span>
                       <FiLayers aria-hidden="true" />
@@ -2196,6 +2794,7 @@ export function DashboardPage() {
   const [error, setError] = useState("");
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [supportCasesRefreshKey, setSupportCasesRefreshKey] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
@@ -2208,17 +2807,9 @@ export function DashboardPage() {
       const initialContactId =
         authClient?.contactId || localStorage.getItem("contactId") || "";
       if (!initialContactId) return [];
-      const initialProjectId = readStoredSelectedProjectId(initialContactId);
-      // Without a previously-selected project we don't yet know which
-      // project's notifications to show (the project list is still loading),
-      // so start empty rather than guessing — the poll effect fills this in
-      // once the active project resolves.
-      return initialProjectId
-        ? readStoredNotifications(
-            getNotificationStorageKeys(initialContactId, initialProjectId)
-              .list,
-          )
-        : [];
+      return readStoredNotifications(
+        getCustomerNotificationStorageKeys(initialContactId).list,
+      );
     },
   );
   const [selectedProjectId, setSelectedProjectIdState] = useState<
@@ -2334,121 +2925,183 @@ export function DashboardPage() {
   // Polls the same data the individual tabs already fetch on their own, so a
   // status/vendor/payment/document change is surfaced as a notification even
   // if the client never visits that tab during this session.
-  useEffect(() => {
-    if (!contactId || !activeProjectId) return undefined;
+  const notificationProjectKey = useMemo(
+    () => contactProjects.map((project) => project.id || project.projectName).join("|"),
+    [contactProjects],
+  );
 
-    const keys = getNotificationStorageKeys(contactId, activeProjectId);
+  useEffect(() => {
+    if (!contactId || contactProjects.length === 0) return undefined;
 
     async function checkForUpdates() {
-      const [statusRes, terms, files, supportCases] = await Promise.all([
+      const [statusRes, supportCases] = await Promise.all([
         getProjectStatus(contactId),
-        activeProjectName
-          ? getPaymentTerms(activeProjectName)
-          : Promise.resolve(null),
-        activeProjectId
-          ? getProjectFiles(activeProjectId)
-          : Promise.resolve(null),
         getSupportCases(contactId),
       ]);
 
-      const project = statusRes?.success
-        ? statusRes.projects.find(
-            (candidate) =>
-              (candidate.id || candidate.projectName) === activeProjectId,
-          )
-        : undefined;
-
-      const termsList = Array.isArray(terms) ? terms : [];
-      const filesList = Array.isArray(files) ? files : [];
+      const projectsList = statusRes?.success ? statusRes.projects : [];
       const casesList = Array.isArray(supportCases) ? supportCases : [];
+      const allEntries: NotificationEntry[] = [];
 
-      const previousSnapshot = readNotificationSnapshot(keys.snapshot);
-      const freshSnapshot = buildNotificationSnapshot(
-        project,
-        termsList,
-        filesList,
-        casesList,
+      await Promise.all(
+        contactProjects.map(async (project) => {
+          const projectId = project.id || project.projectName;
+          const projectName = project.projectName;
+          const keys = getNotificationStorageKeys(contactId, projectId);
+
+          const [terms, files] = await Promise.all([
+            projectName ? getPaymentTerms(projectName) : Promise.resolve(null),
+            projectId ? getProjectFiles(projectId) : Promise.resolve(null),
+          ]);
+
+          const matchingProject = projectsList.find(
+            (candidate) =>
+              (candidate.id || candidate.projectName) === projectId,
+          );
+
+          const termsList = Array.isArray(terms) ? terms : [];
+          const filesList = Array.isArray(files) ? files : [];
+          const vendorTasksByVendor: Record<string, ProjectVendorTask[]> = {};
+
+          if (projectId && matchingProject?.vendors?.length) {
+            const vendorTaskResults = await Promise.all(
+              matchingProject.vendors.map(async (vendor) => {
+                const vendorResponse = await getVendorTasks(
+                  projectId,
+                  vendor.vendorName,
+                );
+                return [
+                  vendor.vendorName,
+                  Array.isArray(vendorResponse?.tasks)
+                    ? vendorResponse.tasks
+                    : [],
+                ] as const;
+              }),
+            );
+
+            vendorTaskResults.forEach(([vendorName, tasks]) => {
+              vendorTasksByVendor[vendorName] = tasks;
+            });
+          }
+
+          const previousSnapshot = readNotificationSnapshot(keys.snapshot);
+          const freshSnapshot = buildNotificationSnapshot(
+            matchingProject,
+            vendorTasksByVendor,
+            termsList,
+            filesList,
+            casesList,
+          );
+
+          // Salesforce's file/case list endpoints can return an incomplete
+          // result for a single poll (a slow related-list query, a flaky
+          // endpoint, a project still resolving) even though nothing actually
+          // changed. If we replaced the snapshot outright with that poll's
+          // fetch, an entry missing from just one poll would vanish from the
+          // baseline and then look brand new the next time the API returned it
+          // — reviving notifications the client had already cleared. Instead we
+          // merge each poll's fresh data into the running baseline: fresh values
+          // win when present, but nothing already seen is ever dropped, so a
+          // vendor/payment/document/case can only be flagged "new" once, ever.
+          const nextSnapshot: NotificationSnapshot = {
+            projectStatus:
+              freshSnapshot.projectStatus ?? previousSnapshot?.projectStatus,
+            completionPercentage:
+              freshSnapshot.completionPercentage ??
+              previousSnapshot?.completionPercentage,
+            vendors: {
+              ...(previousSnapshot?.vendors || {}),
+              ...freshSnapshot.vendors,
+            },
+            vendorCategories: {
+              ...(previousSnapshot?.vendorCategories || {}),
+              ...freshSnapshot.vendorCategories,
+            },
+            vendorStatuses: {
+              ...(previousSnapshot?.vendorStatuses || {}),
+              ...freshSnapshot.vendorStatuses,
+            },
+            vendorTasks: {
+              ...(previousSnapshot?.vendorTasks || {}),
+              ...freshSnapshot.vendorTasks,
+            },
+            paymentTerms: {
+              ...(previousSnapshot?.paymentTerms || {}),
+              ...freshSnapshot.paymentTerms,
+            },
+            documents: mergeNotificationDocuments(
+              previousSnapshot?.documents || [],
+              freshSnapshot.documents,
+            ),
+            cases: { ...(previousSnapshot?.cases || {}), ...freshSnapshot.cases },
+          };
+          writeNotificationSnapshot(keys.snapshot, nextSnapshot);
+
+          const diffs = previousSnapshot
+            ? diffNotificationSnapshots(
+                previousSnapshot,
+                nextSnapshot,
+                projectName,
+              ).map((entry) => ({
+                ...entry,
+                projectId,
+                projectName,
+              }))
+            : [];
+
+          const PAYMENT_DUE_DAYS = 30;
+          const today = new Date().toISOString().slice(0, 10);
+          const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${projectId}`;
+          let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
+          try {
+            const raw = window.localStorage.getItem(paymentDueSeenKey);
+            if (raw) seenData = JSON.parse(raw) as { date: string; seen: string[] };
+          } catch {
+            /* ignore parse errors */
+          }
+          const seenToday = seenData.date === today ? seenData.seen : [];
+          const paymentDueEntries: NotificationEntry[] = [];
+
+          termsList.forEach((term) => {
+            if (!term.dueDate || term.paymentReceived) return;
+            const daysUntilDue = Math.ceil(
+              (new Date(term.dueDate).getTime() - Date.now()) /
+                (24 * 60 * 60 * 1000),
+            );
+            if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
+            const alertKey = `${term.label || term.name}:${term.dueDate}`;
+            if (seenToday.includes(alertKey)) return;
+            seenToday.push(alertKey);
+            const label = term.label || term.name || "Payment";
+            const message =
+              daysUntilDue === 0
+                ? `"${label}" payment is due today.`
+                : daysUntilDue === 1
+                  ? `"${label}" payment is due tomorrow.`
+                  : `"${label}" payment is due in ${daysUntilDue} days.`;
+            paymentDueEntries.push(
+              {
+                ...annotateNotificationWithProject(
+                  { type: "paymentDue", message },
+                  projectName,
+                ),
+                projectId,
+                projectName,
+              },
+            );
+          });
+
+          if (paymentDueEntries.length > 0) {
+            window.localStorage.setItem(
+              paymentDueSeenKey,
+              JSON.stringify({ date: today, seen: seenToday }),
+            );
+          }
+
+          allEntries.push(...diffs, ...paymentDueEntries);
+        }),
       );
 
-      // Salesforce's file/case list endpoints can return an incomplete
-      // result for a single poll (a slow related-list query, a flaky
-      // endpoint, a project still resolving) even though nothing actually
-      // changed. If we replaced the snapshot outright with that poll's
-      // fetch, an entry missing from just one poll would vanish from the
-      // baseline and then look brand new the next time the API returned it
-      // — reviving notifications the client had already cleared. Instead we
-      // merge each poll's fresh data into the running baseline: fresh values
-      // win when present, but nothing already seen is ever dropped, so a
-      // vendor/payment/document/case can only be flagged "new" once, ever.
-      const nextSnapshot: NotificationSnapshot = {
-        projectStatus: freshSnapshot.projectStatus ?? previousSnapshot?.projectStatus,
-        completionPercentage:
-          freshSnapshot.completionPercentage ??
-          previousSnapshot?.completionPercentage,
-        vendors: { ...(previousSnapshot?.vendors || {}), ...freshSnapshot.vendors },
-        vendorCategories: {
-          ...(previousSnapshot?.vendorCategories || {}),
-          ...freshSnapshot.vendorCategories,
-        },
-        paymentTerms: {
-          ...(previousSnapshot?.paymentTerms || {}),
-          ...freshSnapshot.paymentTerms,
-        },
-        documents: mergeNotificationDocuments(
-          previousSnapshot?.documents || [],
-          freshSnapshot.documents,
-        ),
-        cases: { ...(previousSnapshot?.cases || {}), ...freshSnapshot.cases },
-      };
-      writeNotificationSnapshot(keys.snapshot, nextSnapshot);
-
-      // Change-based notifications (only when previous snapshot exists to compare against)
-      const diffs = previousSnapshot
-        ? diffNotificationSnapshots(previousSnapshot, nextSnapshot)
-        : [];
-
-      // Payment due-date notifications: fire once per calendar day per payment term
-      const PAYMENT_DUE_DAYS = 30;
-      const today = new Date().toISOString().slice(0, 10);
-      const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${activeProjectId}`;
-      let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
-      try {
-        const raw = window.localStorage.getItem(paymentDueSeenKey);
-        if (raw) seenData = JSON.parse(raw) as { date: string; seen: string[] };
-      } catch {
-        /* ignore parse errors */
-      }
-      const seenToday = seenData.date === today ? seenData.seen : [];
-      const paymentDueEntries: NotificationEntry[] = [];
-
-      termsList.forEach((term) => {
-        if (!term.dueDate || term.paymentReceived) return;
-        const daysUntilDue = Math.ceil(
-          (new Date(term.dueDate).getTime() - Date.now()) /
-            (24 * 60 * 60 * 1000),
-        );
-        if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
-        const alertKey = `${term.label || term.name}:${term.dueDate}`;
-        if (seenToday.includes(alertKey)) return;
-        seenToday.push(alertKey);
-        const label = term.label || term.name || "Payment";
-        const message =
-          daysUntilDue === 0
-            ? `"${label}" payment is due today.`
-            : daysUntilDue === 1
-              ? `"${label}" payment is due tomorrow.`
-              : `"${label}" payment is due in ${daysUntilDue} days.`;
-        paymentDueEntries.push({ type: "paymentDue", message });
-      });
-
-      if (paymentDueEntries.length > 0) {
-        window.localStorage.setItem(
-          paymentDueSeenKey,
-          JSON.stringify({ date: today, seen: seenToday }),
-        );
-      }
-
-      const allEntries = [...diffs, ...paymentDueEntries];
       if (allEntries.length === 0) return;
 
       setNotifications((prev) => {
@@ -2459,6 +3112,8 @@ export function DashboardPage() {
             message: entry.message,
             documentUrl: entry.documentUrl,
             caseId: entry.caseId,
+            projectId: entry.projectId,
+            projectName: entry.projectName,
             timestamp: Date.now(),
             read: false,
           }),
@@ -2467,37 +3122,24 @@ export function DashboardPage() {
           0,
           MAX_STORED_NOTIFICATIONS,
         );
-        writeStoredNotifications(keys.list, merged);
+        writeStoredNotifications(
+          getCustomerNotificationStorageKeys(contactId).list,
+          merged,
+        );
         return merged;
       });
     }
 
     void checkForUpdates();
-    const interval = window.setInterval(
-      checkForUpdates,
-      NOTIFICATION_POLL_INTERVAL_MS,
-    );
+    const interval = window.setInterval(() => {
+      void checkForUpdates();
+    }, NOTIFICATION_POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [contactId, activeProjectId, activeProjectName]);
-
-  // Notifications are scoped per project. Whenever the active project
-  // resolves for the first time or the client switches to a different
-  // project, swap the in-memory list for that project's own stored list
-  // instead of leaving the previous project's notifications on screen.
-  useEffect(() => {
-    if (!contactId || !activeProjectId) {
-      setNotifications([]);
-      return;
-    }
-    setNotifications(
-      readStoredNotifications(
-        getNotificationStorageKeys(contactId, activeProjectId).list,
-      ),
-    );
-  }, [contactId, activeProjectId]);
+  }, [contactId, contactProjects, notificationProjectKey]);
 
   const desktopNavItems = [
     { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
+    { id: "notifications", label: "Notifications", icon: FiBell },
     { id: "status", label: "Project Status", icon: FiCalendar },
     { id: "vendor", label: "Vendor Tasks", icon: FiBriefcase },
     { id: "payment", label: "Payment Terms", icon: FiCreditCard },
@@ -2511,6 +3153,13 @@ export function DashboardPage() {
     navigate("/login", { replace: true });
   };
 
+  const unreadNotificationCount = notifications.filter(
+    (notification) => !notification.read,
+  ).length;
+  const unreadNotificationLabel = formatNotificationCount(
+    unreadNotificationCount,
+  );
+
   const handleTabChange = (tabId: (typeof desktopNavItems)[number]["id"]) => {
     startTabTransition(() => {
       setActiveDashboardTab(tabId);
@@ -2523,14 +3172,17 @@ export function DashboardPage() {
       const updated = prev.map((item) =>
         item.id === notification.id ? { ...item, read: true } : item,
       );
-      if (contactId && activeProjectId) {
+      if (contactId) {
         writeStoredNotifications(
-          getNotificationStorageKeys(contactId, activeProjectId).list,
+          getCustomerNotificationStorageKeys(contactId).list,
           updated,
         );
       }
       return updated;
     });
+    if (notification.projectId) {
+      setSelectedProjectId(notification.projectId);
+    }
     setIsNotificationPanelOpen(false);
     if (notification.type === "documents" && notification.documentUrl) {
       setHighlightDocumentUrl(notification.documentUrl);
@@ -2547,12 +3199,12 @@ export function DashboardPage() {
     );
   };
 
-  const handleMarkAllNotificationsRead = () => {
+  const handleDeleteNotification = (notificationId: string) => {
     setNotifications((prev) => {
-      const updated = prev.map((item) => ({ ...item, read: true }));
-      if (contactId && activeProjectId) {
+      const updated = prev.filter((n) => n.id !== notificationId);
+      if (contactId) {
         writeStoredNotifications(
-          getNotificationStorageKeys(contactId, activeProjectId).list,
+          getCustomerNotificationStorageKeys(contactId).list,
           updated,
         );
       }
@@ -2560,14 +3212,17 @@ export function DashboardPage() {
     });
   };
 
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-    if (contactId && activeProjectId) {
-      writeStoredNotifications(
-        getNotificationStorageKeys(contactId, activeProjectId).list,
-        [],
-      );
-    }
+  const handleMarkAllNotificationsRead = () => {
+    setNotifications((prev) => {
+      const updated = prev.map((item) => ({ ...item, read: true }));
+      if (contactId) {
+        writeStoredNotifications(
+          getCustomerNotificationStorageKeys(contactId).list,
+          updated,
+        );
+      }
+      return updated;
+    });
   };
 
   return (
@@ -2582,6 +3237,14 @@ export function DashboardPage() {
         isOpen={isSupportModalOpen}
         contactId={contactId}
         projectId={activeProjectId}
+        projectName={activeProjectName}
+        projects={projects.map((project) => ({
+          id: project.id,
+          name: project.name,
+        }))}
+        onCaseCreated={() =>
+          setSupportCasesRefreshKey((current) => current + 1)
+        }
         onClose={() => setIsSupportModalOpen(false)}
       />
 
@@ -2620,16 +3283,16 @@ export function DashboardPage() {
           </button>
 
           <div className="dashboardMobileBar__actions">
-            <NotificationBell
-              wrapperClassName="dashboardMobileBar__notifications"
-              notifications={notifications}
-              isOpen={isNotificationPanelOpen}
-              onToggle={() => setIsNotificationPanelOpen((value) => !value)}
-              onClose={() => setIsNotificationPanelOpen(false)}
-              onNotificationClick={handleNotificationClick}
-              onMarkAllRead={handleMarkAllNotificationsRead}
-              onClearAll={handleClearAllNotifications}
-            />
+              <NotificationBell
+                wrapperClassName="dashboardMobileBar__notifications"
+                notifications={notifications}
+                isOpen={isNotificationPanelOpen}
+                onToggle={() => setIsNotificationPanelOpen((value) => !value)}
+                onClose={() => setIsNotificationPanelOpen(false)}
+                onNotificationClick={handleNotificationClick}
+                onMarkAllRead={handleMarkAllNotificationsRead}
+                onDeleteNotification={handleDeleteNotification}
+              />
 
             <AccountMenu
               wrapperClassName="dashboardMobileBar__account"
@@ -2667,6 +3330,8 @@ export function DashboardPage() {
                 {desktopNavItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = activeDashboardTab === item.id;
+                  const notificationBadge =
+                    item.id === "notifications" ? unreadNotificationLabel : null;
                   return (
                     <button
                       key={item.id}
@@ -2675,7 +3340,14 @@ export function DashboardPage() {
                       onClick={() => handleTabChange(item.id)}
                     >
                       <Icon />
-                      <span>{item.label}</span>
+                      <span className="dashboardMobileDrawer__linkLabel">
+                        {item.label}
+                      </span>
+                      {notificationBadge ? (
+                        <span className="dashboardNavBadge">
+                          {notificationBadge}
+                        </span>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -2734,6 +3406,8 @@ export function DashboardPage() {
             {desktopNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeDashboardTab === item.id;
+              const notificationBadge =
+                item.id === "notifications" ? unreadNotificationLabel : null;
               return (
                 <button
                   key={item.id}
@@ -2742,7 +3416,12 @@ export function DashboardPage() {
                   onClick={() => handleTabChange(item.id)}
                 >
                   <Icon />
-                  <span>{item.label}</span>
+                  <span className="dashboardRail__linkLabel">{item.label}</span>
+                  {notificationBadge ? (
+                    <span className="dashboardNavBadge">
+                      {notificationBadge}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
@@ -2779,7 +3458,7 @@ export function DashboardPage() {
                 onClose={() => setIsNotificationPanelOpen(false)}
                 onNotificationClick={handleNotificationClick}
                 onMarkAllRead={handleMarkAllNotificationsRead}
-                onClearAll={handleClearAllNotifications}
+                onDeleteNotification={handleDeleteNotification}
               />
 
               <AccountMenu
@@ -3146,13 +3825,27 @@ export function DashboardPage() {
                     onHighlightHandled={() => setHighlightDocumentUrl(null)}
                   />
                 ) : null}
+                {deferredDashboardTab === "notifications" ? (
+                  <NotificationsTab
+                    notifications={notifications}
+                    onNotificationClick={handleNotificationClick}
+                    onMarkAllRead={handleMarkAllNotificationsRead}
+                    onDeleteNotification={handleDeleteNotification}
+                    onNavigate={handleTabChange}
+                  />
+                ) : null}
                 {deferredDashboardTab === "cases" ? (
                   <CasesTab
                     contactId={contactId}
+                    projects={projects.map((project) => ({
+                      id: project.id,
+                      name: project.name,
+                    }))}
                     onNavigate={handleTabChange}
                     highlightCaseId={highlightCaseId}
                     onHighlightHandled={() => setHighlightCaseId(null)}
                     onOpenSupportModal={() => setIsSupportModalOpen(true)}
+                    refreshKey={supportCasesRefreshKey}
                   />
                 ) : null}
               </motion.div>
@@ -3170,16 +3863,32 @@ function FormSelect({
   value,
   options,
   onChange,
+  placeholder,
+  className,
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: Array<string | { label: string; value: string }>;
   onChange: (value: string) => void;
+  placeholder?: string;
+  className?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const normalizedOptions = options.map((option) =>
+    typeof option === "string"
+      ? { label: option, value: option }
+      : option,
+  );
+  const selectedOption = normalizedOptions.find(
+    (option) => option.value === value,
+  );
 
   return (
-    <div className="dashboardSupportForm__field dashboardSupportForm__select">
+    <div
+      className={`dashboardSupportForm__field dashboardSupportForm__select${
+        className ? ` ${className}` : ""
+      }`}
+    >
       <span>{label}</span>
       <button
         type="button"
@@ -3187,7 +3896,7 @@ function FormSelect({
         onClick={() => setIsOpen((current) => !current)}
         aria-expanded={isOpen}
       >
-        <span>{value}</span>
+        <span>{selectedOption?.label || placeholder || "Select"}</span>
         <FiChevronDown aria-hidden="true" className={isOpen ? "is-open" : ""} />
       </button>
 
@@ -3208,17 +3917,19 @@ function FormSelect({
               exit={{ opacity: 0, y: -4, scale: 0.98 }}
               transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
             >
-              {options.map((option) => (
+              {normalizedOptions.map((option) => (
                 <button
-                  key={option}
+                  key={option.value}
                   type="button"
-                  className={`dashboardSupportForm__selectOption${option === value ? " is-active" : ""}`}
+                  className={`dashboardSupportForm__selectOption${
+                    option.value === value ? " is-active" : ""
+                  }`}
                   onClick={() => {
-                    onChange(option);
+                    onChange(option.value);
                     setIsOpen(false);
                   }}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </motion.div>
@@ -3234,11 +3945,17 @@ function SupportCaseModal({
   isOpen,
   contactId,
   projectId,
+  projectName,
+  projects,
+  onCaseCreated,
   onClose,
 }: {
   isOpen: boolean;
   contactId: string;
   projectId?: string;
+  projectName?: string;
+  projects: Array<{ id: string; name: string }>;
+  onCaseCreated?: () => void;
   onClose: () => void;
 }) {
   const [subject, setSubject] = useState("");
@@ -3246,9 +3963,12 @@ function SupportCaseModal({
   const [priority, setPriority] = useState("Medium");
   const [category, setCategory] = useState("General");
   const [otherCategory, setOtherCategory] = useState("");
+  const [selectedProjectId, setSelectedProjectId] = useState(projectId || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [caseId, setCaseId] = useState<string | null>(null);
+  const defaultProjectId = projectId || projects[0]?.id || "";
+  const effectiveSelectedProjectId = selectedProjectId || defaultProjectId;
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -3265,6 +3985,7 @@ function SupportCaseModal({
     setPriority("Medium");
     setCategory("General");
     setOtherCategory("");
+    setSelectedProjectId("");
     setError("");
     setCaseId(null);
     onClose();
@@ -3281,13 +4002,17 @@ function SupportCaseModal({
       setError("Please describe the category.");
       return;
     }
+    if (!effectiveSelectedProjectId) {
+      setError("Please select a project for this support case.");
+      return;
+    }
 
     setIsSubmitting(true);
     setError("");
 
     const res = await createSupportCase({
       contactId,
-      projectId,
+      projectId: effectiveSelectedProjectId,
       subject: subject.trim(),
       description: description.trim(),
       priority,
@@ -3299,6 +4024,20 @@ function SupportCaseModal({
 
     if (res.success) {
       setCaseId(res.caseId || "submitted");
+      if (contactId && res.caseId) {
+        const storedProjectMap = readSupportCaseProjectMap(contactId);
+        const selectedProject = projects.find(
+          (project) => project.id === effectiveSelectedProjectId,
+        );
+        writeSupportCaseProjectMap(contactId, {
+          ...storedProjectMap,
+          [res.caseId]: {
+            projectId: effectiveSelectedProjectId,
+            projectName: selectedProject?.name || projectName,
+          },
+        });
+      }
+      onCaseCreated?.();
     } else {
       console.error("Support case submission failed:", res.message);
       setError(
@@ -3369,6 +4108,11 @@ function SupportCaseModal({
                           Check your email for confirmation - our team will
                           contact you soon.
                         </p>
+                        <p className="dashboardSupportModal__successMeta">
+                          {projects.find((project) => project.id === effectiveSelectedProjectId)
+                            ?.name || projectName || "Selected project"}
+                          {" · "}Case #{caseId}
+                        </p>
                         <button
                           type="button"
                           className="dashboardProjectSpotlight__cta"
@@ -3382,6 +4126,17 @@ function SupportCaseModal({
                         className="dashboardSupportForm"
                         onSubmit={handleSubmit}
                       >
+                        <FormSelect
+                          label="Project"
+                          value={effectiveSelectedProjectId}
+                          options={projects.map((project) => ({
+                            label: project.name,
+                            value: project.id,
+                          }))}
+                          onChange={setSelectedProjectId}
+                          placeholder="Select a project"
+                        />
+
                         <label className="dashboardSupportForm__field">
                           <span>Subject</span>
                           <input
