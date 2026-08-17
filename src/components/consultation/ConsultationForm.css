@@ -363,6 +363,112 @@
     0 12px 30px rgba(0, 0, 0, 0.16);
 }
 
+.consultation-form__phone {
+  --phone-flag-h: 0.95rem;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 3.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1.15rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff9f2;
+  font-size: var(--type-body);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition:
+    border-color 220ms ease,
+    transform 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
+}
+
+.consultation-form__phone:focus-within {
+  border-color: rgba(212, 163, 115, 0.56);
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 4px rgba(212, 163, 115, 0.08),
+    0 12px 30px rgba(0, 0, 0, 0.16);
+}
+
+.consultation-form__phone .PhoneInputCountry {
+  position: relative;
+  gap: 0.5rem;
+  margin-right: 0;
+  padding: 0 0.9rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  transition: background 180ms ease;
+}
+
+.consultation-form__phone .PhoneInputCountry:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.consultation-form__phone .PhoneInputCountrySelect {
+  /* The dropdown popup is rendered by the OS/browser with a light
+     background, so its option text needs a dark color independent
+     of the rest of this (dark-themed) component. */
+  color: #1a1a1a;
+}
+
+.consultation-form__phone .PhoneInputCountrySelect:focus + .PhoneInputCountryIcon {
+  outline: 2px solid rgba(212, 163, 115, 0.56);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.consultation-form__phone .PhoneInputCountryIcon {
+  width: calc(var(--phone-flag-h) * 1.5);
+  height: var(--phone-flag-h);
+  box-shadow: none;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.consultation-form__phone .PhoneInputCountryIcon--border {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.consultation-form__phone .PhoneInputCountrySelectArrow {
+  --PhoneInputCountrySelectArrow-color: rgba(255, 248, 238, 0.62);
+  --PhoneInputCountrySelectArrow-opacity: 1;
+  width: 0.4em;
+  height: 0.4em;
+}
+
+.consultation-form__phone .PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 1rem 1.1rem;
+  border: none;
+  background: transparent;
+  color: #fff9f2;
+  font-size: var(--type-body);
+  outline: none;
+}
+
+.consultation-form__phone .PhoneInputInput::placeholder {
+  color: rgba(255, 248, 238, 0.56);
+}
+
+.consultation-form__phone .PhoneInputInput:-webkit-autofill,
+.consultation-form__phone .PhoneInputInput:-webkit-autofill:hover,
+.consultation-form__phone .PhoneInputInput:-webkit-autofill:focus,
+.consultation-form__phone .PhoneInputInput:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff9f2;
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.06) inset;
+  transition: background-color 9999s ease-in-out 0s;
+  caret-color: #fff9f2;
+}
+
+.consultation-form--modal .consultation-form__phone {
+  min-height: 3.45rem;
+}
+
 .consultation-form__error,
 .consultation-form__hint {
   min-height: 1rem;
@@ -533,6 +639,20 @@
     padding: 0.92rem 1rem;
     border-radius: 1rem;
     font-size: 0.98rem;
+  }
+
+  .consultation-form__phone {
+    min-height: 3.2rem;
+    border-radius: 1rem;
+    font-size: 0.98rem;
+  }
+
+  .consultation-form__phone .PhoneInputCountry {
+    padding: 0 0.75rem;
+  }
+
+  .consultation-form__phone .PhoneInputInput {
+    padding: 0.92rem 1rem;
   }
 
   .consultation-form__error,
