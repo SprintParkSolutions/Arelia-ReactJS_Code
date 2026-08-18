@@ -112,7 +112,6 @@ const QUOTE_BACKGROUND_LAYER = homePageOptimizedImagePath('quote-background.webp
 const QUOTE_FOREGROUND_LAYER = homePageOptimizedImagePath('quote-background.webp')
 const QUOTE_TEXT = 'Every Space Has a Story ,We Help You Tell It Beautifully.'
 const CONTACT_IMAGE = homePageOptimizedImagePath('contact-cta-background.webp')
-const HERO_AMBIENT_IMAGE = '/videos/Arelia_Space-poster.webp'
 const HOME_HERO_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page/hero-specialties`
 const homeHeroImagePath = (fileName: string) =>
   `${HOME_HERO_IMAGES_PATH}/${encodeURIComponent(fileName)}`
@@ -425,7 +424,7 @@ function HomeHeroSection() {
           key={slide.id}
           className={`home-page__hero-ambient${index === activeIndex ? ' is-active' : ''}`}
           aria-hidden="true"
-          style={loadedSlideIndexes.includes(index) ? { backgroundImage: `url(${slide.image || HERO_AMBIENT_IMAGE})` } : undefined}
+          style={loadedSlideIndexes.includes(index) ? { backgroundImage: `url(${slide.image})` } : undefined}
         />
       ))}
       <div className="home-page__hero-veil" aria-hidden="true" />

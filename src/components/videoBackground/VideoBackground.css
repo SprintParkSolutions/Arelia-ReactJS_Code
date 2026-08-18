@@ -45,8 +45,8 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(180deg, rgba(3, 3, 3, 0.45) 0%, rgba(3, 3, 3, 0.7) 100%),
-    rgba(0, 0, 0, 0.28);
+    linear-gradient(180deg, rgba(3, 3, 3, 0.34) 0%, rgba(3, 3, 3, 0.54) 100%),
+    rgba(0, 0, 0, 0.16);
 }
 
 .site-video-background__overlay--home {
