@@ -3,7 +3,15 @@ import path from "node:path";
 
 const distDir = path.resolve("dist");
 const sourceIndex = path.join(distDir, "index.html");
-const routes = ["about-us", "services", "contact-us"];
+const routes = [
+  "about-us",
+  "services",
+  "contact-us",
+  "privacy-policy",
+  "terms-of-service",
+  "disclaimer",
+  "cookie-policy",
+];
 
 for (const route of routes) {
   const routeDir = path.join(distDir, route);
