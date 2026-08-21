@@ -18,6 +18,14 @@
     transform 0.52s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.loader--route {
+  background:
+    radial-gradient(circle at 50% 35%, rgba(203, 160, 53, 0.06), transparent 22%),
+    rgba(4, 7, 10, 0.34);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
 .loader--complete {
   opacity: 0;
   transform: scale(1.05); /* Slight scale up on exit feels more immersive */
@@ -50,6 +58,22 @@
   gap: 3rem;
 }
 
+.loader--route .loader__content {
+  width: min(100% - 2rem, 28rem);
+  gap: 1.1rem;
+  padding: 1.1rem 1.15rem 1.2rem;
+  border: 1px solid rgba(200, 169, 126, 0.14);
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(180deg, rgba(10, 12, 14, 0.52), rgba(10, 12, 14, 0.34)),
+    rgba(10, 12, 14, 0.22);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
 /* --- Logo Reveal --- */
 .loader__logo-container {
   position: relative;
@@ -64,6 +88,10 @@
   object-fit: contain;
   z-index: 2;
   animation: logo-breathe 3s ease-in-out infinite;
+}
+
+.loader--route .loader__logo {
+  width: clamp(3rem, 8vw, 4rem);
 }
 
 .loader__logo--launch {
@@ -136,6 +164,10 @@
   background: rgba(255, 255, 255, 0.1);
 }
 
+.loader--route .loader__bar {
+  width: min(100%, 22rem);
+}
+
 .loader__bar-fill {
   position: relative;
   height: 100%;
@@ -166,6 +198,10 @@
   font-size: var(--type-small);
   letter-spacing: 0.2em;
   text-shadow: 0 0 15px rgba(231, 189, 83, 0.2);
+}
+
+.loader--route .loader__progress {
+  display: none;
 }
 
 /* =========================================

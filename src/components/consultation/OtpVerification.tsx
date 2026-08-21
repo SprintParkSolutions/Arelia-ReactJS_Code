@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import type { ChangeEvent, FormEvent } from 'react'
+import type { ChangeEvent, SubmitEvent } from 'react'
 import './OtpVerification.css'
 
 type OtpVerificationProps = {
@@ -40,7 +40,7 @@ export function OtpVerification({
     setError('')
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (otp.length !== 6) {

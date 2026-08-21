@@ -70,6 +70,7 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
               title="Book your consultation"
               description="A few details are enough to start a refined conversation about your project, timeline, and design direction."
               submitLabel="Request Consultation"
+              onSuccess={onClose}
             />
           </motion.div>
         </motion.div>

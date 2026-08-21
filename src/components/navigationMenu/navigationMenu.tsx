@@ -1,325 +1,332 @@
-import { motion, type Variants } from "framer-motion";
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import "./navigationMenu.css";
+import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { FiLogOut, FiMenu, FiPhone, FiX } from 'react-icons/fi'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { dashboardTabs } from '../../constants/dashboardTabs'
+import { useAuth } from '../../context/AuthContext'
+import { LogoutModal } from '../auth/LogoutModal'
+import './navigationMenu.css'
 
-const navItems = ["Home", "About Us", "Services", "Contact Us"];
-const logoSrc = "/images/Logos/Arelia.png";
-const phoneHref = "tel:+917207845556";
-const brandTitle = "ARELIA";
+const publicNavItems = [
+  { label: 'Home', path: '/' },
+  { label: 'About Us', path: '/about-us' },
+  { label: 'Services', path: '/services' },
+  { label: 'Contact Us', path: '/contact-us' },
+]
 
-const navLineVariants: Variants = {
-  hidden: {
-    scaleX: 0,
-    opacity: 0,
-  },
-  visible: (index: number) => ({
-    scaleX: 1,
-    opacity: [0, 1, 1, 0],
-    transition: {
-      duration: 0.5,
-      delay: 0.04 + index * 0.06,
-      ease: [0.22, 1, 0.36, 1],
-      times: [0, 0.28, 0.72, 1],
-    },
-  }),
-};
+const logoSrc = '/images/Logos/Arelia.png'
+const phoneHref = 'tel:+917207845556'
 
-const navTextVariants: Variants = {
-  hidden: {
-    y: "120%",
-    opacity: 0,
-  },
-  visible: (index: number) => ({
-    y: "0%",
-    opacity: 1,
-    transition: {
-      duration: 0.46,
-      delay: 0.1 + index * 0.06,
-      ease: [0.22, 1, 0.36, 1],
-    },
-  }),
-};
-
-const navHighlightTransition = {
-  type: "spring" as const,
-  stiffness: 380,
-  damping: 34,
-  mass: 0.8,
-};
-
-function PhoneIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      className="navigationMenu__phoneIcon"
-    >
-      <path
-        d="M6.94 5.78a1.6 1.6 0 0 1 1.63-1.03l2.08.25a1.6 1.6 0 0 1 1.36 1.21l.38 1.67a1.6 1.6 0 0 1-.46 1.51l-1.05 1.03a13.1 13.1 0 0 0 2.73 2.73l1.03-1.05a1.6 1.6 0 0 1 1.51-.46l1.67.38a1.6 1.6 0 0 1 1.21 1.36l.25 2.08a1.6 1.6 0 0 1-1.03 1.63l-1.28.52a3.2 3.2 0 0 1-2.95-.28 20.14 20.14 0 0 1-9.01-9.01 3.2 3.2 0 0 1-.28-2.95l.52-1.28Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-const getNavItemPath = (item: string) => {
-  if (item === "Home") return "/";
-  if (item === "About Us") return "/about-us";
-  if (item === "Services") return "/services";
-  if (item === "Contact Us") return "/contact-us";
-  return "/";
-};
-
-interface NavigationMenuProps {
-  onOpenConsultation: () => void;
+function getInitials(fullName: string) {
+  return fullName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase()
 }
 
 export default function NavigationMenu({
   onOpenConsultation,
-}: NavigationMenuProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const pathname = location.pathname;
-  const isHomePage = pathname === "/";
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+}: {
+  onOpenConsultation: () => void
+}) {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const pathname = location.pathname
+  const isLoginPage = pathname === '/login'
   const [isMobile, setIsMobile] = useState(
-    typeof window !== "undefined" && window.innerWidth < 1024,
-  );
+    () => typeof window !== 'undefined' && window.innerWidth < 1024,
+  )
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
+  const { activeDashboardTab, client, isAuthenticated, logout, setActiveDashboardTab } = useAuth()
 
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 1024);
-      if (window.innerWidth >= 1024) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const handleNavClick = (item: string) => {
-    const targetPath = getNavItemPath(item);
-    if (pathname !== targetPath) {
-      navigate(targetPath);
+      const nextIsMobile = window.innerWidth < 1024
+      setIsMobile(nextIsMobile)
+      if (!nextIsMobile) setIsMobileMenuOpen(false)
     }
-    setIsMobileMenuOpen(false);
-  };
 
-  const handleHomeClick = () => {
-    if (pathname !== "/") {
-      navigate("/");
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const displayName = client?.name || 'Client'
+  const initials = getInitials(displayName) || 'CL'
+
+  const handleBrandClick = () => {
+    if (isAuthenticated) {
+      setActiveDashboardTab('profile')
+      navigate('/dashboard')
+      setIsMobileMenuOpen(false)
+      return
     }
-    setIsMobileMenuOpen(false);
-  };
 
-  const renderNavLink = (item: string, index: number, isMobileLink = false) => {
-    const targetPath = getNavItemPath(item);
-    const isActive = pathname === targetPath;
+    navigate('/')
+  }
 
-    return (
-      <li
-        key={item}
-        className={`navigationMenu__item${isActive ? " is-active" : ""}`}
-      >
-        <button
-          type="button"
-          className={`navigationMenu__linkButton${
-            isMobileLink ? " navigationMenu__linkButton--mobile" : ""
-          }`}
-          onClick={() => handleNavClick(item)}
-          aria-current={isActive ? "page" : undefined}
-        >
-          {isActive ? (
-            <motion.div
-              layoutId="nav-highlight"
-              className="navigationMenu__activeHighlight"
-              transition={navHighlightTransition}
-              aria-hidden="true"
+  const handleLogoutConfirm = () => {
+    setIsLogoutModalOpen(false)
+    setIsMobileMenuOpen(false)
+    logout()
+    navigate('/login', { replace: true })
+  }
+
+  const handleDashboardTabClick = (tabId: (typeof dashboardTabs)[number]['id']) => {
+    setActiveDashboardTab(tabId)
+    if (pathname !== '/dashboard') {
+      navigate('/dashboard')
+    }
+    setIsMobileMenuOpen(false)
+  }
+
+  const renderPublicLinks = (isMobileDrawer = false) => (
+    <ul className={isMobileDrawer ? 'navigationMenu__drawerLinks' : 'navigationMenu__links'}>
+      {publicNavItems.map((item) => {
+        const isActive = pathname === item.path
+        return (
+          <li key={item.path} className="navigationMenu__item">
+            <button
+              type="button"
+              className={`navigationMenu__link${isActive ? ' is-active' : ''}${isMobileDrawer ? ' navigationMenu__link--drawer' : ''}`}
+              onClick={() => {
+                navigate(item.path)
+                setIsMobileMenuOpen(false)
+              }}
             >
-              <span className="navigationMenu__activeHighlightAccent" />
-            </motion.div>
-          ) : null}
-
-          <span className="navigationMenu__linkReveal">
-            <span className="navigationMenu__linkTextMask">
-              <motion.span
-                className="navigationMenu__linkText"
-                custom={index}
-                initial="hidden"
-                animate="visible"
-                variants={navTextVariants}
-                style={{ fontWeight: 500 }}
-              >
+              {!isMobileDrawer && isActive ? (
                 <motion.span
-                  animate={{
-                    color: isActive
-                      ? "#f8f6f2"
-                      : "rgba(248, 246, 242, 0.52)",
-                  }}
-                  transition={{ duration: 0.22, ease: "easeOut" }}
-                  className="navigationMenu__linkTextLabel"
-                >
-                  {item}
-                </motion.span>
-              </motion.span>
-            </span>
-            <motion.span
-              className="navigationMenu__spawnLine"
-              custom={index}
-              initial="hidden"
-              animate="visible"
-              variants={navLineVariants}
-              aria-hidden="true"
-            />
-          </span>
-        </button>
-      </li>
-    );
-  };
+                  layoutId="navigationMenuPublicActivePill"
+                  className="navigationMenu__activePill navigationMenu__activePill--public"
+                  transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+                />
+              ) : null}
+              <span className="navigationMenu__linkLabel">{item.label}</span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
+
+  const renderDashboardLinks = (isMobileDrawer = false) => (
+    <ul className={isMobileDrawer ? 'navigationMenu__drawerLinks' : 'navigationMenu__links'}>
+      {dashboardTabs.map((tab) => {
+        const isActive = pathname === '/dashboard' && activeDashboardTab === tab.id
+        return (
+          <li key={tab.id} className="navigationMenu__item">
+            <button
+              type="button"
+              className={`navigationMenu__link navigationMenu__link--dashboard${isActive ? ' is-active' : ''}${isMobileDrawer ? ' navigationMenu__link--drawer' : ''}`}
+              onClick={() => handleDashboardTabClick(tab.id)}
+            >
+              {!isMobileDrawer && isActive ? (
+                <motion.span
+                  layoutId="navigationMenuDashboardActivePill"
+                  className="navigationMenu__activePill navigationMenu__activePill--dashboard"
+                  transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+                />
+              ) : null}
+              <span className="navigationMenu__linkLabel">{tab.label}</span>
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
 
   return (
     <>
-      {!isMobile ? (
+      <LogoutModal
+        isOpen={isLogoutModalOpen}
+        onCancel={() => setIsLogoutModalOpen(false)}
+        onConfirm={handleLogoutConfirm}
+      />
+
+      <div
+        className={`navigationMenu ${
+          isLoginPage
+            ? 'navigationMenu--login'
+            : isAuthenticated
+              ? 'navigationMenu--authenticated'
+              : 'navigationMenu--public'
+        }`}
+      >
         <div
-          className={`navigationMenu navigationMenu--desktop${
-            isHomePage ? " navigationMenu--overlay" : ""
+          className={`navigationMenu__bar ${
+            isLoginPage
+              ? 'navigationMenu__bar--login'
+              : isAuthenticated
+                ? 'navigationMenu__bar--authenticated'
+                : 'navigationMenu__bar--public'
           }`}
         >
-          <nav
-            className={`navigationMenu__desktopBar${
-              isHomePage ? " navigationMenu__desktopBar--overlay" : ""
-            }`}
-            aria-label="Primary"
+          <button
+            type="button"
+            className="navigationMenu__brand"
+            onClick={handleBrandClick}
+            aria-label={isAuthenticated ? 'Go to dashboard' : 'Go to home page'}
           >
-            <div className="navigationMenu__desktopInner">
-              <button
-                type="button"
-                className="navigationMenu__brand"
-                onClick={handleHomeClick}
-                aria-label="Go to home page"
-              >
-                <img
-                  src={logoSrc}
-                  alt="Arelia logo"
-                  className="navigationMenu__brandLogo"
-                  draggable={false}
-                />
-                <span className="navigationMenu__brandTitle">{brandTitle}</span>
-              </button>
+            <img
+              src={logoSrc}
+              alt="Arelia logo"
+              className="navigationMenu__brandLogo"
+              draggable={false}
+            />
+            <div className="navigationMenu__brandCopy">
+              <span className="navigationMenu__brandTitle">ARELIA</span>
+              {isAuthenticated ? (
+                <span className="navigationMenu__brandSubtitle">Client Portal</span>
+              ) : null}
+            </div>
+          </button>
 
-              <ul className="navigationMenu__links">
-                {navItems.map((item, index) => renderNavLink(item, index))}
-              </ul>
+          {!isMobile && !isLoginPage ? (
+            <>
+              {!isAuthenticated ? (
+                renderPublicLinks()
+              ) : (
+                renderDashboardLinks()
+              )}
 
               <div className="navigationMenu__actions">
-                <button
-                  type="button"
-                  onClick={onOpenConsultation}
-                  className="navigationMenu__consultation"
-                >
-                  Book Consultation
-                </button>
-                <a
-                  href={phoneHref}
-                  aria-label="Call Arelia"
-                  className="navigationMenu__iconButton"
-                >
-                  <PhoneIcon />
-                </a>
+                {!isAuthenticated ? (
+                  <>
+                    <button
+                      type="button"
+                      className="navigationMenu__action"
+                      onClick={() => navigate('/login')}
+                    >
+                      Login
+                    </button>
+                    <button
+                      type="button"
+                      className="navigationMenu__action navigationMenu__action--accent"
+                      onClick={onOpenConsultation}
+                    >
+                      Book Consultation
+                    </button>
+                    <a href={phoneHref} className="navigationMenu__iconButton" aria-label="Call Arelia">
+                      <FiPhone aria-hidden="true" />
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <div className="navigationMenu__profileCard">
+                      <span className="navigationMenu__avatar" aria-hidden="true">
+                        {initials}
+                      </span>
+                      <div className="navigationMenu__profileCopy">
+                        <span className="navigationMenu__profileLabel">Client</span>
+                        <span className="navigationMenu__profileName">{displayName}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="navigationMenu__action navigationMenu__action--logout"
+                      onClick={() => setIsLogoutModalOpen(true)}
+                    >
+                      <FiLogOut aria-hidden="true" />
+                      <span>Logout</span>
+                    </button>
+                  </>
+                )}
               </div>
-            </div>
-          </nav>
-        </div>
-      ) : (
-        <>
-          <div
-            className={`navigationMenu navigationMenu--mobile${
-              isHomePage ? " navigationMenu--overlay" : ""
-            }`}
-          >
-            <div
-              className={`navigationMenu__mobileBar${
-                isHomePage ? " navigationMenu__mobileBar--overlay" : ""
-              }`}
-            >
-              <button
-                type="button"
-                className="navigationMenu__brand navigationMenu__brand--mobile"
-                onClick={handleHomeClick}
-                aria-label="Go to home page"
-              >
-                <img
-                  src={logoSrc}
-                  alt="Arelia logo"
-                  className="navigationMenu__brandLogo navigationMenu__brandLogo--mobile"
-                  draggable={false}
-                />
-                <span className="navigationMenu__brandTitle navigationMenu__brandTitle--mobile">
-                  {brandTitle}
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setIsMobileMenuOpen((current) => !current)}
-                className={`navigationMenu__toggle${
-                  isMobileMenuOpen ? " is-open" : ""
-                }`}
-                aria-label="Toggle navigation menu"
-                aria-expanded={isMobileMenuOpen}
-              >
-                <span className="navigationMenu__toggleLine" />
-                <span className="navigationMenu__toggleLine" />
-                <span className="navigationMenu__toggleLine" />
-              </button>
-            </div>
-          </div>
-
-          {isMobileMenuOpen ? (
-            <>
-              <div className="navigationMenu__mobilePanel">
-                <ul className="navigationMenu__mobileLinks">
-                  {navItems.map((item, index) =>
-                    renderNavLink(item, index, true),
-                  )}
-                </ul>
-
-                <div className="navigationMenu__mobileActions">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onOpenConsultation();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="navigationMenu__consultation navigationMenu__consultation--mobile"
-                  >
-                    Book Consultation
-                  </button>
-
-                  <a
-                    href={phoneHref}
-                    aria-label="Call Arelia"
-                    className="navigationMenu__iconButton navigationMenu__iconButton--mobile"
-                  >
-                    <PhoneIcon />
-                  </a>
+            </>
+          ) : !isLoginPage ? (
+            <div className="navigationMenu__actions">
+              {isAuthenticated ? (
+                <div className="navigationMenu__profileCard navigationMenu__profileCard--compact">
+                  <span className="navigationMenu__avatar" aria-hidden="true">
+                    {initials}
+                  </span>
+                  <div className="navigationMenu__profileCopy">
+                    <span className="navigationMenu__profileLabel">Client</span>
+                    <span className="navigationMenu__profileName">{displayName}</span>
+                  </div>
                 </div>
-              </div>
+              ) : null}
+              <button
+                type="button"
+                className="navigationMenu__menuToggle"
+                onClick={() => setIsMobileMenuOpen((value) => !value)}
+                aria-expanded={isMobileMenuOpen}
+                aria-label="Toggle navigation menu"
+              >
+                {isMobileMenuOpen ? <FiX aria-hidden="true" /> : <FiMenu aria-hidden="true" />}
+              </button>
+            </div>
+          ) : (
+            <div className="navigationMenu__loginSpacer" aria-hidden="true" />
+          )}
+        </div>
 
-              <div
+        <AnimatePresence>
+          {isMobile && isMobileMenuOpen && !isLoginPage ? (
+            <>
+              <motion.div
+                className="navigationMenu__drawerBackdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="navigationMenu__mobileBackdrop"
               />
+              <motion.div
+                className="navigationMenu__drawer"
+                initial={{ opacity: 0, y: -12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {!isAuthenticated ? (
+                  <>
+                    {renderPublicLinks(true)}
+                    <div className="navigationMenu__drawerActions">
+                      <button
+                        type="button"
+                        className="navigationMenu__action navigationMenu__action--drawer"
+                        onClick={() => {
+                          navigate('/login')
+                          setIsMobileMenuOpen(false)
+                        }}
+                      >
+                        Login
+                      </button>
+                      <button
+                        type="button"
+                        className="navigationMenu__action navigationMenu__action--accent navigationMenu__action--drawer"
+                        onClick={() => {
+                          onOpenConsultation()
+                          setIsMobileMenuOpen(false)
+                        }}
+                      >
+                        Book Consultation
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {renderDashboardLinks(true)}
+                    <div className="navigationMenu__drawerActions">
+                      <button
+                        type="button"
+                        className="navigationMenu__action navigationMenu__action--logout navigationMenu__action--drawer"
+                        onClick={() => setIsLogoutModalOpen(true)}
+                      >
+                        <FiLogOut aria-hidden="true" />
+                        <span>Logout</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </motion.div>
             </>
           ) : null}
-        </>
-      )}
+        </AnimatePresence>
+      </div>
     </>
-  );
+  )
 }
