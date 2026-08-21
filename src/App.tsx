@@ -10,7 +10,9 @@ import NavigationMenu from './components/navigationMenu/navigationMenu'
 import { SocialSidebar } from './components/socialsidebar/SocialSidebar'
 import { VideoBackground } from './components/videoBackground/VideoBackground'
 import { ToastProvider } from './components/toast/ToastContext'
+import { CookieConsent } from './components/cookieConsent/CookieConsent'
 import { useAuth } from './context/AuthContext'
+import { trackPageView } from './utils/analytics'
 
 import { Footer } from './pages/Footer'
 import { HomePage } from './pages/HomePage'
@@ -23,6 +25,8 @@ import { PaymentGatewayPage } from './pages/PaymentGatewayPage'
 import { PaymentResultPage } from './pages/PaymentResultPage'
 import { PaymentHistoryPage } from './pages/PaymentHistoryPage'
 import { PaymentReceiptPage } from './pages/PaymentReceiptPage'
+import { LegalPage } from './pages/LegalPage'
+import { legalPages } from './pages/legalContent'
 
 // FIX: Added `.then()` to handle the named export for your ConsultationModal
 const ConsultationModal = lazy(() =>
@@ -56,11 +60,7 @@ export default function App() {
     (location.pathname === '/dashboard' || location.pathname.startsWith('/payment')) && isAuthenticated
 
   useEffect(() => {
-    window.dataLayer = window.dataLayer || []
-    window.dataLayer.push({
-      event: 'page_view',
-      page_path: location.pathname,
-    })
+    trackPageView(location.pathname)
   }, [location.pathname])
 
   const handleLoaderComplete = () => {
@@ -160,6 +160,11 @@ export default function App() {
                   element={<ContactUsPage />}
                 />
 
+                <Route path="/privacy-policy" element={<LegalPage content={legalPages.privacy} />} />
+                <Route path="/terms-of-service" element={<LegalPage content={legalPages.terms} />} />
+                <Route path="/disclaimer" element={<LegalPage content={legalPages.disclaimer} />} />
+                <Route path="/cookie-policy" element={<LegalPage content={legalPages.cookies} />} />
+
                 <Route
                   path="/login"
                   element={<LoginPage />}
@@ -238,6 +243,8 @@ export default function App() {
             onClose={() => setIsConsultationOpen(false)} 
           />
         </Suspense>
+
+        <CookieConsent />
       </div>
       </ToastProvider>
     </>
