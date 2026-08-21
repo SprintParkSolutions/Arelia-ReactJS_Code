@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import './Footer.css'
 
 const services = [
@@ -49,10 +49,10 @@ export function Footer() {
           <div className="site-footer__column">
             <h3 className="site-footer__title">Navigation</h3>
             <div className="site-footer__links">
-              <Link to="/" className="site-footer__link">Home</Link>
-              <Link to="/about-us" className="site-footer__link">About Us</Link>
-              <Link to="/services" className="site-footer__link">Services</Link>
-              <Link to="/contact-us" className="site-footer__link">Contact Us</Link>
+              <NavLink to="/" className="site-footer__link">Home</NavLink>
+              <NavLink to="/about-us" className="site-footer__link">About Us</NavLink>
+              <NavLink to="/services" className="site-footer__link">Services</NavLink>
+              <NavLink to="/contact-us" className="site-footer__link">Contact Us</NavLink>
             </div>
           </div>
 
@@ -83,10 +83,24 @@ export function Footer() {
 
         <div className="site-footer__bottom">
           <p>&copy; 2026 Arelia</p>
-          <div className="site-footer__bottom-links">
-            <span className="site-footer__bottom-link">Privacy Policy</span>
-            <span className="site-footer__bottom-link">Terms of Service</span>
-          </div>
+          <nav className="site-footer__bottom-links" aria-label="Legal">
+            {[
+              ['/privacy-policy', 'Privacy Policy'],
+              ['/terms-of-service', 'Terms of Service'],
+              ['/disclaimer', 'Disclaimer'],
+              ['/cookie-policy', 'Cookie Policy'],
+            ].map(([to, label]) => (
+              <NavLink
+                key={to}
+                to={to}
+                className={({ isActive }) =>
+                  `site-footer__bottom-link${isActive ? ' is-active' : ''}`
+                }
+              >
+                {label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
       </div>
     </footer>
