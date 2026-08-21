@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { LayoutGroup, motion, type Variants } from "framer-motion";
 import "./SocialSidebar.css";
 
@@ -47,24 +46,35 @@ const socialLinks = [
   {
     name: "Facebook",
     href: "https://www.facebook.com/profile.php?id=61584344340267",
-    bgColor: "#0077B5", // Exact dark brownish-black from ref
-    iconColor: "#E6D19E", // Exact pale gold icon color from ref
+    bgColor: "#0077B5",
+    iconColor: "#ffffff",
     icon: (
       <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" className="w-5 h-5">
         <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
       </svg>
     ),
   },
+  {
+    name: "App Store",
+    href: "https://apps.apple.com/in/app/areliaspace/id6766636062",
+    bgColor: "#ffffff",
+    iconColor: "#000000",
+    isImage: true,
+    imageUrl: "/Icons/app-store.png",
+    imageClass: "app-store-icon",
+  },
+  {
+    name: "Play Store",
+    href: "https://play.google.com/store/apps/details?id=com.areliaspace.app&hl=en_IN",
+    bgColor: "#ffffff",
+    iconColor: "#000000",
+    isImage: true,
+    imageUrl: "/Icons/Playstore_Icon.png",
+    imageClass: "play-store-icon",
+  },
 ];
 
 export const SocialSidebar = () => {
-  const [showItems, setShowItems] = useState(false);
-
-  useEffect(() => {
-    const itemsTimer = setTimeout(() => setShowItems(true), 1250);
-    return () => clearTimeout(itemsTimer);
-  }, []);
-
   const staggerContainer: Variants = {
     hidden: {},
     visible: { transition: { staggerChildren: 0.1 } }
@@ -97,7 +107,7 @@ export const SocialSidebar = () => {
           className="flex flex-col gap-4 items-center justify-center z-10" // Always column now since it's bottom right
           variants={staggerContainer}
           initial="hidden"
-          animate={showItems ? "visible" : "hidden"}
+          animate="visible"
         >
           {socialLinks.map((link) => (
             <motion.div
@@ -114,14 +124,21 @@ export const SocialSidebar = () => {
                 style={{
                   background: link.bgColor,
                   color: link.iconColor,
-                  // Added a soft shadow so they pop off the background without a container
                   boxShadow: link.name === "LinkedIn"
                     ? "0 6px 18px rgba(0, 119, 181, 0.32), 0 8px 20px rgba(0,0,0,0.35)"
                     : "0 6px 16px rgba(0,0,0,0.4)" 
                 }}
                 title={link.name}
               >
-                {link.icon}
+                {link.isImage ? (
+                  <img
+                    src={link.imageUrl}
+                    alt={link.name}
+                    className={`w-full h-full object-cover ${link.imageClass ?? ''}`}
+                  />
+                ) : (
+                  link.icon
+                )}
               </a>
             </motion.div>
           ))}

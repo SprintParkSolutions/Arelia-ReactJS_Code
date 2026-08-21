@@ -258,7 +258,7 @@ function FadeIn({ children, className, delay = 0, y = 32 }: FadeInProps) {
 
 function LuxuryButton({ href, label, onClick, variant = "gold" }: LuxuryButtonProps) {
   const baseClasses =
-    "inline-flex items-center justify-center rounded-full px-6 py-3 text-xs font-medium uppercase tracking-[0.28em] transition-all duration-300";
+    "inline-flex cursor-pointer items-center justify-center rounded-full px-6 py-3 text-xs font-medium uppercase tracking-[0.28em] transition-all duration-300";
 
   const variantClasses =
     variant === "gold"
