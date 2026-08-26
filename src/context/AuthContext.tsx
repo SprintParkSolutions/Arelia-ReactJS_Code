@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -98,19 +99,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     window.localStorage.setItem(AUTH_STORAGE_KEYS.name, normalizedClient.name || '')
     window.localStorage.setItem(AUTH_STORAGE_KEYS.activeTab, defaultActiveTab)
     window.localStorage.setItem(AUTH_STORAGE_KEYS.loginAt, String(Date.now()))
+    window.localStorage.setItem(AUTH_STORAGE_KEYS.lastActivityAt, String(Date.now()))
 
     setClient(normalizedClient)
     setActiveDashboardTabState(defaultActiveTab)
     window.dispatchEvent(new Event('client-auth-change'))
   }
 
-  const logout = () => {
+  const logout = useCallback(() => {
     clearStoredAuth()
 
     setClient(null)
     setActiveDashboardTabState(defaultActiveTab)
     window.dispatchEvent(new Event('client-auth-change'))
-  }
+  }, [])
 
   const setActiveDashboardTab = (tab: DashboardTabId) => {
     window.localStorage.setItem(AUTH_STORAGE_KEYS.activeTab, tab)
@@ -126,7 +128,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       logout,
       setActiveDashboardTab,
     }),
-    [activeDashboardTab, client, isAuthenticated],
+    [activeDashboardTab, client, isAuthenticated, logout],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
