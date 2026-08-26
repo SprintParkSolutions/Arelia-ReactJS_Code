@@ -39,6 +39,19 @@ describe('authStorage inactivity expiry', () => {
     expect(isSessionExpired()).toBe(false)
   })
 
+  it('does not expire an active session solely because login was over 12 hours ago', () => {
+    window.localStorage.setItem(
+      AUTH_STORAGE_KEYS.loginAt,
+      String(now.getTime() - 13 * 60 * 60 * 1000),
+    )
+    window.localStorage.setItem(
+      AUTH_STORAGE_KEYS.lastActivityAt,
+      String(now.getTime() - 30 * 60 * 1000),
+    )
+
+    expect(isSessionExpired()).toBe(false)
+  })
+
   it('migrates an existing session from its login timestamp', () => {
     const loginAt = now.getTime() - 30 * 60 * 1000
     window.localStorage.setItem(AUTH_STORAGE_KEYS.loginAt, String(loginAt))
