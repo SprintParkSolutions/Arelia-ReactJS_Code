@@ -11,6 +11,8 @@ const routes = [
   "terms-of-service",
   "disclaimer",
   "cookie-policy",
+  "login",
+  "dashboard",
 ];
 
 for (const route of routes) {
