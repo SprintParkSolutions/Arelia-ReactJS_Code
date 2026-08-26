@@ -1,10 +1,11 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Route, Routes, useLocation } from 'react-router-dom'
+import { matchPath, Route, Routes, useLocation } from 'react-router-dom'
 
 import './App.css'
 
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { InactivityMonitor } from './components/auth/InactivityMonitor'
 import { Loader } from './components/loader/Loader'
 import NavigationMenu from './components/navigationMenu/navigationMenu'
 import { SocialSidebar } from './components/socialsidebar/SocialSidebar'
@@ -55,9 +56,14 @@ export default function App() {
   const { isAuthenticated } = useAuth()
   const location = useLocation()
 
-  const isLoginPage = location.pathname === '/login'
-  const isDashboardPage =
-    (location.pathname === '/dashboard' || location.pathname.startsWith('/payment')) && isAuthenticated
+  const isLoginPage = Boolean(
+    matchPath({ path: '/login', end: true }, location.pathname),
+  )
+  const isPortalPage = Boolean(
+    matchPath({ path: '/dashboard', end: true }, location.pathname) ||
+    matchPath('/payment/*', location.pathname),
+  )
+  const usesStandaloneLayout = isLoginPage || isPortalPage
 
   useEffect(() => {
     trackPageView(location.pathname)
@@ -79,6 +85,7 @@ export default function App() {
       <ToastProvider>
       <div className={`app-shell${isLoginPage ? ' app-shell--login' : ''}`}>
         <ScrollToTop />
+        <InactivityMonitor />
 
         {/* FIX: Changed 'videoSrc' to 'src' to match your interface */}
         <VideoBackground
@@ -87,7 +94,7 @@ export default function App() {
           deferMs={2500}
         />
 
-        {!isDashboardPage ? (
+        {!usesStandaloneLayout ? (
           <NavigationMenu
             onOpenConsultation={() =>
               setIsConsultationOpen(true)
@@ -227,12 +234,12 @@ export default function App() {
             </motion.div>
           </AnimatePresence>
 
-          {!isLoginPage && !isDashboardPage ? (
+          {!usesStandaloneLayout ? (
             <Footer />
           ) : null}
         </div>
 
-        {!isAuthenticated && !isLoginPage ? (
+        {!isAuthenticated && !usesStandaloneLayout ? (
           <SocialSidebar />
         ) : null}
 
