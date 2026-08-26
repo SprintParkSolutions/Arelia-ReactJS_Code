@@ -9,6 +9,7 @@ export const AUTH_STORAGE_KEYS = {
   activeTab: 'dashboardActiveTab',
   selectedProjectId: 'dashboardSelectedProjectId',
   loginAt: 'clientLoginAt',
+  lastActivityAt: 'clientLastActivityAt',
 } as const
 
 export type StoredAuthClient = {
@@ -21,6 +22,7 @@ export type StoredAuthClient = {
 const defaultActiveTab = dashboardTabs[0].id
 
 export const SESSION_DURATION_MS = 12 * 60 * 60 * 1000
+export const INACTIVITY_LIMIT_MS = 60 * 60 * 1000
 
 export function getDefaultDashboardTab(): DashboardTabId {
   return defaultActiveTab
@@ -29,6 +31,18 @@ export function getDefaultDashboardTab(): DashboardTabId {
 export function clearStoredAuth(): void {
   if (typeof window === 'undefined') return
   Object.values(AUTH_STORAGE_KEYS).forEach((key) => window.localStorage.removeItem(key))
+}
+
+export function readLastActivityAt(): number | null {
+  if (typeof window === 'undefined') return null
+
+  const value = Number(window.localStorage.getItem(AUTH_STORAGE_KEYS.lastActivityAt))
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+export function writeLastActivityAt(timestamp = Date.now()): void {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(AUTH_STORAGE_KEYS.lastActivityAt, String(timestamp))
 }
 
 // 12 hours after login, the session is force-expired regardless of activity.
@@ -47,9 +61,18 @@ export function isSessionExpired(): boolean {
   }
 
   const loginAt = Number(rawLoginAt)
-  if (!Number.isFinite(loginAt)) return false
+  const validLoginAt = Number.isFinite(loginAt) && loginAt > 0 ? loginAt : Date.now()
+  const storedLastActivityAt = readLastActivityAt()
+  const lastActivityAt = storedLastActivityAt ?? validLoginAt
 
-  return Date.now() - loginAt >= SESSION_DURATION_MS
+  if (!storedLastActivityAt) {
+    writeLastActivityAt(lastActivityAt)
+  }
+
+  return (
+    Date.now() - validLoginAt >= SESSION_DURATION_MS ||
+    Date.now() - lastActivityAt >= INACTIVITY_LIMIT_MS
+  )
 }
 
 export function readStoredClient(): StoredAuthClient | null {
