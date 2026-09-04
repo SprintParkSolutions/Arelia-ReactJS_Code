@@ -31,6 +31,7 @@
   pointer-events: none;
   z-index: 999;
 }
+
 .about-shell {
   width: 100%;
   max-width: none;
@@ -74,7 +75,7 @@
   align-items: end;
 }
 
-.about-section__head--split > * {
+.about-section__head--split>* {
   flex: 1;
 }
 
@@ -175,11 +176,9 @@
   opacity: 0.35;
   background:
     radial-gradient(50% 40% at 55% 18%, rgba(255, 255, 255, 0.06), transparent 80%),
-    repeating-radial-gradient(
-      ellipse at center,
+    repeating-radial-gradient(ellipse at center,
       rgba(255, 255, 255, 0.04) 0 1px,
-      transparent 1px 120px
-    );
+      transparent 1px 120px);
   transform: rotate(-7deg) scale(1.45);
   filter: blur(0.8px);
 }
@@ -291,7 +290,7 @@
   min-height: auto;
   max-height: 82vh;
   align-self: center;
-  display: block; 
+  display: block;
   margin-left: auto;
 }
 
@@ -308,13 +307,11 @@
 .about-hero__light-streak {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.08) 15%,
-    rgba(212, 175, 55, 0.06) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(135deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 15%,
+      rgba(212, 175, 55, 0.06) 50%,
+      transparent 100%);
   animation: about-light-streak 8s ease-in-out infinite;
   pointer-events: none;
   z-index: 1;
@@ -326,16 +323,20 @@
     transform: translateX(-100%) translateY(-100%);
     opacity: 0;
   }
+
   25% {
     opacity: 0.3;
   }
+
   50% {
     opacity: 0.5;
     transform: translateX(0) translateY(0);
   }
+
   75% {
     opacity: 0.3;
   }
+
   100% {
     transform: translateX(100%) translateY(100%);
     opacity: 0;
@@ -352,7 +353,7 @@
 /* Primary image - background layer */
 .about-hero__image--primary {
   width: 82%;
-  height: 82%; 
+  height: 82%;
   top: 0;
   right: -3%;
   z-index: 2;
@@ -364,12 +365,10 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.05) 0%,
-    transparent 50%,
-    rgba(0, 0, 0, 0.08) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.05) 0%,
+      transparent 50%,
+      rgba(0, 0, 0, 0.08) 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -383,14 +382,14 @@
 
 /* Secondary image - foreground layer */
 .about-hero__image--secondary {
-  width: 60%; 
+  width: 60%;
   height: 60%;
-  bottom: 0; 
+  bottom: 0;
   left: 0;
   z-index: 3;
   transform: none;
   filter: brightness(1.05);
-  box-shadow: 
+  box-shadow:
     15px 25px 50px rgba(0, 0, 0, 0.6),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   border: 1px solid rgba(212, 175, 55, 0.15);
@@ -400,12 +399,10 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    -135deg,
-    rgba(255, 255, 255, 0.12) 0%,
-    transparent 60%,
-    rgba(0, 0, 0, 0.1) 100%
-  );
+  background: linear-gradient(-135deg,
+      rgba(255, 255, 255, 0.12) 0%,
+      transparent 60%,
+      rgba(0, 0, 0, 0.1) 100%);
   pointer-events: none;
   z-index: 1;
 }
@@ -414,11 +411,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 30% 30%,
-    rgba(212, 175, 55, 0.12) 0%,
-    transparent 60%
-  );
+  background: radial-gradient(circle at 30% 30%,
+      rgba(212, 175, 55, 0.12) 0%,
+      transparent 60%);
   pointer-events: none;
   z-index: 1;
   opacity: 0.5;
@@ -598,7 +593,7 @@
   align-items: start;
 }
 
-.about-design__header > div {
+.about-design__header>div {
   min-width: 0;
 }
 
@@ -618,11 +613,6 @@
   font-size: 0.6rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-}
-
-.about-design__header b {
-  color: rgba(255, 255, 255, 0.2);
-  font-weight: 400;
 }
 
 .about-design__body-copy,
@@ -728,10 +718,12 @@
 }
 
 @keyframes stepGlowPulse {
+
   0%,
   100% {
     box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
   }
+
   50% {
     box-shadow: 0 0 40px rgba(212, 175, 55, 0.8);
   }
@@ -1012,6 +1004,7 @@
 /* RESPONSIVE QUERIES OVERRIDES */
 
 @media (max-width: 1100px) {
+
   .about-hero__layout,
   .about-design {
     grid-template-columns: 1fr;
@@ -1107,6 +1100,7 @@
 }
 
 @media (max-width: 767px) {
+
   .about-page::before,
   .about-page::after {
     width: 3%;
@@ -1240,6 +1234,7 @@
 }
 
 @media (max-width: 480px) {
+
   .about-page::before,
   .about-page::after {
     display: none;
