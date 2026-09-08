@@ -2072,8 +2072,10 @@ function HyderabadInteriorDesignSection() {
       </div>
       <figure className="hyderabad-design-section__visual">
         <img
-          src="/images/Hyderabad/hyderabad-residential-v1.webp"
-          alt="Contemporary residential interior by Arelia"
+          src="/images/Hyderabad/hyderabad-home-work-concept-v1.webp"
+          alt="Interior design concept for Hyderabad living: a warm contemporary apartment with an integrated workspace"
+          width="1200"
+          height="900"
           loading="lazy"
         />
       </figure>
