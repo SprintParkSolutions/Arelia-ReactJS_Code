@@ -17,7 +17,7 @@ const services = [
 const process = [
   ['01', 'Design clarity', 'Start with your needs, style, layout, and a considered design direction.'],
   ['02', 'Budget visibility', 'Review structured estimates and material choices with clear context.'],
-  ['03', 'Digital progress', 'Follow approvals, updates, milestones, and project communication in one place.'],
+  ['03', 'Digital progress', 'Follow approvals, weekly updates, milestones, and project communication with live tracking  in one place.'],
   ['04', 'Delivered with care', 'Coordinate execution through to a refined, ready-to-use space.'],
 ] as const
 
