@@ -210,7 +210,7 @@ const servicesData: ServiceItem[] = [
   },
   {
     note: "03 / CRAFTED FOR GUESTS",
-    title: "Hospital Interiors",
+    title: "Hospitality Interiors",
     caption:
       "Hotels, resorts, restaurants and lounges crafted through thoughtful hospitality interior design  creating unforgettable guest experiences that feel warm, refined and beautifully considered.",
     images: [

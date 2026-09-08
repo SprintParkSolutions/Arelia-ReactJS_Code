@@ -18,6 +18,7 @@ import { trackPageView } from './utils/analytics'
 import { Footer } from './pages/Footer'
 import { HomePage } from './pages/HomePage'
 import { AboutPage } from './pages/AboutPage'
+import { HyderabadInteriorDesignPage } from './pages/HyderabadInteriorDesignPage'
 import ServicesSection from './pages/ServicesSection'
 import { ContactUsPage } from './pages/ContactUsPage'
 import { Login as LoginPage } from './pages/Login'
@@ -144,6 +145,17 @@ export default function App() {
                   path="/about-us"
                   element={
                     <AboutPage
+                      onOpenConsultation={() =>
+                        setIsConsultationOpen(true)
+                      }
+                    />
+                  }
+                />
+
+                <Route
+                  path="/interior-designers-hyderabad"
+                  element={
+                    <HyderabadInteriorDesignPage
                       onOpenConsultation={() =>
                         setIsConsultationOpen(true)
                       }

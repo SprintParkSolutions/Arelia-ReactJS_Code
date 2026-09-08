@@ -6,6 +6,7 @@ import {
   useInView,
   type Variants,
 } from "framer-motion";
+import { Link } from "react-router-dom";
 import "./HomePage.css";
 
 const HOME_PAGE_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page`;
@@ -124,14 +125,15 @@ const homeHeroImagePath = (fileName: string) =>
 
 const heroShowcaseSlides: readonly HeroShowcaseSlide[] = [
   {
-    accent: "Delivered Transparently.",
-    emphasis: "Arelia-Designed Effectively.",
-    eyebrow: "USER-FRIENDLY EXPERIENCE",
+    accent: "in Hyderabad",
+    emphasis: "Premium Interior Designers",
+    eyebrow: "ARELIA SPACE • HYDERABAD",
     id: "motive",
     image: homeHeroImagePath("hero-landing.webp"),
     imagePosition: "center center",
-    support: "",
-    title: "Premium interiors",
+    support:
+      "Residential, commercial, and hospitality interiors with transparent budgeting, digital project tracking, and end-to-end execution.",
+    title: "Premium Interior Designers in Hyderabad",
   },
   {
     accent: "With You",
@@ -187,7 +189,7 @@ const heroShowcaseSlides: readonly HeroShowcaseSlide[] = [
 
 const stats = [
   { label: "Years Experience", value: "05+" },
-  { label: "Projects Delivered ", value: "350+" },
+  { label: "Projects Delivered ", value: "150+" },
   { label: "Satisfaction Rate", value: "100%" },
 ] as const;
 
@@ -907,10 +909,10 @@ function WhyChooseSection() {
             Because Your Space Deserves More Than Just Design
           </h2>
           <p className="why-choose-luxe__subtitle">
-            Arelia is a smart online interior design platform delivering
-            innovative, transparent, and end-to-end interior design services for
-            residential, commercial, and hospitality spaces, powered by advanced
-            technology and driven by excellence.
+            Based in Kondapur, Hyderabad, Arelia delivers innovative, transparent,
+            and end-to-end interior design services for residential, commercial,
+            and hospitality spaces—powered by advanced technology and driven by
+            excellence.
           </p>
         </header>
 
@@ -2045,6 +2047,40 @@ function ContactCTASection({
   );
 }
 
+function HyderabadInteriorDesignSection() {
+  return (
+    <section
+      className="hyderabad-design-section luxury-section"
+      aria-labelledby="hyderabad-design-title"
+    >
+      <div className="hyderabad-design-section__content">
+        <p className="hyderabad-design-section__eyebrow">
+          ARELIA INTERIOR DESIGN IN HYDERABAD
+        </p>
+        <h2 id="hyderabad-design-title">
+          Designed for the way Hyderabad lives and works.
+        </h2>
+        <p>
+          From apartments and villas to workplaces and hospitality spaces, Arelia
+          brings together considered design, clear budgets, and digital project
+          visibility across Hyderabad.
+        </p>
+        <Link className="hyderabad-design-section__link" to="/interior-designers-hyderabad">
+          <span>Explore interior design services in Hyderabad</span>
+          <i aria-hidden="true">→</i>
+        </Link>
+      </div>
+      <figure className="hyderabad-design-section__visual">
+        <img
+          src="/images/Hyderabad/hyderabad-residential-v1.webp"
+          alt="Contemporary residential interior by Arelia"
+          loading="lazy"
+        />
+      </figure>
+    </section>
+  );
+}
+
 // ============================================================
 // PAGE ROOT
 // ============================================================
@@ -2055,6 +2091,7 @@ export function HomePage({ onOpenConsultation }: HomePageProps) {
       <HomeHeroSection />
       <div className="home-page__sections">
         <WhyChooseSection />
+        <HyderabadInteriorDesignSection />
         <DeferredSection minHeight="780px">
           <SignatureShowcaseSection />
         </DeferredSection>

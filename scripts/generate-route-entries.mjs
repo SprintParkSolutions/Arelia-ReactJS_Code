@@ -5,6 +5,7 @@ const distDir = path.resolve("dist");
 const sourceIndex = path.join(distDir, "index.html");
 const routes = [
   "about-us",
+  "interior-designers-hyderabad",
   "services",
   "contact-us",
   "privacy-policy",

@@ -54,9 +54,9 @@ const heroPairs = [
 ];
 
 const studioStats = [
-  { value: "320+", label: "Projects delivered" },
-  { value: "14", label: "Years of expertise" },
-  { value: "98%", label: "Client satisfaction" },
+  { value: "150+", label: "Projects delivered" },
+  { value: "05+", label: "Years of expertise" },
+  { value: "100%", label: "Client satisfaction" },
 ] as const;
 
 type DesignCard = {
