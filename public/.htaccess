@@ -1,9 +1,13 @@
+# Apache/cPanel: serve generated pages and preserve real 404 responses.
+# Merge with any existing hosting rules before deployment.
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /
-
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
+  # Existing assets, generated route directories and backend files stay intact.
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  # Payment URLs use an account shell with noindex in its initial HTML.
+  RewriteRule ^payment(?:/.*)?$ dashboard/index.html [L]
 </IfModule>

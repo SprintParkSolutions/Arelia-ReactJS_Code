@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { matchPath, Route, Routes, useLocation } from 'react-router-dom'
 
 import './App.css'
+import { PageMetadata } from './seo/PageMetadata'
 
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { InactivityMonitor } from './components/auth/InactivityMonitor'
@@ -86,6 +87,7 @@ export default function App() {
       <ToastProvider>
       <div className={`app-shell${isLoginPage ? ' app-shell--login' : ''}`}>
         <ScrollToTop />
+        <PageMetadata />
         <InactivityMonitor />
 
         {/* FIX: Changed 'videoSrc' to 'src' to match your interface */}
@@ -130,6 +132,7 @@ export default function App() {
               }}
             >
               <Routes location={location}>
+                <Route path="*" element={<main className="legal-page"><div className="legal-page__hero-inner"><h1>Page not found</h1><p>This page is unavailable. <a href="/">Return to Arelia Space</a>.</p></div></main>} />
                 <Route
                   path="/"
                   element={

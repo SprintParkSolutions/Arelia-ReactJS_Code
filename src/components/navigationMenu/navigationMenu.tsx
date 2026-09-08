@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { FiLogOut, FiMenu, FiPhone, FiX } from 'react-icons/fi'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { dashboardTabs } from '../../constants/dashboardTabs'
 import { useAuth } from '../../context/AuthContext'
 import { LogoutModal } from '../auth/LogoutModal'
@@ -89,11 +89,11 @@ export default function NavigationMenu({
         const isActive = pathname === item.path
         return (
           <li key={item.path} className="navigationMenu__item">
-            <button
-              type="button"
+            <Link
+              to={item.path}
+              aria-current={isActive ? 'page' : undefined}
               className={`navigationMenu__link${isActive ? ' is-active' : ''}${isMobileDrawer ? ' navigationMenu__link--drawer' : ''}`}
               onClick={() => {
-                navigate(item.path)
                 setIsMobileMenuOpen(false)
               }}
             >
@@ -105,7 +105,7 @@ export default function NavigationMenu({
                 />
               ) : null}
               <span className="navigationMenu__linkLabel">{item.label}</span>
-            </button>
+            </Link>
           </li>
         )
       })}
