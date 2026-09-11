@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { matchPath, Route, Routes, useLocation } from 'react-router-dom'
 
@@ -56,6 +56,8 @@ export default function App() {
   )
 
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
+  const openConsultation = useCallback(() => setIsConsultationOpen(true), [])
+  const closeConsultation = useCallback(() => setIsConsultationOpen(false), [])
 
   const { isAuthenticated } = useAuth()
   const location = useLocation()
@@ -101,9 +103,7 @@ export default function App() {
 
         {!usesStandaloneLayout ? (
           <NavigationMenu
-            onOpenConsultation={() =>
-              setIsConsultationOpen(true)
-            }
+            onOpenConsultation={openConsultation}
           />
         ) : null}
 
@@ -139,9 +139,7 @@ export default function App() {
                   path="/"
                   element={
                     <HomePage
-                      onOpenConsultation={() =>
-                        setIsConsultationOpen(true)
-                      }
+                      onOpenConsultation={openConsultation}
                     />
                   }
                 />
@@ -150,9 +148,7 @@ export default function App() {
                   path="/about-us"
                   element={
                     <AboutPage
-                      onOpenConsultation={() =>
-                        setIsConsultationOpen(true)
-                      }
+                      onOpenConsultation={openConsultation}
                     />
                   }
                 />
@@ -161,9 +157,7 @@ export default function App() {
                   path="/interior-designers-hyderabad"
                   element={
                     <HyderabadInteriorDesignPage
-                      onOpenConsultation={() =>
-                        setIsConsultationOpen(true)
-                      }
+                      onOpenConsultation={openConsultation}
                     />
                   }
                 />
@@ -172,9 +166,7 @@ export default function App() {
                   path="/services"
                   element={
                     <ServicesSection
-                      onOpenConsultation={() =>
-                        setIsConsultationOpen(true)
-                      }
+                      onOpenConsultation={openConsultation}
                     />
                   }
                 />
@@ -186,7 +178,7 @@ export default function App() {
 
                 {(Object.keys(serviceCategories) as ServiceCategory[]).map(category => (
                   <Route key={category} path={`/services/${category}`} element={
-                    <ServiceCategoryPage category={category} onOpenConsultation={() => setIsConsultationOpen(true)} />
+                    <ServiceCategoryPage category={category} onOpenConsultation={openConsultation} />
                   } />
                 ))}
 
@@ -270,7 +262,7 @@ export default function App() {
         <Suspense fallback={null}>
           <ConsultationModal 
             isOpen={isConsultationOpen} 
-            onClose={() => setIsConsultationOpen(false)} 
+            onClose={closeConsultation}
           />
         </Suspense>
 
