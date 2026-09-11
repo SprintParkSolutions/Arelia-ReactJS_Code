@@ -1,4 +1,5 @@
 import { ArrowIcon } from '../components/ArrowIcon'
+import { ExploreLink } from '../components/ExploreLink'
 import { serviceCategories, type ServiceCategory } from './serviceCategories'
 import './ServiceCategoryPage.css'
 
@@ -18,7 +19,7 @@ export function ServiceCategoryPage({ category, onOpenConsultation }: Props) {
             <p>{service.intro}</p>
             <div className="service-detail__actions">
               <button type="button" className="service-detail__button" onClick={onOpenConsultation}>Discuss your project <ArrowIcon /></button>
-              <a className="service-detail__text-link" href="#spaces">Explore the spaces <ArrowIcon direction="down" /></a>
+              <ExploreLink label="Explore the spaces" href="#spaces" direction="down" />
             </div>
           </div>
           <figure className="service-detail__image">

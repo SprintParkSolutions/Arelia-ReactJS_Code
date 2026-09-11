@@ -517,6 +517,7 @@
 }
 
 #our-finest-work { scroll-margin-top: 8rem; }
+#our-finest-work .about-page__eyebrow { font-size: var(--type-small); letter-spacing: 0.2em; }
 
 .about-work__categories {
   display: grid;
@@ -535,7 +536,7 @@
   background: rgba(255, 255, 255, 0.025);
   color: #e1d9cd;
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--type-small);
   cursor: pointer;
   transition: background 180ms ease, border-color 180ms ease;
 }
@@ -555,7 +556,7 @@
 
 .about-work__number {
   color: #caa23a;
-  font-size: 0.7rem;
+  font-size: var(--type-small);
 }
 
 .about-work__indicator {
@@ -602,7 +603,7 @@
   border-radius: 0.3rem;
   background: rgba(15, 15, 15, 0.75);
   color: #fff;
-  font-size: 0.75rem;
+  font-size: var(--type-small);
   letter-spacing: 0.08em;
 }
 
@@ -617,21 +618,20 @@
 .about-work__details h3 {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: clamp(1.8rem, 3vw, 3rem);
-  font-weight: 500;
-  line-height: 1.12;
-}
+  font-size: var(--type-h3);
+  font-weight: 600;
+  line-height: 1.2; letter-spacing: var(--tracking-heading); }
 
 .about-work__location {
   margin: 0.85rem 0 0;
   color: #d3b97a;
-  font-size: 0.85rem;
+  font-size: var(--type-small);
 }
 
 .about-work__description {
   margin: 1.5rem 0;
   color: #cbc5bc;
-  font-size: 1rem;
+  font-size: var(--type-body);
   line-height: 1.8;
 }
 
@@ -645,7 +645,7 @@
 .about-work__highlights p {
   margin: 0 0 0.75rem;
   color: #d3b97a;
-  font-size: 0.75rem;
+  font-size: var(--type-small);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -663,7 +663,7 @@
   padding: 0.4rem 0.65rem;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 0.3rem;
-  font-size: 0.8rem;
+  font-size: var(--type-small);
   color: #ded6ca;
 }
 
@@ -681,8 +681,7 @@
   gap: 0.85rem;
   white-space: normal;
   text-align: center;
-  max-width: 100%;
-}
+  max-width: 100%; font-size: var(--type-small); letter-spacing: var(--tracking-label); }
 
 .about-work__actions .about-button:focus-visible {
   outline: 2px solid #e1bd68;
@@ -696,7 +695,7 @@
   flex-wrap: wrap;
   gap: 1rem;
   padding-top: 1.25rem;
-  font-size: 0.9rem;
+  font-size: var(--type-small);
 }
 
 .about-work__footer p { margin: 0; color: #bfb7aa; }
@@ -704,7 +703,7 @@
 
 @media (max-width: 1100px) {
   .about-work__number { display: none; }
-  .about-work__category { padding: 0.8rem; font-size: 0.85rem; }
+  .about-work__category { padding: 0.8rem; font-size: var(--type-small); }
   .about-work__project { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 

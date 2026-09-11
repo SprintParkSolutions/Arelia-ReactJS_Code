@@ -2206,7 +2206,7 @@
   gap: 1rem;
   margin: 0 0 1.8rem;
   color: #e4c994;
-  font-size: 0.7rem;
+  font-size: var(--type-small);
   font-weight: 600;
   letter-spacing: 0.2em;
   line-height: 1.7;
@@ -2223,27 +2223,27 @@
 .hyderabad-design-section h2 {
   margin: 0 0 1.8rem;
   color: #fffaf0;
-  font-family: var(--font-sans);
-  font-size: clamp(2.7rem, 4.3vw, 5rem);
-  font-weight: 400;
-  letter-spacing: -0.055em;
-  line-height: 1.12;
+  font-family: var(--font-serif);
+  font-size: var(--type-h2);
+  font-weight: 600;
+  letter-spacing: var(--tracking-heading);
+  line-height: 1.2;
   text-wrap: initial;
 }
 
 .hyderabad-design-section h2 em {
   color: #ead2a7;
   font-family: var(--font-serif);
-  font-weight: 400;
-  letter-spacing: -0.04em;
+  font-weight: inherit;
+  letter-spacing: inherit;
 }
 
 .hyderabad-design-section__description {
   max-width: 49ch;
   margin: 1rem 0 0;
   color: #eee9df;
-  font-size: clamp(0.95rem, 1.1vw, 1.075rem);
-  line-height: 1.85;
+  font-size: var(--type-body);
+  line-height: 1.75;
 }
 
 .hyderabad-design-section__actions {
@@ -2254,8 +2254,7 @@
   margin-top: 2.3rem;
 }
 
-.hyderabad-design-section__consultation,
-.hyderabad-design-section__link {
+.hyderabad-design-section__consultation {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -2270,13 +2269,12 @@
   background: #e5c997;
   color: #20251e;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--type-small);
   cursor: pointer;
   transition: color 400ms ease, transform 400ms ease, box-shadow 400ms ease;
 }
 
-.hyderabad-design-section__consultation::before,
-.hyderabad-design-section__link::before {
+.hyderabad-design-section__consultation::before {
   position: absolute;
   z-index: -1;
   inset: 0;
@@ -2288,17 +2286,13 @@
 }
 
 .hyderabad-design-section__consultation:hover,
-.hyderabad-design-section__consultation:focus-visible,
-.hyderabad-design-section__link:hover,
-.hyderabad-design-section__link:focus-visible {
+.hyderabad-design-section__consultation:focus-visible {
   color: #29271f;
   transform: translateY(-3px);
 }
 
 .hyderabad-design-section__consultation:hover::before,
-.hyderabad-design-section__consultation:focus-visible::before,
-.hyderabad-design-section__link:hover::before,
-.hyderabad-design-section__link:focus-visible::before {
+.hyderabad-design-section__consultation:focus-visible::before {
   transform: translateX(0);
 }
 
@@ -2308,29 +2302,16 @@
   width: 1.5rem;
   height: 1.5rem;
   flex-shrink: 0;
-  border-left: 1px solid #20251e40;
-  padding-left: 0.6rem;
   color: #29271f;
   font-size: 1.3rem;
   transition: transform 450ms ease, background 450ms ease;
 }
 
 .hyderabad-design-section__consultation:hover .hyderabad-design-section__button-arrow,
-.hyderabad-design-section__consultation:focus-visible .hyderabad-design-section__button-arrow,
-.hyderabad-design-section__link:hover .hyderabad-design-section__button-arrow,
-.hyderabad-design-section__link:focus-visible .hyderabad-design-section__button-arrow {
-  transform: rotate(45deg);
+.hyderabad-design-section__consultation:focus-visible .hyderabad-design-section__button-arrow {
+  transform: translateX(4px);
 }
 
-.hyderabad-design-section__link {
-  text-decoration: none;
-}
-
-.hyderabad-design-section__link:visited {
-  color: #20251e;
-}
-
-.hyderabad-design-section__link:focus-visible,
 .hyderabad-design-section__consultation:focus-visible {
   outline: 2px solid #f5d9a7;
   outline-offset: 5px;
@@ -2416,8 +2397,8 @@
 }
 
 @keyframes hyderabad-arrow-invite {
-  0%, 100% { transform: rotate(0); }
-  50% { transform: rotate(45deg); }
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
 }
 
 @keyframes hyderabad-image-settle {
@@ -2458,10 +2439,6 @@
 
   .hyderabad-design-section__content {
     padding: 0.5rem 0.4rem;
-  }
-
-  .hyderabad-design-section h2 {
-    font-size: clamp(2.6rem, 8vw, 3.6rem);
   }
 
   .hyderabad-design-section__visual {
@@ -2908,5 +2885,31 @@
 @media (prefers-reduced-motion: reduce) {
   .ssc-card__shimmer {
     display: none;
+  }
+}
+
+/* Leave a clear lane for the fixed social links on small screens. */
+@media (max-width: 767px) {
+  .hyderabad-design-section__actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding-right: 4rem;
+    margin-top: 1.75rem;
+  }
+
+  .hyderabad-design-section__consultation {
+    width: 100%;
+    min-height: 3.4rem;
+    padding: 0.85rem 1rem;
+    gap: 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .hyderabad-design-section__actions .explore-link {
+    align-self: stretch;
   }
 }

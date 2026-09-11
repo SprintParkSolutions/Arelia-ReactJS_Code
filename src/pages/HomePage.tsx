@@ -6,7 +6,8 @@ import {
   useInView,
   type Variants,
 } from "framer-motion";
-import { Link } from "react-router-dom";
+import { ArrowIcon } from "../components/ArrowIcon";
+import { ExploreLink } from "../components/ExploreLink";
 import "./HomePage.css";
 
 const HOME_PAGE_IMAGES_PATH = `${import.meta.env.BASE_URL}images/Home%20Page`;
@@ -2092,20 +2093,12 @@ function HyderabadInteriorDesignSection({ onOpenConsultation }: HomePageProps) {
               onClick={onOpenConsultation}
             >
               <span>Book a consultation</span>
-              <span className="hyderabad-design-section__button-arrow" aria-hidden="true">&#8599;</span>
+              <span className="hyderabad-design-section__button-arrow" aria-hidden="true"><ArrowIcon /></span>
             </button>
-            <Link
-              className="hyderabad-design-section__link"
+            <ExploreLink
+              label="Explore our services"
               to="/interior-designers-hyderabad"
-            >
-              Explore our services
-              <span
-                className="hyderabad-design-section__button-arrow"
-                aria-hidden="true"
-              >
-                &#8599;
-              </span>
-            </Link>
+            />
           </div>
         </div>
         <div className="hyderabad-design-section__visual">
