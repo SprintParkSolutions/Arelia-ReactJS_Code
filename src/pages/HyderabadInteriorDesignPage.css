@@ -11,9 +11,7 @@
 .hyderabad-page h2 { max-width: 14ch; margin: 0; font-size: var(--type-h2); line-height: 1.2; letter-spacing: var(--tracking-heading); }
 .hyderabad-page__lead { max-width: 45rem; margin: 1.7rem 0 0; color: rgba(255,255,255,.8); font-size: var(--type-body); line-height: 1.7; }
 
-.hyderabad-page__button, .hyderabad-page__text-link { border: 1px solid rgba(212,175,55,.62); background: rgba(12,10,8,.55); color: #fff4d8; cursor: pointer; font: inherit; font-size: var(--type-small); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; transition: background 240ms ease, color 240ms ease, border-color 240ms ease, transform 240ms ease; }
-.hyderabad-page__button { margin-top: 2rem; padding: .9rem 1.3rem; }
-.hyderabad-page__button:hover, .hyderabad-page__button:focus-visible, .hyderabad-page__text-link:hover, .hyderabad-page__text-link:focus-visible { border-color: #fff4d8; background: #d0a942; color: #18120b; transform: translateY(-.18rem); }
+.hyderabad-page__button { margin-top: 2rem; }
 
 .hyderabad-page__intro, .hyderabad-page__local { display: grid; grid-template-columns: minmax(28rem,.98fr) minmax(30rem,1.02fr); gap: clamp(2rem,5vw,4rem); padding-top: clamp(4rem,7vw,6.5rem); padding-bottom: clamp(4rem,7vw,6.5rem); }
 .hyderabad-page__intro { width: calc(100% - clamp(1.5rem, 6vw, 6.5rem) - 3rem); max-width: none; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(2.5rem, 5vw, 6rem); }
@@ -60,9 +58,7 @@
 .hyderabad-page__studio-card .hyderabad-page__studio-card-label { margin: 0; color: #c7b594; font-size: var(--type-small); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; }
 .hyderabad-page__studio-card address { margin-top: .65rem; color: #eee4d3; font-size: var(--type-body); font-style: normal; line-height: 1.65; }
 .hyderabad-page__studio-card .hyderabad-page__studio-card-note { margin-top: .8rem; color: #bcb5aa; font-size: var(--type-small); }
-.hyderabad-page__studio-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.5rem; }
-.hyderabad-page__text-link { display: inline-flex; align-items: center; gap: .75rem; width: fit-content; padding: 0; border: 0; background: transparent; color: #e8ca7c; text-decoration: none; }
-.hyderabad-page__text-link span { display: grid; width: 1.6rem; height: 1.6rem; place-items: center; border-radius: 50%; background: #d0a942; color: #161109; font-size: .95rem; }
+.hyderabad-page__studio-actions { margin-top: 1.5rem; }
 
 @media (max-width: 780px) {
   .hyderabad-page__hero { min-height: 34rem; padding-top: 7rem; }
@@ -100,11 +96,9 @@
 .hyderabad-page__faq h2 { max-width: none; margin: 0; font-size: var(--type-h2); font-weight: 600; line-height: 1.2; letter-spacing: var(--tracking-heading); }
 .hyderabad-page__faq h2 em { color: #d5b77f; font-weight: 500; }
 .hyderabad-page__faq-description { max-width: 38ch; margin: 1.7rem 0 2.2rem; color: #c0bbb2; font-size: var(--type-body); line-height: 1.85; }
-.hyderabad-page__faq-actions { display: flex; flex-wrap: wrap; gap: .8rem; }
-.hyderabad-page__faq-cta { display: inline-flex; justify-content: space-between; align-items: center; gap: 1.2rem; min-height: 3.25rem; padding: .85rem 1.15rem; border: 1px solid #d5b77f; border-radius: 2px; background: #d5b77f; color: #15120d; font-family: var(--font-sans); font-size: var(--type-small); font-weight: 600; text-decoration: none; cursor: pointer; transition: background 220ms ease, color 220ms ease, transform 220ms ease; }
-.hyderabad-page__faq-cta > span { font-size: 1.25rem; line-height: 1; }
-.hyderabad-page__faq-cta--outline { background: transparent; color: #ead6b0; border-color: rgba(213,183,127,.6); }
-.hyderabad-page__faq-cta:hover { background: #efdab1; color: #15120d; transform: translateY(-2px); }
+.hyderabad-page__action-group { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; }
+.hyderabad-page__button, .hyderabad-page__faq-cta { display: inline-flex; justify-content: space-between; align-items: center; gap: 1.2rem; min-height: 3.5rem; max-width: 100%; padding: 1rem 1.5rem; border: 1px solid #d5b77f; border-radius: 999px; background: #d5b77f; color: #15120d; font-family: var(--font-sans); font-size: var(--type-small); font-weight: 600; text-decoration: none; cursor: pointer; transition: background 220ms ease, color 220ms ease, transform 220ms ease; }
+.hyderabad-page__button:hover, .hyderabad-page__faq-cta:hover { background: #efdab1; color: #15120d; transform: translateY(-2px); }
 .hyderabad-page__faq-personal { margin: 2rem 0 0; color: #aaa59b; font-size: var(--type-small); line-height: 1.9; }
 .hyderabad-page__faq-personal a { color: #e1d2b8; text-decoration: none; }
 .hyderabad-page__faq-personal a:hover { text-decoration: underline; text-underline-offset: .3em; }
@@ -139,7 +133,6 @@
 @media (max-width: 480px) {
   .hyderabad-page__faq { padding: 3.5rem 1.25rem; }
   .hyderabad-page__faq h2 { font-size: var(--type-h2); line-height: 1.2; letter-spacing: var(--tracking-heading); }
-  .hyderabad-page__faq-actions { flex-direction: column; align-items: stretch; }
   .hyderabad-page__faq-trigger { grid-template-columns: 1.4rem minmax(0, 1fr) 2rem; gap: .65rem; padding-block: 1.3rem; }
   .hyderabad-page__faq-toggle { width: 2rem; height: 2rem; }
   .hyderabad-page__faq-answer { padding-left: 2.05rem; padding-right: .25rem; }
@@ -147,4 +140,107 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .hyderabad-page__faq *, .hyderabad-page__faq *::before, .hyderabad-page__faq *::after { animation: none !important; transition: none !important; }
+}
+
+.hyderabad-page__button > svg,
+.hyderabad-page__faq-cta > svg {
+  transition: translate 300ms ease;
+}
+
+.hyderabad-page__button:hover > svg,
+.hyderabad-page__button:focus-visible > svg,
+.hyderabad-page__faq-cta:hover > svg,
+.hyderabad-page__faq-cta:focus-visible > svg {
+  translate: 4px 0;
+}
+
+.hyderabad-page__button:focus-visible,
+.hyderabad-page__faq-cta:focus-visible {
+  outline: 2px solid #f5d993;
+  outline-offset: 5px;
+}
+
+@media (max-width: 767px) {
+  .hyderabad-page {
+    --mobile-action-width: min(18rem, calc(100vw - 7rem));
+  }
+
+  .hyderabad-page__action-group {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: var(--mobile-action-width);
+    max-width: 100%;
+    flex: none;
+    align-self: stretch;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0;
+  }
+
+  .hyderabad-page__action-group > * {
+    width: 100%;
+    min-height: 3.5rem;
+    margin: 0;
+  }
+
+  .hyderabad-page__button,
+  .hyderabad-page__faq-cta {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  .hyderabad-page__button {
+    width: var(--mobile-action-width);
+  }
+
+  .hyderabad-page__button > span,
+  .hyderabad-page__faq-cta > span {
+    min-width: 0;
+  }
+
+  /* Keep the accordion controls clear of the fixed social icons too. */
+  .hyderabad-page__faq-panel {
+    padding-right: 4rem;
+  }
+
+  .hyderabad-page__faq-trigger {
+    grid-template-columns: minmax(0, 1fr) 2rem;
+    column-gap: 0.75rem;
+  }
+
+  .hyderabad-page__faq-number {
+    display: none;
+  }
+
+  .hyderabad-page__faq-answer {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hyderabad-page__button,
+  .hyderabad-page__faq-cta,
+  .hyderabad-page__button > svg,
+  .hyderabad-page__faq-cta > svg {
+    transition: none;
+  }
+
+  .hyderabad-page__button:hover,
+  .hyderabad-page__faq-cta:hover {
+    transform: none;
+  }
+
+  .hyderabad-page__button:hover > svg,
+  .hyderabad-page__button:focus-visible > svg,
+  .hyderabad-page__faq-cta:hover > svg,
+  .hyderabad-page__faq-cta:focus-visible > svg {
+    translate: none;
+  }
 }

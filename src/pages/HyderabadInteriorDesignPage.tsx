@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { ArrowIcon } from '../components/ArrowIcon'
+import { ExploreLink } from '../components/ExploreLink'
 import './HyderabadInteriorDesignPage.css'
 
 type HyderabadInteriorDesignPageProps = {
@@ -86,7 +87,7 @@ export function HyderabadInteriorDesignPage({
             transparency in Budgeting, Digital Project Tracking, and End-to-End execution.
           </p>
           <button type="button" className="hyderabad-page__button" onClick={onOpenConsultation}>
-            Book a consultation
+            <span>Book a consultation</span><ArrowIcon />
           </button>
         </motion.div>
       </section>
@@ -193,9 +194,9 @@ export function HyderabadInteriorDesignPage({
           <p className="hyderabad-page__studio-card-note">
             Studio visits and project consultations are arranged in advance.
           </p>
-          <div className="hyderabad-page__studio-actions">
-            <button type="button" className="hyderabad-page__faq-cta" onClick={onOpenConsultation}>Plan your studio visit <span aria-hidden="true">↗</span></button>
-            <Link to="/contact-us#studio-location" className="hyderabad-page__faq-cta hyderabad-page__faq-cta--outline">View location <span aria-hidden="true">→</span></Link>
+          <div className="hyderabad-page__action-group hyderabad-page__studio-actions">
+            <button type="button" className="hyderabad-page__faq-cta" onClick={onOpenConsultation}><span>Plan your studio visit</span><ArrowIcon /></button>
+            <ExploreLink to="/contact-us#studio-location" label="View location" />
           </div>
         </div>
         </motion.div>
@@ -219,9 +220,9 @@ export function HyderabadInteriorDesignPage({
             <p className="hyderabad-page__eyebrow"><span aria-hidden="true" /> THE FINER DETAILS</p>
             <h2 id="hyderabad-faq-title">Your questions,<br /><em>answered.</em></h2>
             <p className="hyderabad-page__faq-description">A clearer picture of your interior design journey in Hyderabad. Explore the details, then let’s talk about your space.</p>
-            <div className="hyderabad-page__faq-actions">
-              <button type="button" className="hyderabad-page__faq-cta" onClick={onOpenConsultation}>Book a consultation <span aria-hidden="true">↗</span></button>
-              <Link to="/contact-us#studio-location" className="hyderabad-page__faq-cta hyderabad-page__faq-cta--outline">Contact our studio <span aria-hidden="true">→</span></Link>
+            <div className="hyderabad-page__action-group">
+              <button type="button" className="hyderabad-page__faq-cta" onClick={onOpenConsultation}><span>Book a consultation</span><ArrowIcon /></button>
+              <ExploreLink to="/contact-us#studio-location" label="Contact our studio" />
             </div>
             <p className="hyderabad-page__faq-personal">Have something else in mind?<br /><a href="tel:+917207845556">Speak with us: +91 72078 45556</a></p>
           </motion.div>
