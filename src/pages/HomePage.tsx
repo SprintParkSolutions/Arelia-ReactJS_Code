@@ -2047,38 +2047,90 @@ function ContactCTASection({
   );
 }
 
-function HyderabadInteriorDesignSection() {
+function HyderabadInteriorDesignSection({ onOpenConsultation }: HomePageProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { once: true, amount: 0.15 });
+  const image = `${import.meta.env.BASE_URL}images/Hyderabad/hyderabad-home-work-concept-v1.webp`;
+
   return (
     <section
-      className="hyderabad-design-section luxury-section"
+      ref={sectionRef}
+      className={`hyderabad-design-section${isInView ? " is-visible" : ""}`}
       aria-labelledby="hyderabad-design-title"
     >
-      <div className="hyderabad-design-section__content">
-        <p className="hyderabad-design-section__eyebrow">
-          ARELIA INTERIOR DESIGN IN HYDERABAD
-        </p>
-        <h2 id="hyderabad-design-title">
-          Designed for the way Hyderabad lives and works.
-        </h2>
-        <p>
-          From apartments and villas to workplaces and hospitality spaces, Arelia
-          brings together considered design, clear budgets, and digital project
-          visibility across Hyderabad.
-        </p>
-        <Link className="hyderabad-design-section__link" to="/interior-designers-hyderabad">
-          <span>Explore interior design services in Hyderabad</span>
-          <i aria-hidden="true">→</i>
-        </Link>
+      <img
+        className="hyderabad-design-section__background"
+        src={image}
+        alt=""
+        aria-hidden="true"
+        width="1200"
+        height="900"
+        loading="lazy"
+        decoding="async"
+      />
+      <div className="hyderabad-design-section__layout">
+        <div className="hyderabad-design-section__content">
+          <p className="hyderabad-design-section__eyebrow">INTERIOR DESIGNERS IN HYDERABAD</p>
+          <h2 id="hyderabad-design-title">
+            Your space.<br />
+            <em>Beautifully yours.</em>
+          </h2>
+          <p className="hyderabad-design-section__description">
+            Arelia designs Apartments, Villas, Offices, and Hospitality interiors
+            in Hyderabad. From thoughtful layouts to custom furniture and natural
+            finishes, every detail starts with the way you live.
+          </p>
+          <p className="hyderabad-design-section__description">
+            See your space in 3D, plan with clear budgets, and follow progress
+            through digital updates. We bring design and execution together,
+            from your first idea to the final detail.
+          </p>
+          <div className="hyderabad-design-section__actions">
+            <button
+              className="hyderabad-design-section__consultation"
+              type="button"
+              onClick={onOpenConsultation}
+            >
+              <span>Book a consultation</span>
+              <span className="hyderabad-design-section__button-arrow" aria-hidden="true">&#8599;</span>
+            </button>
+            <Link
+              className="hyderabad-design-section__link"
+              to="/interior-designers-hyderabad"
+            >
+              Explore our services
+              <span
+                className="hyderabad-design-section__button-arrow"
+                aria-hidden="true"
+              >
+                &#8599;
+              </span>
+            </Link>
+          </div>
+        </div>
+        <div className="hyderabad-design-section__visual">
+          <figure className="hyderabad-design-section__portrait">
+            <img
+              src={`${import.meta.env.BASE_URL}images/ServiceConcepts/residential-dining-v1.webp`}
+              alt="Dining room design concept with sculptural lighting, upholstered chairs, and walnut cabinetry"
+              width="960"
+              height="640"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+          <figure className="hyderabad-design-section__detail">
+            <img
+              src={`${import.meta.env.BASE_URL}images/ServiceConcepts/residential-bedroom-v1.webp`}
+              alt="Bedroom interior concept with warm layered lighting, linen bedding, and bespoke wood storage"
+              width="960"
+              height="640"
+              loading="lazy"
+              decoding="async"
+            />
+          </figure>
+        </div>
       </div>
-      <figure className="hyderabad-design-section__visual">
-        <img
-          src="/images/Hyderabad/hyderabad-home-work-concept-v1.webp"
-          alt="Interior design concept for Hyderabad living: a warm contemporary apartment with an integrated workspace"
-          width="1200"
-          height="900"
-          loading="lazy"
-        />
-      </figure>
     </section>
   );
 }
@@ -2093,7 +2145,7 @@ export function HomePage({ onOpenConsultation }: HomePageProps) {
       <HomeHeroSection />
       <div className="home-page__sections">
         <WhyChooseSection />
-        <HyderabadInteriorDesignSection />
+        <HyderabadInteriorDesignSection onOpenConsultation={onOpenConsultation} />
         <DeferredSection minHeight="780px">
           <SignatureShowcaseSection />
         </DeferredSection>

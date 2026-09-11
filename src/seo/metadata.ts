@@ -1,6 +1,9 @@
 export const siteUrl = 'https://areliaspace.com'
 export const socialImage = `${siteUrl}/images/Hyderabad/hyderabad-living-concept-v2.webp`
 export const publicPages: Record<string, { title: string; description: string }> = {
+  '/services/residential': { title: 'Residential Interior Design in Hyderabad | Arelia Space', description: 'Explore living rooms, kitchens, bedrooms, dining spaces and more. Plan your residential interiors with Arelia Space in Hyderabad.' },
+  '/services/commercial': { title: 'Commercial Interior Design in Hyderabad | Arelia Space', description: 'Explore office interiors, reception areas, meeting rooms and customer spaces. Plan your commercial interior project with Arelia Space.' },
+  '/services/hospitality': { title: 'Hospitality Interior Design in Hyderabad | Arelia Space', description: 'Explore guest rooms, lobbies, restaurants, cafes and lounges. Plan welcoming hospitality interiors with Arelia Space in Hyderabad.' },
   '/': { title: 'Interior Design Company in Hyderabad | Arelia Space', description: 'Arelia Space is an interior design company in Kondapur, Hyderabad, offering residential, commercial and hospitality interiors with transparent budgeting.' },
   '/interior-designers-hyderabad': { title: 'Interior Designers in Hyderabad & Kondapur | Arelia Space', description: 'Plan your Hyderabad home, office or hospitality interiors with Arelia Space. Explore design, budgeting, digital project tracking and end-to-end execution.' },
   '/services': { title: 'Interior Design Services in Hyderabad | Arelia Space', description: 'Explore residential interiors, commercial spaces, modular kitchens and custom furniture from Arelia Space in Hyderabad. Discuss your project with our team.' },

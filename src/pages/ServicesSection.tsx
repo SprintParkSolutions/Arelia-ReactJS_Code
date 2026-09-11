@@ -5,6 +5,8 @@ import type {
   TouchEvent as ReactTouchEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { ArrowIcon } from "../components/ArrowIcon";
 
 import {
   AnimatePresence,
@@ -63,6 +65,7 @@ type FadeInProps = {
 };
 
 interface ServiceItem {
+  href: string;
   caption: string;
   images: string[];
   note: string;
@@ -185,6 +188,7 @@ const servicesData: ServiceItem[] = [
   {
     note: "01 / LIVING BY DESIGN",
     title: "Residential Interiors",
+    href: "/services/residential",
     caption:
       "We shape modern home interiors around the way you truly live  every corner of your residential interior design thoughtfully crafted for comfort, elegance and lasting beauty.",
     images: [
@@ -198,6 +202,7 @@ const servicesData: ServiceItem[] = [
   {
     note: "02 / BUILT FOR BUSINESS",
     title: "Commercial Interiors",
+    href: "/services/commercial",
     caption:
       "From dynamic office interior design to branded retail store interiors  we design commercial spaces that express confidence, inspire productivity and leave a lasting impression from the very first visit.",
     images: [
@@ -211,6 +216,7 @@ const servicesData: ServiceItem[] = [
   {
     note: "03 / CRAFTED FOR GUESTS",
     title: "Hospitality Interiors",
+    href: "/services/hospitality",
     caption:
       "Hotels, resorts, restaurants and lounges crafted through thoughtful hospitality interior design  creating unforgettable guest experiences that feel warm, refined and beautifully considered.",
     images: [
@@ -224,6 +230,7 @@ const servicesData: ServiceItem[] = [
   {
     note: "04 /  BEYOND FOUR WALLS",
     title: "Full Home & Turnkey Design",
+    href: "/services/residential",
     caption:
       "A complete end-to-end interior design service  from 3D interior design visualization to dedicated site supervision and final project handover. ",
     images: [
@@ -973,31 +980,21 @@ function SignatureServicesSection() {
                       <div className={styles.textFooter}>
                         <button
                           type="button"
-                          aria-label={`View ${service.title} projects`}
+                          aria-label={`View ${service.title} gallery`}
                           className={styles.button}
                           onClick={(event) => {
-                            const imageId = `service-image-${index}-0-0`;
-                            const imageSrc = servicesData[index].images[0];
-                            const imageAlt = `${service.title} visual 1`;
-                            const frameElement = frameRefs.current[index];
-
                             event.stopPropagation();
-                            event.preventDefault();
-
-                            if (!frameElement) {
-                              return;
-                            }
-
+                            const frameElement = frameRefs.current[index];
+                            if (!frameElement) return;
                             const coverRect = getCoverRect(frameElement);
-
                             setExpandedImage({
-                              alt: imageAlt,
+                              alt: `${service.title} visual 1`,
                               coverRect,
-                              id: imageId,
+                              id: `service-image-${index}-0-0`,
                               phase: "open",
                               rect: coverRect,
                               rowIndex: index,
-                              src: imageSrc,
+                              src: service.images[0],
                             });
                             setLightboxIndex(0);
                             resetExpandedPan();
@@ -1005,7 +1002,17 @@ function SignatureServicesSection() {
                           }}
                         >
                           <span className={styles.buttonLabel}>View Gallery</span>
+                          <ArrowIcon />
                         </button>
+                        <Link
+                          to={service.href}
+                          aria-label={`View more ${service.title.toLowerCase()} services`}
+                          className={styles.button}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <span className={styles.buttonLabel}>View more</span>
+                          <ArrowIcon />
+                        </Link>
                       </div>
                     </div>
                   </motion.div>

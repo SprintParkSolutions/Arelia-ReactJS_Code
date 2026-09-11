@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { ArrowIcon } from "../components/ArrowIcon";
 import "./AboutPage.css";
 
 const ABOUT_US_IMAGES_PATH = "/images/AboutUs%20Page";
@@ -11,7 +12,7 @@ const aboutUsImagePath = (fileName: string) =>
 const bathRetreatImage = aboutUsImagePath("Bath Retreat.avif");
 const bedroomImage = aboutUsImagePath("Bedroom.avif");
 const livingSpaceImage = aboutUsImagePath("Living Space.jpg");
-const obsidianResidenceImage = aboutUsImagePath("jason-wang.jpg");
+const obsidianResidenceImage = aboutUsImagePath("Residential_Home.webp");
 const velourExecutiveSuitesImage = aboutUsImagePath(
   "Velour Executive Suites.avif",
 );
@@ -61,6 +62,7 @@ const studioStats = [
 
 type DesignCard = {
   tag: string;
+  servicePath: string;
   title: string;
   location: string;
   description: string;
@@ -71,46 +73,33 @@ type DesignCard = {
 const designCards: DesignCard[] = [
   {
     tag: "Residential",
-    title: "The Obsidian Residence",
-    location: "New Delhi - 2024",
+    servicePath: "/services/residential",
+    title: "Residential Interior Design in Hyderabad",
+    location: "Beautiful Homes Designed Around You",
     description:
-      "Where Comfort Becomes an Art Form.A serene retreat where soft textures meet structured elegance, every corner whispers calm, every detail breathes purpose and belonging.",
+      "Transform your home with thoughtfully planned Residential interiors by Arelia Space. From space planning and custom furniture to lighting, finishes, and complete home interiors, we create elegant and functional spaces tailored to your lifestyle.",
     image: obsidianResidenceImage,
-    features: ["Textured Plaster Walls", "Custom Millwork", "Bespoke Lighting"],
+    features: ["Space Planning", "Custom Furniture", "Premium Finishes", "Lighting Design"],
   },
   {
     tag: "Commercial",
-    title: "Velour Executive Suites",
-    location: "Mumbai - 2024",
+    servicePath: "/services/commercial",
+    title: "Commercial Interior Design in Hyderabad",
+    location: "Smart Workspaces Designed for Business",
     description:
-      'Where Ambition Finds Its Space." A workspace carved with precision and confidence , where authority meets warmth and every environment is built to inspire productivity.',
+      "Transform your Commercial space with thoughtfully planned interiors by Arelia Space. From efficient space planning and custom workstations to lighting, finishes, meeting areas, and collaborative zones, we create professional and functional environments designed to support productivity, comfort, and your brand identity.",
     image: velourExecutiveSuitesImage,
+    features: ["Efficient Space Planning", "Custom Workstations", "Professional Lighting", "Collaborative Spaces"],
   },
   {
     tag: "Hospitality",
-    title: "Maison Arelia Suite",
-    location: "Hyderabad - 2023",
+    servicePath: "/services/hospitality",
+    title: "Hospitality Interior Design in Hyderabad",
+    location: "Inviting Spaces Designed for Memorable Guest Experiences",
     description:
-      'Where Every Guest Feels at Home." A five-star experience rooted in warmth and elegance , where thoughtful design turns every visit into a memory worth returning to. ',
+      "Transform your Hospitality space with thoughtfully planned interiors by Arelia Space. From welcoming lobbies and elegant guest rooms to ambient lighting, premium finishes, and functional layouts, we create warm, stylish, and experience-driven environments that reflect comfort, luxury, and your brand identity.",
     image: maisonAreliaSuiteImage,
-  },
-  {
-    tag: "Landscape",
-    title: "The Terrace Garden",
-    location: "Bangalore - 2024",
-    description:
-      'Where Nature Meets Design." An open-air sanctuary layered with lush botanicals, natural stone, and soft ambient light , where the outdoors feels as curated as any room. ',
-    image: terraceGardenImage,
-    features: ["Native Planting", "Terrazzo Floors", "Ambient Lighting"],
-  },
-  {
-    tag: "Retail",
-    title: "Noir Atelier Flagship",
-    location: "Pune - 2023",
-    description:
-      'Where Products Find Their Stage." A dramatic space where every product commands attention , bold, curated, and designed to leave a lasting impression on every visitor.',
-    image: noirAtelierFlagshipImage,
-    features: ["Drama Lighting", "Custom Display", "Black Mirror Surfaces"],
+    features: ["Guest-Centric Space Planning", "Ambient Lighting", "Premium Finishes", "Comfort-Driven Design"],
   },
 ] as const;
 
@@ -210,6 +199,22 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
   const [currentPair, setCurrentPair] = useState(0);
   const [fadeOut, setFadeOut] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
+  const location = useLocation();
+  const finestWorkRef = useRef<HTMLDivElement>(null);
+  const [activeDesign, setActiveDesign] = useState(() => {
+    const category = new URLSearchParams(location.search).get('work');
+    return Math.max(0, designCards.findIndex(card => card.tag.toLowerCase() === category));
+  });
+  const selectedDesign = designCards[activeDesign];
+
+  useEffect(() => {
+    if (location.hash !== '#our-finest-work') return;
+    // Run after the destination mounts through the route exit transition.
+    const frame = window.requestAnimationFrame(() => {
+      finestWorkRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [location.hash, location.key]);
 
   useEffect(() => {
     const pairInterval = window.setInterval(() => {
@@ -364,8 +369,8 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
       </section>
 
       <section className="about-section" id="philosophy">
-        <div className="about-shell">
-          <div className="about-section__head about-section__head--split">
+        <div className="about-shell" id="our-finest-work" ref={finestWorkRef}>
+          <div className="about-section__head">
             <motion.div
               initial="hidden"
               whileInView="visible"
@@ -374,141 +379,65 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
             >
               <p className="about-page__eyebrow">OUR FINEST WORK</p>
               <h2 className="about-section__title">
-                Crafted With Purpose. Finished With Pride.
+                Different Spaces. The Same Attention to Detail.
               </h2>
             </motion.div>
-            <motion.p
-              className="about-section__intro"
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.25 }}
-              variants={fadeUp}
-            >
-              Every project is a living story, shaped by your vision, refined by
-              our craft, and built to be experienced for a lifetime.
-            </motion.p>
           </div>
 
-          <motion.div
-            className="about-design"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.18 }}
-            variants={stagger}
-          >
-            <motion.article
-              className="about-design__card about-design__card--featured"
-              variants={fadeUp}
-            >
-              <div className="about-design__image-wrap">
-                <motion.img
-                  src={designCards[0].image}
-                  alt={designCards[0].title}
-                  whileHover={{ scale: 1.04 }}
-                  transition={{ duration: 0.8, ease: "easeOut" }}
+          <div className="about-work">
+            <div className="about-work__categories" role="group" aria-label="Choose a design category">
+              {designCards.map((card, index) => (
+                <button
+                  key={card.tag}
+                  type="button"
+                  className="about-work__category"
+                  aria-pressed={activeDesign === index}
+                  aria-controls="about-work-project"
+                  onClick={() => setActiveDesign(index)}
+                >
+                  <span className="about-work__number" aria-hidden="true">0{index + 1}</span>
+                  {card.tag}
+                  <span className="about-work__indicator"><ArrowIcon /></span>
+                </button>
+              ))}
+            </div>
+
+            <article id="about-work-project" className="about-work__project" aria-live="polite" aria-atomic="true">
+              <div className="about-work__visual">
+                <img
+                  key={selectedDesign.image}
+                  src={selectedDesign.image}
+                  alt={`${selectedDesign.title} — ${selectedDesign.tag.toLowerCase()} interior design`}
+                  loading="lazy"
+                  width="1200"
+                  height="900"
                 />
+                <span className="about-work__image-label">{selectedDesign.tag} / Arelia Space</span>
               </div>
-              <div className="about-design__body">
-                <span className="about-design__tag">{designCards[0].tag}</span>
-                <div className="about-design__header">
-                  <div>
-                    <h3>{designCards[0].title}</h3>
-                    <p>{designCards[0].location}</p>
+              <div className="about-work__details">
+                <p className="about-page__eyebrow">SELECTED WORK / 0{activeDesign + 1}</p>
+                <h3>{selectedDesign.title}</h3>
+                <p className="about-work__location">{selectedDesign.location}</p>
+                <p className="about-work__description">{selectedDesign.description}</p>
+                {selectedDesign.features && (
+                  <div className="about-work__highlights">
+                    <p>Design highlights</p>
+                    <ul>
+                      {selectedDesign.features.map((feature) => <li key={feature}>{feature}</li>)}
+                    </ul>
                   </div>
-                </div>
-                <div className="about-design__body-copy">
-                  <span>{designCards[0].description}</span>
-                  <div className="about-design__chips">
-                    {designCards[0].features?.map((feature) => (
-                      <i key={feature}>{feature}</i>
-                    ))}
-                  </div>
+                )}
+                <div className="about-work__actions">
+                  <button type="button" className="about-button about-button--primary" onClick={onOpenConsultation}>
+                    DISCUSS YOUR SPACE <ArrowIcon />
+                  </button>
+                  <Link to={selectedDesign.servicePath} className="about-button about-button--secondary">
+                    EXPLORE {selectedDesign.tag.toLowerCase()} INTERIORS <ArrowIcon />
+                  </Link>
                 </div>
               </div>
-            </motion.article>
-
-            <div className="about-design__stack">
-              {designCards.slice(1, 3).map((card) => (
-                <motion.article
-                  key={card.title}
-                  className="about-design__card"
-                  variants={fadeUp}
-                >
-                  <div className="about-design__image-wrap about-design__image-wrap--stack">
-                    <motion.img
-                      src={card.image}
-                      alt={card.title}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                    />
-                  </div>
-                  <div className="about-design__body">
-                    <span className="about-design__tag">{card.tag}</span>
-                    <div className="about-design__header">
-                      <div>
-                        <h3>{card.title}</h3>
-                        <p>{card.location}</p>
-                      </div>
-                    </div>
-                    <span className="about-design__caption">
-                      {card.description}
-                    </span>
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-
-            <div className="about-design__bottom">
-              {designCards.slice(3).map((card) => (
-                <motion.article
-                  key={card.title}
-                  className="about-design__card about-design__card--wide"
-                  variants={fadeUp}
-                >
-                  <div className="about-design__image-wrap about-design__image-wrap--wide">
-                    <motion.img
-                      src={card.image}
-                      alt={card.title}
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                    />
-                  </div>
-                  <div className="about-design__body">
-                    <span className="about-design__tag">{card.tag}</span>
-                    <div className="about-design__header">
-                      <div>
-                        <h3>{card.title}</h3>
-                        <p>{card.location}</p>
-                      </div>
-                    </div>
-                    <span className="about-design__caption">
-                      {card.description}
-                    </span>
-                    <div className="about-design__chips">
-                      {card.features?.map((feature) => (
-                        <i key={feature}>{feature}</i>
-                      ))}
-                    </div>
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="about-section__action"
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.35 }}
-            variants={fadeUp}
-          >
-            <Link
-              to="/services"
-              className="about-button about-button--secondary"
-            >
-              View All Projects -&gt;
-            </Link>
-          </motion.div>
+            </article>
+          </div>
         </div>
       </section>
 

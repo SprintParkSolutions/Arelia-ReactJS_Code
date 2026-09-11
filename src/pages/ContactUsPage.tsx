@@ -1,4 +1,6 @@
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
+import { useLocation } from 'react-router-dom'
 import { ConsultationForm } from '../components/consultation/ConsultationForm'
 import './ContactUsPage.css'
 
@@ -25,6 +27,19 @@ function MapPinIcon() {
 }
 
 export function ContactUsPage() {
+  const { hash, key } = useLocation()
+  const locationRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (hash !== '#studio-location') return
+
+    // Wait until this page mounts after the outgoing route's exit animation.
+    const frame = window.requestAnimationFrame(() => {
+      locationRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [hash, key])
+
   return (
     <main className="contact-page">
       <section className="contact-page__hero-shell">
@@ -82,32 +97,32 @@ export function ContactUsPage() {
               <p className="contact-page__label">FIND US HERE</p>
               <h2 className="contact-page__map-title">Our Studio Doors Are Always Open</h2>
               <p className="contact-page__map-description">
-              Visit us at our Kondapur studio for a personal interior design consultation  where great design conversations and inspired spaces begin 
+                Visit our Kondapur studio to explore ideas, materials, and possibilities for your space.
               </p>
 
               <div className="contact-page__detail-stack">
                 <div className="contact-page__detail-block">
                   <p className="contact-page__label">DIRECT LINE</p>
-                  <h2>+91 72078 45556</h2>
+                  <a className="contact-page__contact-link" href="tel:+917207845556">+91 72078 45556 <span aria-hidden="true">↗</span></a>
                 </div>
 
                 <div className="contact-page__detail-block">
                   <p className="contact-page__label">EMAIL</p>
-                  <h2>info@areliaspace.com</h2>
+                  <a className="contact-page__contact-link" href="mailto:info@areliaspace.com">info@areliaspace.com <span aria-hidden="true">↗</span></a>
                 </div>
 
                 <div className="contact-page__detail-block">
                   <p className="contact-page__label">ADDRESS</p>
-                  <h2 id="address">
+                  <address id="address" className="contact-page__address">
                     Unit No 1204, Forest Department, Asian Sun City, Block B, Kondapur
                     <br />
                     Hyderabad, Telangana 500084
-                  </h2>
+                  </address>
                 </div>
               </div>
             </div>
 
-            <div className="contact-page__map-shell contact-page__glass-card">
+            <div id="studio-location" ref={locationRef} className="contact-page__map-shell contact-page__glass-card">
               <div className="contact-page__panel-ambient contact-page__panel-ambient--one" />
               <div className="contact-page__panel-ambient contact-page__panel-ambient--two" />
               <div className="contact-page__panel-sheen" />
@@ -129,21 +144,11 @@ export function ContactUsPage() {
                   <span className="contact-page__map-icon-shell">
                     <MapPinIcon />
                   </span>
+                  <span>Get directions</span>
                 </a>
               </div>
 
               <div className="contact-page__map-container">
-                <a
-                  href={mapsExternalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="contact-page__map-address-card"
-                >
-                  <p className="contact-page__map-address-label">Pinned Location</p>
-                  <p className="contact-page__map-address-text">
-                    Unit No 1204, Asian Sun City, Block B, Kondapur
-                  </p>
-                </a>
                 <iframe
                   src={mapUrl}
                   className="contact-page__map-frame"

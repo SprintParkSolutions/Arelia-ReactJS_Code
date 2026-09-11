@@ -1,0 +1,150 @@
+{
+  "generator": "Built-in image_gen tool",
+  "purpose": "Illustrative interior design concepts for service pages",
+  "images": [
+    {
+      "file": "/images/ServiceConcepts/residential-living-v1.webp",
+      "bytes": 92654,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Create one landscape interior design concept image for a premium Hyderabad interior design website service card: a welcoming contemporary living room, cream sofa, walnut TV cabinetry, textured plaster, stone coffee table and layered lighting. Architectural editorial photography, realistic proportions, warm neutral palette, soft daylight, wide eye-level view showing the whole room, no people, no text, no logo, no watermark. This is an illustrative design concept, not documentation of a built project."
+    },
+    {
+      "file": "/images/ServiceConcepts/residential-kitchen-v1.webp",
+      "bytes": 59906,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a modular residential kitchen, walnut and warm ivory cabinetry, stone counters, integrated appliances, generous practical preparation surfaces. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/residential-bedroom-v1.webp",
+      "bytes": 75796,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a restful master bedroom, upholstered bed, walnut wardrobes, soft bedside lighting, neutral linen and curtains. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/residential-study-v1.webp",
+      "bytes": 94862,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a dedicated home office and study room, generous desk, ergonomic chair, bookshelves, organised storage and task lighting. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/residential-dining-v1.webp",
+      "bytes": 99344,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a residential dining room, six-seat oak dining table, comfortable chairs, crockery cabinet and sculptural pendant. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/commercial-office-v1.webp",
+      "bytes": 90750,
+      "width": 960,
+      "height": 640,
+      "quality": 80,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a professional open plan office, multiple ergonomic workstations, clear circulation, acoustic dividers, walnut and muted neutral finishes. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/residential-bathroom-v1.webp",
+      "bytes": 86636,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a premium home bathroom, floating vanity, mirror, walk-in glass shower, warm stone tiles. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/commercial-meeting-v1.webp",
+      "bytes": 92914,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a corporate conference room, large meeting table with eight office chairs, presentation screen with blank dark display, acoustic wall panels. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/commercial-executive-v1.webp",
+      "bytes": 91412,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of an executive office cabin, handsome desk, executive chair, two visitor chairs, cabinetry and daylight. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/commercial-reception-v1.webp",
+      "bytes": 86270,
+      "width": 960,
+      "height": 640,
+      "quality": 80,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of an office reception and waiting area, sculptural reception desk, guest lounge seats and refined warm finishes. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/commercial-pantry-v1.webp",
+      "bytes": 92754,
+      "width": 960,
+      "height": 640,
+      "quality": 80,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of an office breakout lounge and pantry, kitchenette, communal table, casual seating, warm lighting. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/hospitality-lobby-v1.webp",
+      "bytes": 96098,
+      "width": 960,
+      "height": 640,
+      "quality": 80,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a boutique hotel lobby and reception, welcoming reception counter, comfortable lounge seating, elegant warm stone and wood finishes. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/commercial-showroom-v1.webp",
+      "bytes": 85034,
+      "width": 960,
+      "height": 640,
+      "quality": 80,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a premium furniture and homewares showroom, curated display plinths, shelving, products arranged with clear visitor circulation. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/hospitality-restaurant-v1.webp",
+      "bytes": 91782,
+      "width": 960,
+      "height": 640,
+      "quality": 76,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of an upscale hotel restaurant dining room, beautifully spaced dining tables and comfortable chairs, service circulation and warm ambient lighting. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/hospitality-suite-v1.webp",
+      "bytes": 92232,
+      "width": 960,
+      "height": 640,
+      "quality": 84,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of an elegant hotel guest suite, king bed, bedside tables, layered lighting, lounge seating, luggage bench. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/hospitality-cafe-v1.webp",
+      "bytes": 91102,
+      "width": 960,
+      "height": 640,
+      "quality": 80,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a boutique cafe interior, refined coffee service counter, espresso machine, small tables and welcoming banquette seating. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/hospitality-lounge-v1.webp",
+      "bytes": 90672,
+      "width": 960,
+      "height": 640,
+      "quality": 76,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of a luxury hotel lounge, intimate clusters of armchairs and sofas, low tables, richly layered warm lighting. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    },
+    {
+      "file": "/images/ServiceConcepts/hospitality-banquet-v1.webp",
+      "bytes": 94436,
+      "width": 960,
+      "height": 640,
+      "quality": 76,
+      "prompt": "Use case: photorealistic-natural. Asset type: landscape service card image for premium Hyderabad interior design website. Create a single image of an elegant banquet event hall, round tables set for guests, generous circulation, refined wall panels and chandeliers. Architectural editorial photography, realistic proportions, warm neutral palette, refined contemporary Indian urban interior, soft daylight complemented by warm lighting, wide eye-level composition showing the usable room layout. No people, no text, no branding, no watermark. Illustrative design concept, not a completed project photograph."
+    }
+  ]
+}

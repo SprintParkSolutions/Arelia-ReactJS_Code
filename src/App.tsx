@@ -21,6 +21,8 @@ import { HomePage } from './pages/HomePage'
 import { AboutPage } from './pages/AboutPage'
 import { HyderabadInteriorDesignPage } from './pages/HyderabadInteriorDesignPage'
 import ServicesSection from './pages/ServicesSection'
+import { ServiceCategoryPage } from './pages/ServiceCategoryPage'
+import { serviceCategories, type ServiceCategory } from './pages/serviceCategories'
 import { ContactUsPage } from './pages/ContactUsPage'
 import { Login as LoginPage } from './pages/Login'
 import { DashboardPage } from './pages/DashboardPage'
@@ -181,6 +183,12 @@ export default function App() {
                   path="/contact-us"
                   element={<ContactUsPage />}
                 />
+
+                {(Object.keys(serviceCategories) as ServiceCategory[]).map(category => (
+                  <Route key={category} path={`/services/${category}`} element={
+                    <ServiceCategoryPage category={category} onOpenConsultation={() => setIsConsultationOpen(true)} />
+                  } />
+                ))}
 
                 <Route path="/privacy-policy" element={<LegalPage content={legalPages.privacy} />} />
                 <Route path="/terms-of-service" element={<LegalPage content={legalPages.terms} />} />

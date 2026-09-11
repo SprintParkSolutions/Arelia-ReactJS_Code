@@ -9,7 +9,7 @@
 .hyderabad-page h1, .hyderabad-page h2, .hyderabad-page h3 { font-family: var(--font-serif); font-weight: 600; }
 .hyderabad-page h1 { max-width: 16ch; margin: 0; font-size: clamp(2.85rem, 5.2vw, 5rem); line-height: 1.02; }
 .hyderabad-page h2 { max-width: 14ch; margin: 0; font-size: clamp(2.1rem, 4.2vw, 4rem); line-height: 1.08; }
-.hyderabad-page__lead { max-width: 42rem; margin: 1.7rem 0 0; color: rgba(255,255,255,.8); font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.7; }
+.hyderabad-page__lead { max-width: 45rem; margin: 1.7rem 0 0; color: rgba(255,255,255,.8); font-size: clamp(1rem, 1.5vw, 1.2rem); line-height: 1.7; }
 
 .hyderabad-page__button, .hyderabad-page__text-link { border: 1px solid rgba(212,175,55,.62); background: rgba(12,10,8,.55); color: #fff4d8; cursor: pointer; font: inherit; font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; transition: background 240ms ease, color 240ms ease, border-color 240ms ease, transform 240ms ease; }
 .hyderabad-page__button { margin-top: 2rem; padding: .9rem 1.3rem; }
