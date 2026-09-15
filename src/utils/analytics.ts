@@ -1,4 +1,3 @@
-const ANALYTICS_ID = 'G-MMZHTEJJJF'
 const CONSENT_KEY = 'arelia-cookie-consent'
 
 export type CookieConsent = {
@@ -20,18 +19,19 @@ export function saveCookieConsent(consent: CookieConsent) {
 }
 
 export function initializeAnalytics() {
-  if (document.querySelector(`script[data-arelia-analytics="${ANALYTICS_ID}"]`)) return
+  window.gtag('consent', 'update', {
+    analytics_storage: 'granted',
+  })
+}
 
-  window.dataLayer = window.dataLayer || []
-  window.gtag = (...args: unknown[]) => window.dataLayer.push(args)
-  window.gtag('js', new Date())
-  window.gtag('config', ANALYTICS_ID, { send_page_view: false })
-
-  const script = document.createElement('script')
-  script.async = true
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${ANALYTICS_ID}`
-  script.dataset.areliaAnalytics = ANALYTICS_ID
-  document.head.appendChild(script)
+export function updateGoogleConsent(consent: CookieConsent) {
+  window.gtag('consent', 'update', {
+    analytics_storage: consent.analytics ? 'granted' : 'denied',
+    functionality_storage: consent.functional ? 'granted' : 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+  })
 }
 
 export function trackPageView(path: string) {

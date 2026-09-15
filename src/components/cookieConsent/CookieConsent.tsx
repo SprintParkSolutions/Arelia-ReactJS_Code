@@ -4,6 +4,7 @@ import {
   initializeAnalytics,
   saveCookieConsent,
   trackPageView,
+  updateGoogleConsent,
   type CookieConsent as CookieConsentChoice,
 } from '../../utils/analytics'
 import './CookieConsent.css'
@@ -23,6 +24,7 @@ export function CookieConsent() {
 
   const applyConsent = (choice: CookieConsentChoice) => {
     saveCookieConsent(choice)
+    updateGoogleConsent(choice)
     setIsOpen(false)
 
     if (choice.analytics) {

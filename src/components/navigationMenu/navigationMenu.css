@@ -22,6 +22,8 @@
 }
 
 .navigationMenu__bar {
+  position: relative;
+  z-index: 60;
   width: min(100%, 84rem);
   margin: 0 auto;
   min-height: 5.25rem;
@@ -430,21 +432,59 @@
 
 .navigationMenu__drawer {
   position: fixed;
-  top: 5.75rem;
-  left: 0.9rem;
-  right: 0.9rem;
+  top: 5.15rem;
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 59;
-  display: grid;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 1.35rem;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03)),
-    rgba(0, 0, 0, 0.3);
-  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 1.25rem max(1.5rem, env(safe-area-inset-bottom));
+  border-top: 1px solid #c8a97e40;
+  background: #10131a;
+  color: #f8f6f2;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.navigationMenu .navigationMenu__drawer .navigationMenu__link {
+  justify-content: flex-start;
+  min-height: 3.75rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.5rem;
+  color: #f8f6f2;
+  font-size: 1rem;
+  letter-spacing: 0.1em;
+}
+
+.navigationMenu .navigationMenu__drawer .navigationMenu__link.is-active,
+.navigationMenu .navigationMenu__drawer .navigationMenu__link:hover {
+  background: #252a32;
+  color: #ebc992;
+}
+
+.navigationMenu__drawerActions {
+  padding-top: 1.5rem;
+  border-top: 1px solid #ffffff26;
+}
+
+.navigationMenu .navigationMenu__drawer .navigationMenu__action {
+  min-width: 0;
+  min-height: 3.25rem;
+  font-size: var(--type-small);
+  letter-spacing: 0.08em;
+}
+
+.navigationMenu .navigationMenu__drawer .navigationMenu__action--accent {
+  background: #dec18f;
+  color: #171a20;
+}
+
+.navigationMenu__drawer :is(a, button):focus-visible,
+.navigationMenu__menuToggle:focus-visible {
+  outline: 2px solid #ebc992;
+  outline-offset: 3px;
 }
 
 .navigationMenu__drawerLinks {

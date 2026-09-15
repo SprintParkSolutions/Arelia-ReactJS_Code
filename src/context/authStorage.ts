@@ -9,6 +9,7 @@ export const AUTH_STORAGE_KEYS = {
   activeTab: 'dashboardActiveTab',
   selectedProjectId: 'dashboardSelectedProjectId',
   loginAt: 'clientLoginAt',
+  lastActivityAt: 'clientLastActivityAt',
 } as const
 
 export type StoredAuthClient = {
@@ -20,7 +21,7 @@ export type StoredAuthClient = {
 
 const defaultActiveTab = dashboardTabs[0].id
 
-export const SESSION_DURATION_MS = 12 * 60 * 60 * 1000
+export const INACTIVITY_LIMIT_MS = 60 * 60 * 1000
 
 export function getDefaultDashboardTab(): DashboardTabId {
   return defaultActiveTab
@@ -31,9 +32,20 @@ export function clearStoredAuth(): void {
   Object.values(AUTH_STORAGE_KEYS).forEach((key) => window.localStorage.removeItem(key))
 }
 
-// 12 hours after login, the session is force-expired regardless of activity.
-// Sessions created before this check existed have no timestamp yet, so the
-// first time we see one we just start its clock from now.
+export function readLastActivityAt(): number | null {
+  if (typeof window === 'undefined') return null
+
+  const value = Number(window.localStorage.getItem(AUTH_STORAGE_KEYS.lastActivityAt))
+  return Number.isFinite(value) && value > 0 ? value : null
+}
+
+export function writeLastActivityAt(timestamp = Date.now()): void {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(AUTH_STORAGE_KEYS.lastActivityAt, String(timestamp))
+}
+
+// Sessions created before inactivity tracking existed are initialized from
+// their login timestamp so a refresh cannot silently grant a fresh hour.
 export function isSessionExpired(): boolean {
   if (typeof window === 'undefined') return false
 
@@ -47,9 +59,15 @@ export function isSessionExpired(): boolean {
   }
 
   const loginAt = Number(rawLoginAt)
-  if (!Number.isFinite(loginAt)) return false
+  const validLoginAt = Number.isFinite(loginAt) && loginAt > 0 ? loginAt : Date.now()
+  const storedLastActivityAt = readLastActivityAt()
+  const lastActivityAt = storedLastActivityAt ?? validLoginAt
 
-  return Date.now() - loginAt >= SESSION_DURATION_MS
+  if (!storedLastActivityAt) {
+    writeLastActivityAt(lastActivityAt)
+  }
+
+  return Date.now() - lastActivityAt >= INACTIVITY_LIMIT_MS
 }
 
 export function readStoredClient(): StoredAuthClient | null {
