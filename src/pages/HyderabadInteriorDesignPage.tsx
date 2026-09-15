@@ -222,7 +222,8 @@ export function HyderabadInteriorDesignPage({
             <p className="hyderabad-page__faq-description">A clearer picture of your interior design journey in Hyderabad. Explore the details, then let’s talk about your space.</p>
             <div className="hyderabad-page__action-group">
               <button type="button" className="hyderabad-page__faq-cta" onClick={onOpenConsultation}><span>Book a consultation</span><ArrowIcon /></button>
-              <ExploreLink to="/contact-us#studio-location" label="Contact our studio" />
+              <span className="hyderabad-page__contact-link--desktop"><ExploreLink to="/contact-us#studio-location" label="Contact our studio" /></span>
+              <span className="hyderabad-page__contact-link--mobile"><ExploreLink to="/contact-us#studio-details" label="Contact our studio" /></span>
             </div>
             <p className="hyderabad-page__faq-personal">Have something else in mind?<br /><a href="tel:+917207845556">Speak with us: +91 72078 45556</a></p>
           </motion.div>
