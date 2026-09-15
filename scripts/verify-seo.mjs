@@ -4,7 +4,10 @@ import { JSDOM } from 'jsdom';
 
 const sitemap = new JSDOM(await readFile('dist/sitemap.xml', 'utf8'), { contentType: 'text/xml' });
 const urls = [...sitemap.window.document.querySelectorAll('loc')].map((node) => node.textContent);
-assert.equal(urls.length, 9);
+assert.equal(urls.length, 12);
+for (const category of ['residential', 'commercial', 'hospitality']) {
+  assert.ok(urls.includes(`https://areliaspace.com/services/${category}/`), `Missing service category: ${category}`);
+}
 const titles = new Set();
 for (const url of urls) {
   const pathname = new URL(url).pathname;
@@ -18,6 +21,27 @@ for (const url of urls) {
   titles.add(doc.title);
   assert.ok(doc.querySelector('#root h1'), `Missing prerendered heading: ${url}`);
   assert.ok(doc.querySelector('#root').textContent.length > 300, `Missing content: ${url}`);
+  if (/^\/services\/(residential|commercial|hospitality)\/$/.test(pathname)) {
+    const category = pathname.split('/')[2];
+    assert.equal(doc.querySelectorAll(`a[href="/about-us?work=${category}#our-finest-work"]`).length, 0, `Removed return link remains: ${url}`);
+    assert.ok(!doc.querySelector('.service-detail__related'), `Old category navigation remains: ${url}`);
+    const cards = [...doc.querySelectorAll('.service-detail__card')];
+    assert.equal(cards.length, 6, `Missing service cards: ${url}`);
+    for (const card of cards) {
+      const image = card.querySelector('img');
+      assert.ok(image?.getAttribute('alt'), `Missing service image: ${url}`);
+      const bytes = await readFile(`dist${image.getAttribute('src')}`);
+      assert.ok(bytes.length < 100_000, `Service image exceeds 100 KB: ${image.getAttribute('src')}`);
+    }
+  }
+  if (pathname === '/about-us/') {
+    assert.ok(doc.querySelector('#our-finest-work'), 'Missing showcase return anchor');
+  }
+  if (pathname === '/services/') {
+    for (const category of ['residential', 'commercial', 'hospitality']) {
+      assert.ok(doc.querySelector(`a[href="/services/${category}"]`), `Missing View more link: ${category}`);
+    }
+  }
   assert.ok(doc.querySelector('a[href="/contact-us"]'), `Missing crawlable contact link: ${url}`);
   const business = JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent);
   assert.equal(business['@type'], 'LocalBusiness');
@@ -37,4 +61,4 @@ for (const file of ['login/index.html', 'dashboard/index.html', '404.html']) {
 assert.ok(!urls.some((url) => /login|dashboard|payment/.test(url)));
 assert.ok((await readFile('dist/robots.txt', 'utf8')).includes('Sitemap: https://areliaspace.com/sitemap.xml'));
 sitemap.window.close();
-console.log('SEO checks passed: 9 public pages, unique metadata, content, images, sitemap and noindex account/404 pages.');
+console.log('SEO checks passed: 12 public pages, unique metadata, content, images, sitemap and noindex account/404 pages.');
