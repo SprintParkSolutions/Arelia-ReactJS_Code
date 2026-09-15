@@ -29,13 +29,15 @@ function MapPinIcon() {
 export function ContactUsPage() {
   const { hash, key } = useLocation()
   const locationRef = useRef<HTMLDivElement>(null)
+  const detailsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (hash !== '#studio-location') return
+    const targetRef = hash === '#studio-details' ? detailsRef : hash === '#studio-location' ? locationRef : null
+    if (!targetRef) return
 
     // Wait until this page mounts after the outgoing route's exit animation.
     const frame = window.requestAnimationFrame(() => {
-      locationRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' })
+      targetRef.current?.scrollIntoView({ behavior: 'auto', block: 'start' })
     })
     return () => window.cancelAnimationFrame(frame)
   }, [hash, key])
@@ -90,7 +92,7 @@ export function ContactUsPage() {
             viewport={{ once: true, amount: 0.25 }}
             transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="contact-page__details contact-page__glass-card">
+            <div id="studio-details" ref={detailsRef} className="contact-page__details contact-page__glass-card">
               <div className="contact-page__panel-ambient contact-page__panel-ambient--one" />
               <div className="contact-page__panel-ambient contact-page__panel-ambient--two" />
               <div className="contact-page__panel-sheen" />

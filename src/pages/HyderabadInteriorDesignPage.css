@@ -97,6 +97,8 @@
 .hyderabad-page__faq h2 em { color: #d5b77f; font-weight: 500; }
 .hyderabad-page__faq-description { max-width: 38ch; margin: 1.7rem 0 2.2rem; color: #c0bbb2; font-size: var(--type-body); line-height: 1.85; }
 .hyderabad-page__action-group { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; }
+.hyderabad-page__contact-link--desktop { display: contents; }
+.hyderabad-page__contact-link--mobile { display: none; }
 .hyderabad-page__button, .hyderabad-page__faq-cta { display: inline-flex; justify-content: space-between; align-items: center; gap: 1.2rem; min-height: 3.5rem; max-width: 100%; padding: 1rem 1.5rem; border: 1px solid #d5b77f; border-radius: 999px; background: #d5b77f; color: #15120d; font-family: var(--font-sans); font-size: var(--type-small); font-weight: 600; text-decoration: none; cursor: pointer; transition: background 220ms ease, color 220ms ease, transform 220ms ease; }
 .hyderabad-page__button:hover, .hyderabad-page__faq-cta:hover { background: #efdab1; color: #15120d; transform: translateY(-2px); }
 .hyderabad-page__faq-personal { margin: 2rem 0 0; color: #aaa59b; font-size: var(--type-small); line-height: 1.9; }
@@ -161,6 +163,9 @@
 }
 
 @media (max-width: 767px) {
+  .hyderabad-page__contact-link--desktop { display: none; }
+  .hyderabad-page__contact-link--mobile { display: contents; }
+
   .hyderabad-page {
     --mobile-action-width: min(18rem, calc(100vw - 7rem));
   }
