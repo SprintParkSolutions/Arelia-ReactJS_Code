@@ -356,6 +356,7 @@
 .site-footer__bottom-links {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 1.5rem;
 }
 
@@ -370,6 +371,16 @@
 
 .site-footer__bottom-link:hover {
   color: rgba(255, 250, 242, 0.95);
+}
+
+.site-footer__bottom-link.is-active {
+  color: var(--gold-soft);
+}
+
+.site-footer__bottom-link:focus-visible {
+  border-radius: 0.15rem;
+  outline: 2px solid var(--gold);
+  outline-offset: 0.3rem;
 }
 
 /* ============= RESPONSIVE DESIGN ============= */
@@ -432,6 +443,7 @@
   }
 
   .site-footer__bottom-links {
+    justify-content: flex-start;
     gap: 1rem;
     font-size: 0.75rem;
   }

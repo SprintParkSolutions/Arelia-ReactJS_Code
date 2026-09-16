@@ -1,5 +1,6 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { useEffect, useEffectEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { ConsultationForm } from './ConsultationForm'
 import './ConsultationForm.css'
 
@@ -9,6 +10,8 @@ type ConsultationModalProps = {
 }
 
 export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
+  const reduceMotion = useReducedMotion()
+  const closeFromEscape = useEffectEvent(() => onClose())
   useEffect(() => {
     if (!isOpen) return
 
@@ -17,7 +20,7 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose()
+        closeFromEscape()
       }
     }
 
@@ -27,9 +30,11 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [isOpen, onClose])
+  }, [isOpen])
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <AnimatePresence>
       {isOpen ? (
         <motion.div
@@ -37,20 +42,15 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0 : 0.16, ease: 'easeOut' }}
         >
-          <motion.div
-            className="consultation-modal__veil"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          />
+          <div className="consultation-modal__veil" aria-hidden="true" />
 
-          <motion.div
+          <div
             className="consultation-modal__shell"
-            initial={{ opacity: 0, y: 36, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.98 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Book your consultation"
           >
             <div className="consultation-modal__ambient consultation-modal__ambient--one" />
             <div className="consultation-modal__ambient consultation-modal__ambient--two" />
@@ -72,9 +72,10 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
               submitLabel="Request Consultation"
               onSuccess={onClose}
             />
-          </motion.div>
+          </div>
         </motion.div>
       ) : null}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
