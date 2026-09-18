@@ -79,6 +79,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       leadId: nextClient.leadId || undefined,
       name: nextClient.name || undefined,
       email: nextClient.email || undefined,
+      phone: nextClient.phone || undefined,
     }
 
     // contactId/leadId are the identifiers every downstream API call relies

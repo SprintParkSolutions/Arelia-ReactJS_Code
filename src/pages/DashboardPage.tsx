@@ -1,3 +1,6 @@
+import { SiteVisitPanel } from "../components/siteVisit/SiteVisitPanel";
+import { useSiteVisit } from "../components/siteVisit/useSiteVisit";
+import { useSiteVisitNotifications } from "../components/siteVisit/useSiteVisitNotifications";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useDeferredValue,
@@ -39,6 +42,12 @@ import {
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { LogoutModal } from "../components/auth/LogoutModal";
+import { ProjectDetailsForm } from "../components/projectDetails/ProjectDetailsForm";
+import { useSupervisor } from "../components/projectDetails/useSupervisor";
+import { SupervisorInformation } from "../components/projectDetails/SupervisorInformation";
+import { useApprovalStatus } from "../components/projectDetails/useApprovalStatus";
+import { useProjectReminder } from "../components/projectDetails/useProjectReminder";
+import { useProjectDetails } from "../components/projectDetails/useProjectDetails";
 import { dashboardTabs } from "../constants/dashboardTabs";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -84,15 +93,9 @@ function GlassEmptyState({ message }: { message: string }) {
 
 // Derives up to two uppercase initials from a client's full name for avatar badges.
 function getInitials(fullName?: string | null) {
-  if (!fullName) return "CL";
-  const initials = fullName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-  return initials || "CL";
+  const parts = fullName?.trim().split(/\s+/).filter(Boolean) || [];
+  if (!parts.length) return "?";
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
 }
 
 const projectPhases = [
@@ -200,7 +203,10 @@ function formatFileMeta(file: ProjectFile) {
   return parts.join(" • ") || "Secure project file";
 }
 
-type PortalNotificationType =
+type PortalNotificationType = | "siteVisit"
+  | "supervisor"
+  | "approvals"
+  | "projectDetails"
   | "status"
   | "vendor"
   | "payment"
@@ -793,6 +799,8 @@ function NotificationBell({
 
 // Picks the icon shown next to a notification based on its type.
 function NotificationTypeIcon({ type }: { type: PortalNotificationType }) {
+  if (type === "supervisor") return <FiUserCheck />;
+  if (type === "approvals") return <FiCheckCircle />;
   if (type === "vendor") return <FiBriefcase />;
   if (type === "payment") return <FiCreditCard />;
   if (type === "paymentDue") return <FiClock />;
@@ -808,6 +816,7 @@ function AccountMenu({
   onClose,
   clientName,
   clientEmail,
+  clientPhone,
   onLogoutRequest,
   wrapperClassName = "dashboardWorkspace__account",
 }: {
@@ -816,6 +825,7 @@ function AccountMenu({
   onClose: () => void;
   clientName?: string | null;
   clientEmail?: string | null;
+  clientPhone?: string | null;
   onLogoutRequest: () => void;
   wrapperClassName?: string;
 }) {
@@ -859,8 +869,9 @@ function AccountMenu({
                   {initials}
                 </span>
                 <div className="dashboardWorkspace__accountCopy">
-                  <strong>{clientName || "Client"}</strong>
-                  <span>{clientEmail || "Not available"}</span>
+                  <strong>{clientName || "Name unavailable"}</strong>
+                  <span>{clientEmail || "Email unavailable"}</span>
+                    <span>{clientPhone || "Phone unavailable"}</span>
                 </div>
               </div>
               <button
@@ -2453,9 +2464,7 @@ function NotificationsTab({
                       <span>{notification.message}</span>
                       <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
                     </span>
-                    <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true">
-                      <FiArrowRight />
-                    </span>
+                    {notification.type !== "approvals" && <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true"><FiArrowRight /></span>}
                   </button>
                   {onDeleteNotification ? (
                     <button
@@ -2780,6 +2789,16 @@ export function DashboardPage() {
     logout,
     setActiveDashboardTab,
   } = useAuth();
+  const leadId = authClient?.leadId;
+  const projectDetails = useProjectDetails(leadId);
+  const needsProjectDetails = Boolean(leadId && !projectDetails.loading && projectDetails.result?.success && projectDetails.result.projectSubmitted === false);
+  const siteVisit = useSiteVisit(leadId);
+  const siteVisitHistory = useSiteVisitNotifications(leadId, siteVisit.appointment, siteVisit.report);
+  const supervisor = useSupervisor(leadId);
+  const supervisorHistory = useProjectReminder(leadId, Boolean(supervisor.result?.success && supervisor.result.assigned), "supervisorAssignedNotification");
+  const approvalStatus = useApprovalStatus(leadId);
+  const approvalHistory = useProjectReminder(leadId, approvalStatus === "Approved", "projectApprovalNotification");
+  const projectReminderHistory = useProjectReminder(leadId, needsProjectDetails);
   const deferredDashboardTab = useDeferredValue(activeDashboardTab);
   const [isTabPending, startTabTransition] = useTransition();
   const [portalData, setPortalData] = useState<ClientPortalResponse | null>(
@@ -2892,7 +2911,12 @@ export function DashboardPage() {
     void loadDashboard();
   }, [authClient?.contactId, authClient?.email, authClient?.leadId]);
 
-  const client = portalData?.client;
+  const client = {
+    ...portalData?.client,
+    name: authClient?.name || portalData?.client?.name,
+    email: portalData?.client?.email || authClient?.email,
+    phone: portalData?.client?.phone || authClient?.phone,
+  };
   const projects =
     contactProjects.length > 0
       ? contactProjects.map((project) => ({
@@ -3137,15 +3161,20 @@ export function DashboardPage() {
     return () => window.clearInterval(interval);
   }, [contactId, contactProjects, notificationProjectKey]);
 
-  const desktopNavItems = [
-    { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
-    { id: "notifications", label: "Notifications", icon: FiBell },
-    { id: "status", label: "Project Status", icon: FiCalendar },
-    { id: "vendor", label: "Vendor Tasks", icon: FiBriefcase },
-    { id: "payment", label: "Payment Terms", icon: FiCreditCard },
-    { id: "documents", label: "Documents & Reports", icon: FiFileText },
-    { id: "cases", label: "Support Cases", icon: FiHeadphones },
-  ] as const;
+  const tabIcons = {
+    profile: FiUserCheck,
+    siteVisit: FiCalendar,
+    projectDetails: FiHome,
+    supervisor: FiUserCheck,
+    approvals: FiCheckCircle,
+    notifications: FiBell,
+    status: FiCalendar,
+    vendor: FiBriefcase,
+    payment: FiCreditCard,
+    documents: FiFileText,
+    cases: FiHeadphones,
+  };
+  const desktopNavItems = dashboardTabs.map(tab => ({ ...tab, icon: tabIcons[tab.id] }));
 
   const handleLogout = () => {
     setShowLogoutConfirm(false);
@@ -3153,7 +3182,32 @@ export function DashboardPage() {
     navigate("/login", { replace: true });
   };
 
-  const unreadNotificationCount = notifications.filter(
+  const projectReminder: PortalNotification = {
+    id: "project-details-reminder",
+    type: "projectDetails",
+    message: "Please fill in your project details form.",
+    timestamp: projectReminderHistory.reminder?.timestamp || 0,
+    read: projectReminderHistory.reminder?.read || false,
+  };
+  const reminderNotifications = projectReminderHistory.reminder && !projectReminderHistory.reminder.dismissed
+    ? [projectReminder, ...notifications] : notifications;
+  const approvalNotifications: PortalNotification[] = approvalHistory.reminder && !approvalHistory.reminder.dismissed
+    ? [{
+        id: "project-details-approved",
+        type: "approvals",
+        message: "Your project details have been approved by the Arelia Team.",
+        timestamp: approvalHistory.reminder.timestamp,
+        read: approvalHistory.reminder.read,
+      }, ...reminderNotifications]
+    : reminderNotifications;
+  const supervisorNotifications: PortalNotification[] = supervisorHistory.reminder && !supervisorHistory.reminder.dismissed
+    ? [{ id: "supervisor-assigned", type: "supervisor", message: supervisor.result?.supervisorUser?.trim()
+          ? `${supervisor.result.supervisorUser.trim()} has been assigned as your project supervisor.`
+          : "A supervisor has been assigned to your project.",
+         timestamp: supervisorHistory.reminder.timestamp, read: supervisorHistory.reminder.read }, ...approvalNotifications]
+    : approvalNotifications;
+  const visibleNotifications: PortalNotification[] = [...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
+  const unreadNotificationCount = visibleNotifications.filter(
     (notification) => !notification.read,
   ).length;
   const unreadNotificationLabel = formatNotificationCount(
@@ -3168,6 +3222,24 @@ export function DashboardPage() {
   };
 
   const handleNotificationClick = (notification: PortalNotification) => {
+    if (notification.type === "siteVisit") { siteVisitHistory.markRead(notification.id); setIsNotificationPanelOpen(false); handleTabChange("siteVisit"); return; }
+    if (notification.id === "supervisor-assigned") {
+      supervisorHistory.markRead();
+      setIsNotificationPanelOpen(false);
+      handleTabChange("supervisor");
+      return;
+    }
+    if (notification.id === "project-details-approved") {
+      approvalHistory.markRead();
+      setIsNotificationPanelOpen(false);
+      return;
+    }
+    if (notification.type === "projectDetails") {
+      projectReminderHistory.markRead();
+      setIsNotificationPanelOpen(false);
+      handleTabChange("projectDetails");
+      return;
+    }
     setNotifications((prev) => {
       const updated = prev.map((item) =>
         item.id === notification.id ? { ...item, read: true } : item,
@@ -3200,6 +3272,10 @@ export function DashboardPage() {
   };
 
   const handleDeleteNotification = (notificationId: string) => {
+    if (notificationId.startsWith("site-visit:")) { siteVisitHistory.dismiss(notificationId); return; }
+    if (notificationId === "supervisor-assigned") { supervisorHistory.dismiss(); return; }
+    if (notificationId === "project-details-approved") { approvalHistory.dismiss(); return; }
+    if (notificationId === "project-details-reminder") { projectReminderHistory.dismiss(); return; }
     setNotifications((prev) => {
       const updated = prev.filter((n) => n.id !== notificationId);
       if (contactId) {
@@ -3213,6 +3289,10 @@ export function DashboardPage() {
   };
 
   const handleMarkAllNotificationsRead = () => {
+    siteVisitHistory.markAllRead();
+    supervisorHistory.markRead();
+    approvalHistory.markRead();
+    projectReminderHistory.markRead();
     setNotifications((prev) => {
       const updated = prev.map((item) => ({ ...item, read: true }));
       if (contactId) {
@@ -3285,7 +3365,7 @@ export function DashboardPage() {
           <div className="dashboardMobileBar__actions">
               <NotificationBell
                 wrapperClassName="dashboardMobileBar__notifications"
-                notifications={notifications}
+                notifications={visibleNotifications}
                 isOpen={isNotificationPanelOpen}
                 onToggle={() => setIsNotificationPanelOpen((value) => !value)}
                 onClose={() => setIsNotificationPanelOpen(false)}
@@ -3301,6 +3381,7 @@ export function DashboardPage() {
               onClose={() => setIsProfileMenuOpen(false)}
               clientName={client?.name}
               clientEmail={client?.email}
+                clientPhone={client?.phone}
               onLogoutRequest={() => {
                 setIsProfileMenuOpen(false);
                 setShowLogoutConfirm(true);
@@ -3452,7 +3533,7 @@ export function DashboardPage() {
 
             <div className="dashboardWorkspace__topbarActions">
               <NotificationBell
-                notifications={notifications}
+                notifications={visibleNotifications}
                 isOpen={isNotificationPanelOpen}
                 onToggle={() => setIsNotificationPanelOpen((value) => !value)}
                 onClose={() => setIsNotificationPanelOpen(false)}
@@ -3467,6 +3548,7 @@ export function DashboardPage() {
                 onClose={() => setIsProfileMenuOpen(false)}
                 clientName={client?.name}
                 clientEmail={client?.email}
+                clientPhone={client?.phone}
                 onLogoutRequest={() => {
                   setIsProfileMenuOpen(false);
                   setShowLogoutConfirm(true);
@@ -3475,17 +3557,22 @@ export function DashboardPage() {
             </div>
           </header>
 
-          {isLoading ? (
+          {needsProjectDetails && activeDashboardTab !== "projectDetails" ? (
+            <button type="button" className="projectDetailsReminder" onClick={() => handleNotificationClick(projectReminder)}>
+              Please fill in your project details form. <span aria-hidden="true">→</span>
+            </button>
+          ) : null}
+          {isLoading && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications") ? (
             <div className="dashboardState">Loading your portal...</div>
           ) : null}
-          {!isLoading && error ? (
+          {!isLoading && error && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications") ? (
             <div className="dashboardError">{error}</div>
           ) : null}
           {!isLoading && !error && isTabPending ? (
             <div className="dashboardState">Loading section...</div>
           ) : null}
 
-          {!isLoading && !error ? (
+          {((!isLoading && !error) || deferredDashboardTab === "projectDetails" || deferredDashboardTab === "supervisor" || deferredDashboardTab === "siteVisit" || deferredDashboardTab === "notifications") ? (
             <AnimatePresence mode="wait">
               <motion.div
                 key={deferredDashboardTab}
@@ -3791,7 +3878,35 @@ export function DashboardPage() {
                   </>
                 ) : null}
 
-                {deferredDashboardTab === "status" ? (
+                {deferredDashboardTab === "supervisor" ? (
+                  <SupervisorInformation leadId={leadId} result={supervisor.result} retry={supervisor.retry} />
+                ) : null}
+                {deferredDashboardTab === "projectDetails" ? (
+                  !leadId ? <section className="dashboardSection">
+                      <h2 className="dashboardSection__title">Project Details</h2>
+                      {projects.length ? projects.map(project => (
+                        <article key={project.id} className="dashboardInfoCard">
+                          <h3>{project.name}</h3>
+                          {"description" in project && project.description && <p>{project.description}</p>}
+                          {project.status && <p>Status: {project.status}</p>}
+                          {project.startDate && <p>Start date: {project.startDate}</p>}
+                          {project.endDate && <p>End date: {project.endDate}</p>}
+                        </article>
+                      )) : <div className="dashboardEmptyState">Project details are not available yet.</div>}
+                    </section>
+                    : projectDetails.loading ? <p role="status">Loading project details…</p>
+                    : !projectDetails.result?.success ? <div className="dashboardEmptyState">
+                      <p role="alert">{projectDetails.result?.message || "Unable to load project details."}</p>
+                      <button type="button" onClick={projectDetails.reload}>Retry</button>
+                    </div>
+                    : <ProjectDetailsForm key={leadId} leadId={leadId} result={projectDetails.result}
+                        onSaved={projectDetails.setResult} reload={projectDetails.reload} />
+                ) : null}
+                {deferredDashboardTab === "siteVisit" ? <SiteVisitPanel key={leadId} leadId={leadId} visit={siteVisit} /> : null}
+                  {deferredDashboardTab === "approvals" ? (
+                    <section className="dashboardSection"><div className="dashboardSection__heading"><h2 className="dashboardSection__title">Approvals</h2></div></section>
+                  ) : null}
+                  {deferredDashboardTab === "status" ? (
                   <ProjectStatusTab
                     contactId={contactId}
                     projectId={activeProjectId}
@@ -3827,7 +3942,7 @@ export function DashboardPage() {
                 ) : null}
                 {deferredDashboardTab === "notifications" ? (
                   <NotificationsTab
-                    notifications={notifications}
+                    notifications={visibleNotifications}
                     onNotificationClick={handleNotificationClick}
                     onMarkAllRead={handleMarkAllNotificationsRead}
                     onDeleteNotification={handleDeleteNotification}

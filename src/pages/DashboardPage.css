@@ -1109,8 +1109,18 @@
   cursor: pointer;
 }
 
+.dashboardNotificationsTab__list .dashboardWorkspace__notificationRow {
+  padding: 1.85rem 1.95rem;
+}
+
+.dashboardNotificationsTab__list .dashboardWorkspace__notificationDelete {
+  flex: 0 0 2.4rem;
+  margin: 0;
+  border-radius: 0.75rem;
+}
+
 .dashboardNotificationsTab__list .dashboardWorkspace__notificationItem {
-  padding: 0.9rem 1rem;
+  padding: 0;
   gap: 1rem;
 }
 
@@ -4200,4 +4210,9 @@
     font-size: 1.6rem;
   }
 
+}
+
+@media (max-width: 640px) {
+  .dashboardNotificationsTab__list .dashboardWorkspace__notificationRow { padding: 1rem; gap: 0.5rem; }
+  .dashboardNotificationsTab__list .dashboardWorkspace__notificationItem { gap: 0.65rem; }
 }

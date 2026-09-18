@@ -8,6 +8,7 @@ type OtpVerificationProps = {
   onResend: () => void
   isVerifying: boolean
   errorMessage?: string
+  resetOnResend?: boolean
 }
 
 export function OtpVerification({
@@ -16,6 +17,7 @@ export function OtpVerification({
   onResend,
   isVerifying,
   errorMessage = '',
+  resetOnResend = true,
 }: OtpVerificationProps) {
   const [otp, setOtp] = useState('')
   const [timeLeft, setTimeLeft] = useState(60)
@@ -58,7 +60,7 @@ export function OtpVerification({
 
   const handleResend = () => {
     setOtp('')
-    setTimeLeft(60)
+    if (resetOnResend) setTimeLeft(60)
     setError('')
     onResend()
   }
@@ -86,11 +88,13 @@ export function OtpVerification({
             type="text"
             value={otp}
             onChange={handleChange}
+            aria-label="Enter OTP"
             placeholder="000000"
             maxLength={6}
             disabled={isVerifying || isTimeExpired}
             className="otp-verification__input"
             inputMode="numeric"
+            autoComplete="one-time-code"
             autoFocus
           />
           {(error || errorMessage) && <span className="otp-verification__error">{error || errorMessage}</span>}

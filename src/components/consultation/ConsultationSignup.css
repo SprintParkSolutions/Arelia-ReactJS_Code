@@ -1,0 +1,33 @@
+.consultation-signup { position: relative; overflow-y: auto; padding: 2.5rem; color: #eee8e0; background: radial-gradient(ellipse at 0 80%, #46311b55, transparent 60%), #080706; }
+.consultation-signup__intro { text-align: center; margin-bottom: 1.7rem; }
+.consultation-signup__icon { display: grid; place-items: center; width: 4rem; height: 4rem; margin: 0 auto 1rem; border: 1px solid #b38d63; border-radius: 50%; background: #d2a37320; color: #d2a373; font-size: 1.8rem; }
+.consultation-signup__eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: .7rem; color: #caa176; }
+.consultation-signup h2 { color: #d2a373; font-size: clamp(1.6rem, 5vw, 2.2rem); margin: .5rem 0; }
+.consultation-signup__intro p:last-child { color: #b8b3ad; line-height: 1.6; }
+.consultation-signup__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .7rem 1rem; }
+.consultation-signup__wide { grid-column: 1 / -1; }
+.consultation-signup label { display: block; margin-bottom: .4rem; font-size: .85rem; color: #ccc1b5; }
+.consultation-signup__input { position: relative; }
+.consultation-signup input { box-sizing: border-box; width: 100%; min-width: 0; border: 1px solid #72583c; border-radius: 1rem; background: #0007; color: #fff; font: inherit; padding: .9rem 2.8rem .9rem .9rem; }
+.consultation-signup input:focus { outline: 2px solid #d2a373; outline-offset: 2px; }
+.consultation-signup input[aria-invalid=true] { border-color: #ffaaaa; }
+.consultation-signup__input button { position: absolute; right: .65rem; top: 50%; transform: translateY(-50%); background: transparent; border: 0; color: #d2a373; padding: .4rem; cursor: pointer; }
+.consultation-signup__error { display: block; color: #ffaaaa; font-size: .8rem; margin-top: .3rem; }
+.consultation-signup__rules { padding: 1rem 1.2rem; margin: 1rem 0; border: 1px solid #72583c80; border-radius: 1rem; background: #d2a37308; }
+.consultation-signup__rules ul { padding: 0; list-style: none; display: grid; gap: .45rem; margin: .75rem 0; }
+.consultation-signup__rules li { display: flex; align-items: center; gap: .6rem; color: #aaa39b; font-size: .85rem; }
+.consultation-signup__rules li.is-met { color: #e6ba87; }
+.consultation-signup__rules small { color: #aaa39b; }
+.consultation-signup__submit { width: 100%; display: flex; align-items: center; justify-content: center; gap: .6rem; padding: 1rem; border: 0; border-radius: 999px; color: #100b05; background: #d2a373; font: inherit; font-weight: 700; text-transform: uppercase; cursor: pointer; }
+.consultation-signup button:disabled { opacity: .6; cursor: wait; }
+.consultation-signup button:focus-visible { outline: 2px solid #e6ba87; outline-offset: 3px; }
+.consultation-signup__signin { text-align: center; font-size: .85rem; color: #b8b3ad; margin: 1rem 0 0; }
+.consultation-signup__signin button { border: 0; background: none; color: #d2a373; font: inherit; text-decoration: underline; cursor: pointer; }
+.consultation-signup__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+@media (max-width: 540px) { .consultation-signup { padding: 3.8rem 1.2rem 1.5rem; } .consultation-signup__fields { grid-template-columns: 1fr; } }
+
+.consultation-signup__phone { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: .6rem; }
+.consultation-signup__phone select { min-width: 0; width: 100%; border: 1px solid #72583c; border-radius: 1rem; background: #100d09; color: #eee8e0; font: inherit; padding: .9rem .4rem; }
+.consultation-signup__phone select:focus-visible { outline: 2px solid #d2a373; outline-offset: 2px; }
+.consultation-signup__phone select:disabled { opacity: .6; }
+.consultation-signup__phone input { padding-right: .9rem; }

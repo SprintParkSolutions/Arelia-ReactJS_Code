@@ -16,6 +16,7 @@ export type StoredAuthClient = {
   contactId?: string
   leadId?: string
   name?: string
+  phone?: string
   email?: string
 }
 

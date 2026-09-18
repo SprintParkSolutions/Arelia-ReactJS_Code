@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { useEffect, useState, type SubmitEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { FiArrowLeft, FiArrowRight, FiEye, FiEyeOff, FiLock, FiMail } from 'react-icons/fi'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import {
   confirmPasswordReset,
   loginClient,
@@ -11,6 +11,7 @@ import {
 } from '../api.ts'
 import { useAuth } from '../context/AuthContext'
 import './Login.css'
+import { loginProspect } from '../services/salesforceApi'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MIN_PASSWORD_LENGTH = 8
@@ -18,6 +19,8 @@ const MIN_PASSWORD_LENGTH = 8
 type ForgotPasswordStep = 'closed' | 'request' | 'sent' | 'newPassword' | 'done'
 
 export function Login() {
+  const location = useLocation()
+  const isProspect = new URLSearchParams(location.search).get('account') !== 'client'
   const [email, setEmail] = useState(() => localStorage.getItem('rememberedEmail') ?? '')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -193,7 +196,7 @@ export function Login() {
     setLoading(true)
     setError('')
 
-    const response = await loginClient(email, password)
+    const response = await (isProspect ? loginProspect(email, password) : loginClient(email, password))
 
     if (response.success && (response.contactId || response.leadId)) {
       if (rememberMe) {
@@ -206,7 +209,8 @@ export function Login() {
         contactId: response.contactId,
         leadId: response.leadId,
         name: response.name || email.split('@')[0],
-        email: email.trim(),
+        email: response.email || email.trim(),
+        phone: response.phone,
       })
       navigate('/dashboard')
     } else {
@@ -264,7 +268,13 @@ export function Login() {
           >
             <p className="loginPage__panelEyebrow">Private Client Portal</p>
             <h1 className="loginPage__panelTitle">Welcome Back</h1>
-            <p className="loginPage__panelIntro">Access your private Arelia workspace</p>
+            <p className="loginPage__panelIntro">{isProspect ? 'Sign in to your Arelia account' : 'Access your private Arelia workspace'}</p>
+            <button type="button" className="loginForm__forgot" disabled={loading || forgotLoading} onClick={() => {
+              setPassword('')
+              setError('')
+              closeForgotPanel()
+              navigate(isProspect ? '/login?account=client' : '/login', { replace: true })
+            }}>{isProspect ? 'Client portal sign in' : 'Consultation account sign in'}</button>
           </motion.div>
 
           <form className="loginForm" onSubmit={handleSubmit} noValidate>
@@ -352,6 +362,7 @@ export function Login() {
                   </button>
                 </motion.div>
 
+                {location.state?.signupSuccess && <p role="status">Account created successfully. Please sign in.</p>}
                 {error ? <p className="loginForm__error">{error}</p> : null}
 
                 <motion.button

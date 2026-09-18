@@ -14,6 +14,8 @@ export type LoginClientResponse = {
   contactId?: string
   leadId?: string
   name?: string
+  email?: string
+  phone?: string
 }
 
 export type ForgotPasswordResponse = {
@@ -42,6 +44,8 @@ export type PortalProject = {
 export type ContactProjectLookup = {
   id: string
   name?: string
+  email?: string
+  phone?: string
 }
 
 export type SupportCaseRecord = {
@@ -528,6 +532,8 @@ export async function loginClient(email: string, password: string): Promise<Logi
       contactId: data?.contactId ? String(data.contactId) : undefined,
       leadId: data?.leadId ? String(data.leadId) : undefined,
       name: data?.name ? String(data.name) : undefined,
+      email: asString(data?.email),
+      phone: asString(data?.phone),
     }
   } catch (error) {
     console.error('Error logging in:', error)
@@ -939,7 +945,7 @@ export async function sendOtp(
       body: JSON.stringify({ email, otp }),
     })
     const data = asRecord(await parseResponse(response))
-    return { success: response.status === 200, message: asString(data?.message) }
+    return { success: response.ok && data?.success === true, message: asString(data?.message) }
   } catch {
     return { success: false, message: 'An error occurred while sending OTP.' }
   }
@@ -1040,5 +1046,61 @@ export async function getVendorTaskMedia(taskId: string): Promise<VendorTaskMedi
   } catch (error) {
     console.error('Error fetching vendor task media:', error)
     return null
+  }
+}
+
+export type ProspectSignup = {
+  phone: string
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  confirmPassword: string
+}
+
+export async function registerProspect(values: ProspectSignup): Promise<{ success: boolean; message?: string; leadId?: string }> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+  try {
+    const response = await fetch(`${REGISTRATION_BASE_URL}/leads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim().toLowerCase(),
+        phone: values.phone.trim(),
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+        companyName: 'self',
+      }),
+    })
+    const data = asRecord(await parseResponse(response))
+    const leadId = asString(data?.leadId)
+    return { success: response.ok && data?.success === true && Boolean(leadId), leadId, message: asString(data?.message) }
+  } catch {
+    return { success: false, message: 'Unable to connect. Please try again.' }
+  }
+}
+
+export async function loginProspect(email: string, password: string): Promise<LoginClientResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+  try {
+    const response = await fetch(`${REGISTRATION_BASE_URL}/lead/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    })
+    const data = asRecord(await parseResponse(response))
+    const leadId = asString(data?.leadId)
+    return {
+      success: response.ok && data?.success === true && Boolean(leadId),
+      message: asString(data?.message) || 'Unable to sign in.',
+      leadId,
+      name: asString(data?.fullName),
+      email: asString(data?.email),
+      phone: asString(data?.phone),
+    }
+  } catch {
+    return { success: false, message: 'Unable to connect. Please try again.' }
   }
 }
