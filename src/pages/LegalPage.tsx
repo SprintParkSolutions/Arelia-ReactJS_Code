@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import type { LegalPageContent } from './legalContent'
 import './LegalPage.css'
 
@@ -27,14 +26,6 @@ function RichText({ text }: { text: string }) {
 }
 
 export function LegalPage({ content }: LegalPageProps) {
-  useEffect(() => {
-    document.title = `${content.title} | Arelia`
-
-    return () => {
-      document.title = 'ARELIA Space | Premium Interior Design'
-    }
-  }, [content.title])
-
   return (
     <main className="legal-page">
       <header className="legal-page__hero">

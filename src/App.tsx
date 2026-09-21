@@ -1,8 +1,9 @@
-import { Suspense, lazy, useEffect, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { matchPath, Route, Routes, useLocation } from 'react-router-dom'
 
 import './App.css'
+import { PageMetadata } from './seo/PageMetadata'
 
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { InactivityMonitor } from './components/auth/InactivityMonitor'
@@ -18,7 +19,10 @@ import { trackPageView } from './utils/analytics'
 import { Footer } from './pages/Footer'
 import { HomePage } from './pages/HomePage'
 import { AboutPage } from './pages/AboutPage'
+import { HyderabadInteriorDesignPage } from './pages/HyderabadInteriorDesignPage'
 import ServicesSection from './pages/ServicesSection'
+import { ServiceCategoryPage } from './pages/ServiceCategoryPage'
+import { serviceCategories, type ServiceCategory } from './pages/serviceCategories'
 import { ContactUsPage } from './pages/ContactUsPage'
 import { Login as LoginPage } from './pages/Login'
 import { DashboardPage } from './pages/DashboardPage'
@@ -52,6 +56,8 @@ export default function App() {
   )
 
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
+  const openConsultation = useCallback(() => setIsConsultationOpen(true), [])
+  const closeConsultation = useCallback(() => setIsConsultationOpen(false), [])
 
   const { isAuthenticated } = useAuth()
   const location = useLocation()
@@ -85,6 +91,7 @@ export default function App() {
       <ToastProvider>
       <div className={`app-shell${isLoginPage ? ' app-shell--login' : ''}`}>
         <ScrollToTop />
+        <PageMetadata />
         <InactivityMonitor />
 
         {/* FIX: Changed 'videoSrc' to 'src' to match your interface */}
@@ -96,9 +103,7 @@ export default function App() {
 
         {!usesStandaloneLayout ? (
           <NavigationMenu
-            onOpenConsultation={() =>
-              setIsConsultationOpen(true)
-            }
+            onOpenConsultation={openConsultation}
           />
         ) : null}
 
@@ -129,13 +134,12 @@ export default function App() {
               }}
             >
               <Routes location={location}>
+                <Route path="*" element={<main className="legal-page"><div className="legal-page__hero-inner"><h1>Page not found</h1><p>This page is unavailable. <a href="/">Return to Arelia Space</a>.</p></div></main>} />
                 <Route
                   path="/"
                   element={
                     <HomePage
-                      onOpenConsultation={() =>
-                        setIsConsultationOpen(true)
-                      }
+                      onOpenConsultation={openConsultation}
                     />
                   }
                 />
@@ -144,9 +148,16 @@ export default function App() {
                   path="/about-us"
                   element={
                     <AboutPage
-                      onOpenConsultation={() =>
-                        setIsConsultationOpen(true)
-                      }
+                      onOpenConsultation={openConsultation}
+                    />
+                  }
+                />
+
+                <Route
+                  path="/interior-designers-hyderabad"
+                  element={
+                    <HyderabadInteriorDesignPage
+                      onOpenConsultation={openConsultation}
                     />
                   }
                 />
@@ -155,9 +166,7 @@ export default function App() {
                   path="/services"
                   element={
                     <ServicesSection
-                      onOpenConsultation={() =>
-                        setIsConsultationOpen(true)
-                      }
+                      onOpenConsultation={openConsultation}
                     />
                   }
                 />
@@ -166,6 +175,12 @@ export default function App() {
                   path="/contact-us"
                   element={<ContactUsPage />}
                 />
+
+                {(Object.keys(serviceCategories) as ServiceCategory[]).map(category => (
+                  <Route key={category} path={`/services/${category}`} element={
+                    <ServiceCategoryPage category={category} onOpenConsultation={openConsultation} />
+                  } />
+                ))}
 
                 <Route path="/privacy-policy" element={<LegalPage content={legalPages.privacy} />} />
                 <Route path="/terms-of-service" element={<LegalPage content={legalPages.terms} />} />
@@ -247,7 +262,7 @@ export default function App() {
         <Suspense fallback={null}>
           <ConsultationModal 
             isOpen={isConsultationOpen} 
-            onClose={() => setIsConsultationOpen(false)} 
+            onClose={closeConsultation}
           />
         </Suspense>
 

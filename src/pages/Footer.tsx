@@ -52,6 +52,7 @@ export function Footer() {
               <NavLink to="/" className="site-footer__link">Home</NavLink>
               <NavLink to="/about-us" className="site-footer__link">About Us</NavLink>
               <NavLink to="/services" className="site-footer__link">Services</NavLink>
+              <NavLink to="/interior-designers-hyderabad" className="site-footer__link">Interior Designers in Hyderabad</NavLink>
               <NavLink to="/contact-us" className="site-footer__link">Contact Us</NavLink>
             </div>
           </div>
