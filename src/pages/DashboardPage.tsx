@@ -1,3 +1,15 @@
+import { BudgetReviewApprovals } from "../components/approvals/BudgetReviewApprovals";
+import { useBudgetReview } from "../components/approvals/useBudgetReview";
+import { useBudgetNotifications } from "../components/approvals/useBudgetNotifications";
+import { ProformaApprovals } from "../components/approvals/ProformaApprovals";
+import { useProformaApprovals } from "../components/approvals/useProformaApprovals";
+import { useProformaNotifications } from "../components/approvals/useProformaNotifications";
+import { DesignApprovals } from "../components/approvals/DesignApprovals";
+import { useDesignApprovals } from "../components/approvals/useDesignApprovals";
+import { useDesignNotifications } from "../components/approvals/useDesignNotifications";
+import { ApprovalNavigation } from "../components/approvals/ApprovalNavigation";
+import type { ApprovalCategory } from "../components/approvals/approvalCategories";
+import { ReviewApprovals } from "../components/approvals/ReviewApprovals";
 import { SiteVisitPanel } from "../components/siteVisit/SiteVisitPanel";
 import { useSiteVisit } from "../components/siteVisit/useSiteVisit";
 import { useSiteVisitNotifications } from "../components/siteVisit/useSiteVisitNotifications";
@@ -221,6 +233,9 @@ type PortalNotification = {
   timestamp: number;
   read: boolean;
   documentUrl?: string;
+  designId?: string;
+  invoiceId?: string;
+  budgetOpportunityId?: string;
   caseId?: string;
   projectId?: string;
   projectName?: string;
@@ -2464,7 +2479,7 @@ function NotificationsTab({
                       <span>{notification.message}</span>
                       <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
                     </span>
-                    {notification.type !== "approvals" && <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true"><FiArrowRight /></span>}
+                    {(notification.type !== "approvals" || notification.designId || notification.invoiceId || notification.budgetOpportunityId) && <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true"><FiArrowRight /></span>}
                   </button>
                   {onDeleteNotification ? (
                     <button
@@ -2789,6 +2804,16 @@ export function DashboardPage() {
     logout,
     setActiveDashboardTab,
   } = useAuth();
+  const [approvalsExpanded, setApprovalsExpanded] = useState(activeDashboardTab === "approvals");
+  const [selectedApproval, setSelectedApproval] = useState<ApprovalCategory | null>(null);
+  const [highlightDesignId, setHighlightDesignId] = useState<string | null>(null);
+  const designApprovals = useDesignApprovals(authClient?.contactId || "");
+  const designHistory = useDesignNotifications(authClient?.contactId || "", designApprovals.result);
+  const [highlightInvoiceId, setHighlightInvoiceId] = useState<string | null>(null);
+  const budgetReview = useBudgetReview(authClient?.leadId || "");
+  const budgetHistory = useBudgetNotifications(authClient?.leadId || "", budgetReview.result);
+  const proformaApprovals = useProformaApprovals(authClient?.leadId || "");
+  const proformaHistory = useProformaNotifications(authClient?.leadId || "", proformaApprovals.result);
   const leadId = authClient?.leadId;
   const projectDetails = useProjectDetails(leadId);
   const needsProjectDetails = Boolean(leadId && !projectDetails.loading && projectDetails.result?.success && projectDetails.result.projectSubmitted === false);
@@ -3206,7 +3231,7 @@ export function DashboardPage() {
           : "A supervisor has been assigned to your project.",
          timestamp: supervisorHistory.reminder.timestamp, read: supervisorHistory.reminder.read }, ...approvalNotifications]
     : approvalNotifications;
-  const visibleNotifications: PortalNotification[] = [...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
+  const visibleNotifications: PortalNotification[] = [...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
   const unreadNotificationCount = visibleNotifications.filter(
     (notification) => !notification.read,
   ).length;
@@ -3222,6 +3247,32 @@ export function DashboardPage() {
   };
 
   const handleNotificationClick = (notification: PortalNotification) => {
+    if (notification.budgetOpportunityId) {
+      budgetHistory.markRead(notification.id);
+      setSelectedApproval("Budget Review Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
+    if (notification.invoiceId) {
+      proformaHistory.markRead(notification.id);
+      setHighlightInvoiceId(notification.invoiceId);
+      setSelectedApproval("Proforma Invoice Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
+    if (notification.designId) {
+      designHistory.markRead(notification.id);
+      setHighlightDesignId(notification.designId);
+      setSelectedApproval("3D Design Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
     if (notification.type === "siteVisit") { siteVisitHistory.markRead(notification.id); setIsNotificationPanelOpen(false); handleTabChange("siteVisit"); return; }
     if (notification.id === "supervisor-assigned") {
       supervisorHistory.markRead();
@@ -3272,6 +3323,9 @@ export function DashboardPage() {
   };
 
   const handleDeleteNotification = (notificationId: string) => {
+    if (notificationId.startsWith("budget-approval:")) { budgetHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("proforma-approval:")) { proformaHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("design-approval:")) { designHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("site-visit:")) { siteVisitHistory.dismiss(notificationId); return; }
     if (notificationId === "supervisor-assigned") { supervisorHistory.dismiss(); return; }
     if (notificationId === "project-details-approved") { approvalHistory.dismiss(); return; }
@@ -3289,6 +3343,9 @@ export function DashboardPage() {
   };
 
   const handleMarkAllNotificationsRead = () => {
+    budgetHistory.markAllRead();
+    proformaHistory.markAllRead();
+    designHistory.markAllRead();
     siteVisitHistory.markAllRead();
     supervisorHistory.markRead();
     approvalHistory.markRead();
@@ -3409,6 +3466,10 @@ export function DashboardPage() {
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               >
                 {desktopNavItems.map((item) => {
+                  if (item.id === "approvals") return <ApprovalNavigation key={item.id} mobile
+                    active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
+                    onToggle={() => { setApprovalsExpanded(value => !value); setActiveDashboardTab("approvals"); }}
+                    onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
                   const Icon = item.icon;
                   const isActive = activeDashboardTab === item.id;
                   const notificationBadge =
@@ -3485,6 +3546,10 @@ export function DashboardPage() {
             aria-label="Client portal sections"
           >
             {desktopNavItems.map((item) => {
+              if (item.id === "approvals") return <ApprovalNavigation key={item.id}
+                active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
+                onToggle={() => { setApprovalsExpanded(value => !value); setActiveDashboardTab("approvals"); }}
+                onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
               const Icon = item.icon;
               const isActive = activeDashboardTab === item.id;
               const notificationBadge =
@@ -3562,17 +3627,17 @@ export function DashboardPage() {
               Please fill in your project details form. <span aria-hidden="true">→</span>
             </button>
           ) : null}
-          {isLoading && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications") ? (
+          {isLoading && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications" && deferredDashboardTab !== "approvals") ? (
             <div className="dashboardState">Loading your portal...</div>
           ) : null}
-          {!isLoading && error && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications") ? (
+          {!isLoading && error && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications" && deferredDashboardTab !== "approvals") ? (
             <div className="dashboardError">{error}</div>
           ) : null}
           {!isLoading && !error && isTabPending ? (
             <div className="dashboardState">Loading section...</div>
           ) : null}
 
-          {((!isLoading && !error) || deferredDashboardTab === "projectDetails" || deferredDashboardTab === "supervisor" || deferredDashboardTab === "siteVisit" || deferredDashboardTab === "notifications") ? (
+          {((!isLoading && !error) || deferredDashboardTab === "projectDetails" || deferredDashboardTab === "supervisor" || deferredDashboardTab === "siteVisit" || deferredDashboardTab === "notifications" || deferredDashboardTab === "approvals") ? (
             <AnimatePresence mode="wait">
               <motion.div
                 key={deferredDashboardTab}
@@ -3904,7 +3969,11 @@ export function DashboardPage() {
                 ) : null}
                 {deferredDashboardTab === "siteVisit" ? <SiteVisitPanel key={leadId} leadId={leadId} visit={siteVisit} /> : null}
                   {deferredDashboardTab === "approvals" ? (
-                    <section className="dashboardSection"><div className="dashboardSection__heading"><h2 className="dashboardSection__title">Approvals</h2></div></section>
+                    <ReviewApprovals selected={selectedApproval}>
+                      {selectedApproval === "3D Design Approvals" && <DesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} state={designApprovals} highlightId={highlightDesignId} />}
+                      {selectedApproval === "Budget Review Approvals" && <BudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} />}
+                      {selectedApproval === "Proforma Invoice Approvals" && <ProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} highlightId={highlightInvoiceId} />}
+                    </ReviewApprovals>
                   ) : null}
                   {deferredDashboardTab === "status" ? (
                   <ProjectStatusTab

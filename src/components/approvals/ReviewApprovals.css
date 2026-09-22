@@ -1,0 +1,64 @@
+.approvalNavigation { min-width: 0; }
+.approvalNavigation .approvalNavigation__chevron {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  margin-left: auto;
+  transition: transform 180ms ease;
+}
+.approvalNavigation .approvalNavigation__chevron.is-expanded { transform: rotate(180deg); }
+.approvalNavigation .approvalNavigation__children {
+  display: grid;
+  gap: 0.4rem;
+  list-style: none;
+  margin: 0.7rem 0 0.8rem 1.15rem;
+  padding: 0.35rem 0 0.35rem 0.8rem;
+  border-left: 1px solid rgba(218, 179, 96, 0.22);
+}
+.approvalNavigation .approvalNavigation__children > li { margin: 0; padding: 0; min-width: 0; }
+.approvalNavigation .approvalNavigation__child {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(218, 179, 96, 0.08);
+  border-radius: 0.65rem;
+  background: rgba(255, 255, 255, 0.018);
+  color: #b8b3a9;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.45;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.approvalNavigation .approvalNavigation__child > span { min-width: 0; }
+.approvalNavigation .approvalNavigation__childIcon {
+  flex: 0 0 1rem;
+  width: 1rem;
+  height: 1rem;
+  color: #bba275;
+}
+.approvalNavigation .approvalNavigation__child:hover {
+  background: rgba(218, 179, 96, 0.07);
+  border-color: rgba(218, 179, 96, 0.22);
+  color: #f0d9ac;
+}
+.approvalNavigation .approvalNavigation__child[aria-current="page"] {
+  color: #f0d49b;
+  background: linear-gradient(110deg, rgba(182, 143, 72, 0.2), rgba(182, 143, 72, 0.06));
+  border-color: rgba(218, 179, 96, 0.36);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 #d8b779;
+}
+.approvalNavigation .approvalNavigation__child[aria-current="page"] .approvalNavigation__childIcon { color: #e6c68c; }
+.approvalNavigation .approvalNavigation__child:focus-visible { outline: 2px solid #efcf86; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .approvalNavigation .approvalNavigation__child,
+  .approvalNavigation .approvalNavigation__chevron { transition: none; }
+}

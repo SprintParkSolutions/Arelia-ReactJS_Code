@@ -16,7 +16,7 @@ export const dashboardTabs: { id: DashboardTabId; label: string }[] = [
   { id: 'projectDetails', label: 'Project Details' },
   { id: 'supervisor', label: 'Supervisor Information' },
   { id: 'siteVisit', label: 'Site Visit Appointment & Report' },
-  { id: 'approvals', label: 'Approvals' },
+  { id: 'approvals', label: 'Review & Approvals' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'status', label: 'Project Status' },
   { id: 'vendor', label: 'Vendor Tasks' },

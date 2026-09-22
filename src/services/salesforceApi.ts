@@ -1096,6 +1096,7 @@ export async function loginProspect(email: string, password: string): Promise<Lo
       success: response.ok && data?.success === true && Boolean(leadId),
       message: asString(data?.message) || 'Unable to sign in.',
       leadId,
+      contactId: response.ok && data?.success === true ? asString(data?.contactId) : undefined,
       name: asString(data?.fullName),
       email: asString(data?.email),
       phone: asString(data?.phone),
