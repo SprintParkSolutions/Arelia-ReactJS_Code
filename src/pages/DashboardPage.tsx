@@ -3489,7 +3489,7 @@ export function DashboardPage() {
                 {desktopNavItems.map((item) => {
                   if (item.id === "approvals") return <ApprovalNavigation key={item.id} mobile
                     active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
-                    onToggle={() => { setApprovalsExpanded(value => !value); setActiveDashboardTab("approvals"); }}
+                    onToggle={() => setApprovalsExpanded(value => !value)}
                     onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
                   const Icon = item.icon;
                   const isActive = activeDashboardTab === item.id;
@@ -3569,7 +3569,7 @@ export function DashboardPage() {
             {desktopNavItems.map((item) => {
               if (item.id === "approvals") return <ApprovalNavigation key={item.id}
                 active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
-                onToggle={() => { setApprovalsExpanded(value => !value); setActiveDashboardTab("approvals"); }}
+                onToggle={() => setApprovalsExpanded(value => !value)}
                 onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
               const Icon = item.icon;
               const isActive = activeDashboardTab === item.id;
