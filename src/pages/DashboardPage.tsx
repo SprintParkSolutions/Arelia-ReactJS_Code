@@ -1,3 +1,6 @@
+import { PaymentTermsApprovals } from "../components/approvals/PaymentTermsApprovals";
+import { usePaymentReview } from "../components/approvals/usePaymentReview";
+import { usePaymentNotifications } from "../components/approvals/usePaymentNotifications";
 import { BudgetReviewApprovals } from "../components/approvals/BudgetReviewApprovals";
 import { useBudgetReview } from "../components/approvals/useBudgetReview";
 import { useBudgetNotifications } from "../components/approvals/useBudgetNotifications";
@@ -236,6 +239,7 @@ type PortalNotification = {
   designId?: string;
   invoiceId?: string;
   budgetOpportunityId?: string;
+  paymentOpportunityId?: string;
   caseId?: string;
   projectId?: string;
   projectName?: string;
@@ -2479,7 +2483,7 @@ function NotificationsTab({
                       <span>{notification.message}</span>
                       <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
                     </span>
-                    {(notification.type !== "approvals" || notification.designId || notification.invoiceId || notification.budgetOpportunityId) && <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true"><FiArrowRight /></span>}
+                    {(notification.type !== "approvals" || notification.designId || notification.invoiceId || notification.budgetOpportunityId || notification.paymentOpportunityId) && <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true"><FiArrowRight /></span>}
                   </button>
                   {onDeleteNotification ? (
                     <button
@@ -2810,6 +2814,8 @@ export function DashboardPage() {
   const designApprovals = useDesignApprovals(authClient?.contactId || "");
   const designHistory = useDesignNotifications(authClient?.contactId || "", designApprovals.result);
   const [highlightInvoiceId, setHighlightInvoiceId] = useState<string | null>(null);
+  const paymentReview = usePaymentReview(authClient?.leadId || "");
+  const paymentHistory = usePaymentNotifications(authClient?.leadId || "", paymentReview.result);
   const budgetReview = useBudgetReview(authClient?.leadId || "");
   const budgetHistory = useBudgetNotifications(authClient?.leadId || "", budgetReview.result);
   const proformaApprovals = useProformaApprovals(authClient?.leadId || "");
@@ -3231,7 +3237,7 @@ export function DashboardPage() {
           : "A supervisor has been assigned to your project.",
          timestamp: supervisorHistory.reminder.timestamp, read: supervisorHistory.reminder.read }, ...approvalNotifications]
     : approvalNotifications;
-  const visibleNotifications: PortalNotification[] = [...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
+  const visibleNotifications: PortalNotification[] = [...paymentHistory.notifications, ...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
   const unreadNotificationCount = visibleNotifications.filter(
     (notification) => !notification.read,
   ).length;
@@ -3247,6 +3253,14 @@ export function DashboardPage() {
   };
 
   const handleNotificationClick = (notification: PortalNotification) => {
+    if (notification.paymentOpportunityId) {
+      paymentHistory.markRead(notification.id);
+      setSelectedApproval("Payment Terms Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
     if (notification.budgetOpportunityId) {
       budgetHistory.markRead(notification.id);
       setSelectedApproval("Budget Review Approvals");
@@ -3323,6 +3337,7 @@ export function DashboardPage() {
   };
 
   const handleDeleteNotification = (notificationId: string) => {
+    if (notificationId.startsWith("payment-approval:")) { paymentHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("budget-approval:")) { budgetHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("proforma-approval:")) { proformaHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("design-approval:")) { designHistory.dismiss(notificationId); return; }
@@ -3343,6 +3358,7 @@ export function DashboardPage() {
   };
 
   const handleMarkAllNotificationsRead = () => {
+    paymentHistory.markAllRead();
     budgetHistory.markAllRead();
     proformaHistory.markAllRead();
     designHistory.markAllRead();
@@ -3971,6 +3987,7 @@ export function DashboardPage() {
                   {deferredDashboardTab === "approvals" ? (
                     <ReviewApprovals selected={selectedApproval}>
                       {selectedApproval === "3D Design Approvals" && <DesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} state={designApprovals} highlightId={highlightDesignId} />}
+                      {selectedApproval === "Payment Terms Approvals" && <PaymentTermsApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} />}
                       {selectedApproval === "Budget Review Approvals" && <BudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} />}
                       {selectedApproval === "Proforma Invoice Approvals" && <ProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} highlightId={highlightInvoiceId} />}
                     </ReviewApprovals>
