@@ -1,3 +1,4 @@
+import { useAgreementNotifications } from "../components/approvals/useAgreementNotifications";
 import { PaymentTermsApprovals } from "../components/approvals/PaymentTermsApprovals";
 import { usePaymentReview } from "../components/approvals/usePaymentReview";
 import { usePaymentNotifications } from "../components/approvals/usePaymentNotifications";
@@ -2814,6 +2815,7 @@ export function DashboardPage() {
   const designApprovals = useDesignApprovals(authClient?.contactId || "");
   const designHistory = useDesignNotifications(authClient?.contactId || "", designApprovals.result);
   const [highlightInvoiceId, setHighlightInvoiceId] = useState<string | null>(null);
+  const agreementHistory = useAgreementNotifications(authClient?.leadId || "");
   const paymentReview = usePaymentReview(authClient?.leadId || "");
   const paymentHistory = usePaymentNotifications(authClient?.leadId || "", paymentReview.result);
   const budgetReview = useBudgetReview(authClient?.leadId || "");
@@ -3237,7 +3239,7 @@ export function DashboardPage() {
           : "A supervisor has been assigned to your project.",
          timestamp: supervisorHistory.reminder.timestamp, read: supervisorHistory.reminder.read }, ...approvalNotifications]
     : approvalNotifications;
-  const visibleNotifications: PortalNotification[] = [...paymentHistory.notifications, ...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
+  const visibleNotifications: PortalNotification[] = [...agreementHistory.notifications, ...paymentHistory.notifications, ...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
   const unreadNotificationCount = visibleNotifications.filter(
     (notification) => !notification.read,
   ).length;
@@ -3253,6 +3255,7 @@ export function DashboardPage() {
   };
 
   const handleNotificationClick = (notification: PortalNotification) => {
+    if (notification.id.startsWith("client-agreement:")) { agreementHistory.markRead(notification.id); setIsNotificationPanelOpen(false); return; }
     if (notification.paymentOpportunityId) {
       paymentHistory.markRead(notification.id);
       setSelectedApproval("Payment Terms Approvals");
@@ -3337,6 +3340,7 @@ export function DashboardPage() {
   };
 
   const handleDeleteNotification = (notificationId: string) => {
+    if (notificationId.startsWith("client-agreement:")) { agreementHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("payment-approval:")) { paymentHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("budget-approval:")) { budgetHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("proforma-approval:")) { proformaHistory.dismiss(notificationId); return; }
@@ -3358,6 +3362,7 @@ export function DashboardPage() {
   };
 
   const handleMarkAllNotificationsRead = () => {
+    agreementHistory.markAllRead();
     paymentHistory.markAllRead();
     budgetHistory.markAllRead();
     proformaHistory.markAllRead();
