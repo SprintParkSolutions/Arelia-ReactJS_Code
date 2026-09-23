@@ -17,7 +17,7 @@ try {
       document.getElementById('root').innerHTML = renderPage(route);
       // Make animation entry states readable before JS mounts the live app.
       document.querySelectorAll('#root [style]').forEach((element) => {
-        if (element.style.opacity === '0') {
+        if (element.style.opacity === '0' && !element.closest('.loader')) {
           element.style.opacity = '1';
           element.style.removeProperty('transform');
           element.style.removeProperty('filter');

@@ -51,9 +51,8 @@ function ScrollToTop() {
 }
 
 export default function App() {
-  const [isLoading, setIsLoading] = useState(
-    () => typeof window !== 'undefined',
-  )
+  // Include the loader in prerendered HTML as well as the first browser render.
+  const [isLoading, setIsLoading] = useState(true)
 
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
   const openConsultation = useCallback(() => setIsConsultationOpen(true), [])
@@ -75,9 +74,9 @@ export default function App() {
     trackPageView(location.pathname)
   }, [location.pathname])
 
-  const handleLoaderComplete = () => {
+  const handleLoaderComplete = useCallback(() => {
     setIsLoading(false)
-  }
+  }, [])
 
   return (
     <>

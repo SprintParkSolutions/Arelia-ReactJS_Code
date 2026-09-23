@@ -20,6 +20,8 @@ for (const url of urls) {
   assert.ok(!titles.has(doc.title), `Duplicate title: ${doc.title}`);
   titles.add(doc.title);
   assert.ok(doc.querySelector('#root h1'), `Missing prerendered heading: ${url}`);
+  assert.equal(doc.querySelectorAll('#root > .loader--boot').length, 1, `Missing first-paint loader: ${url}`);
+  assert.ok(doc.querySelector('noscript')?.textContent.includes('.loader'), `Missing no-JavaScript loader fallback: ${url}`);
   assert.ok(doc.querySelector('#root').textContent.length > 300, `Missing content: ${url}`);
   if (/^\/services\/(residential|commercial|hospitality)\/$/.test(pathname)) {
     const category = pathname.split('/')[2];
@@ -46,7 +48,9 @@ for (const url of urls) {
   const business = JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent);
   assert.equal(business['@type'], 'LocalBusiness');
   assert.equal(business.url, 'https://areliaspace.com/');
-  assert.ok(!doc.querySelector('#root [style*="opacity: 0;"]'), `Hidden entry state: ${url}`);
+  assert.ok(![...doc.querySelectorAll('#root [style]')].some((element) =>
+    element.style.opacity === '0' && !element.closest('.loader')
+  ), `Hidden entry state: ${url}`);
   for (const image of doc.querySelectorAll('img[src^="/"]')) {
     await readFile(`dist${decodeURIComponent(image.getAttribute('src'))}`);
   }
@@ -54,6 +58,7 @@ for (const url of urls) {
 }
 for (const file of ['login/index.html', 'dashboard/index.html', '404.html']) {
   const dom = new JSDOM(await readFile(`dist/${file}`, 'utf8'));
+  assert.equal(dom.window.document.querySelectorAll('#root > .loader--boot').length, 1, `Missing first-paint loader: ${file}`);
   assert.equal(dom.window.document.querySelector('meta[name="robots"]').content, 'noindex, follow');
   assert.equal(dom.window.document.querySelector('link[rel="canonical"]'), null);
   dom.window.close();
