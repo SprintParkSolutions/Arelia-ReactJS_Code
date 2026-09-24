@@ -1,0 +1,36 @@
+.projectStagePath {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: clamp(1.5rem, 3vw, 2.5rem) 0 2rem;
+  padding: 2rem 1rem;
+  border: 1px solid rgba(218, 179, 96, 0.16);
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(218, 179, 96, 0.055), rgba(18, 18, 18, 0.6));
+}
+.projectStagePath__step { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.projectStagePath__connector { position: absolute; top: 25px; height: 2px; right: calc(50% + 34px); width: calc(100% - 68px); background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.projectStagePath__connector > span { display: block; width: 100%; height: 100%; transform-origin: left; background: linear-gradient(90deg, #96743a, #edcb88); }
+.projectStagePath__icon { position: relative; display: grid; place-items: center; width: 52px; height: 52px; box-sizing: border-box; border: 1px solid #45413a; border-radius: 50%; background: #191919; color: #96928a; transition: background 400ms, border-color 400ms, color 400ms; }
+.projectStagePath__icon svg { width: 21px; height: 21px; }
+.projectStagePath__label { margin-top: 16px; padding: 0 6px; color: #a9a69f; font-size: 0.95rem; font-weight: 600; line-height: 1.4; }
+.projectStagePath__state { margin-top: 6px; color: #97938b; font-size: 0.75rem; letter-spacing: 0.03em; }
+.projectStagePath__step.is-done .projectStagePath__icon { background: #29251c; border-color: #8b713f; color: #e6c68c; }
+.projectStagePath__step.is-done .projectStagePath__label { color: #d3c3a4; }
+.projectStagePath__step.is-active .projectStagePath__icon { background: linear-gradient(135deg, #f1d399, #bd9144); color: #211b11; border-color: #f1d399; box-shadow: 0 0 0 6px rgba(218, 179, 96, 0.09); }
+.projectStagePath__step.is-active .projectStagePath__icon::after { content: ''; position: absolute; inset: -7px; border: 1px solid rgba(230, 198, 140, 0.45); border-radius: 50%; animation: projectStagePulse 2.8s ease-out 3; }
+.projectStagePath__step.is-active .projectStagePath__label { color: #f0d49e; }
+.projectStagePath__step.is-active .projectStagePath__state { color: #dfbc7d; }
+@keyframes projectStagePulse { from { transform: scale(0.95); opacity: 0.7; } to { transform: scale(1.3); opacity: 0; } }
+@media (max-width: 540px) {
+  .projectStagePath { padding: 1.5rem 0.4rem; border-radius: 16px; }
+  .projectStagePath__icon { width: 42px; height: 42px; }
+  .projectStagePath__icon svg { width: 18px; height: 18px; }
+  .projectStagePath__connector { top: 20px; right: calc(50% + 28px); width: calc(100% - 56px); }
+  .projectStagePath__label { font-size: 0.8rem; }
+  .projectStagePath__state { font-size: 0.65rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .projectStagePath__icon { transition: none; }
+  .projectStagePath__step.is-active .projectStagePath__icon::after { animation: none; }
+}

@@ -1,3 +1,5 @@
+import { ProjectStagePath } from "../components/ProjectStagePath";
+import { ProjectTrackingNavigation } from "../components/ProjectTrackingNavigation";
 import { useAgreementNotifications } from "../components/approvals/useAgreementNotifications";
 import { PaymentTermsApprovals } from "../components/approvals/PaymentTermsApprovals";
 import { usePaymentReview } from "../components/approvals/usePaymentReview";
@@ -64,7 +66,7 @@ import { SupervisorInformation } from "../components/projectDetails/SupervisorIn
 import { useApprovalStatus } from "../components/projectDetails/useApprovalStatus";
 import { useProjectReminder } from "../components/projectDetails/useProjectReminder";
 import { useProjectDetails } from "../components/projectDetails/useProjectDetails";
-import { dashboardTabs } from "../constants/dashboardTabs";
+import { dashboardTabs, isProjectTrackingTab } from "../constants/dashboardTabs";
 import { useAuth } from "../context/AuthContext";
 import {
   createSupportCase,
@@ -112,23 +114,6 @@ function getInitials(fullName?: string | null) {
   const parts = fullName?.trim().split(/\s+/).filter(Boolean) || [];
   if (!parts.length) return "?";
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
-}
-
-const projectPhases = [
-  { id: "design", label: "Design & Planning", threshold: 0 },
-  { id: "procurement", label: "Procurement", threshold: 20 },
-  { id: "execution", label: "Execution", threshold: 45 },
-  { id: "audit", label: "Quality Audit", threshold: 85 },
-  { id: "handover", label: "Handover", threshold: 98 },
-] as const;
-
-// Maps a completion percentage to the current step in the project phase timeline.
-function getActivePhaseIndex(completion: number) {
-  let activeIndex = 0;
-  projectPhases.forEach((phase, index) => {
-    if (completion >= phase.threshold) activeIndex = index;
-  });
-  return activeIndex;
 }
 
 // Formats a 1-based position as an ordinal string (1st, 2nd, 3rd, 4th, ...).
@@ -1094,7 +1079,6 @@ function ProjectStatusTab({
     return <GlassEmptyState message="No active project status found." />;
 
   const completion = Math.round(statusData.completionPercentage || 0);
-  const activePhaseIndex = getActivePhaseIndex(completion);
   const totalProjectDays = getTotalProjectDays(
     statusData.startDate,
     statusData.endDate,
@@ -1121,30 +1105,7 @@ function ProjectStatusTab({
         </span>
       </div>
 
-      <div className="dashboardPhaseTimeline">
-        {projectPhases.map((phase, index) => {
-          const state =
-            index < activePhaseIndex
-              ? "done"
-              : index === activePhaseIndex
-                ? "active"
-                : "upcoming";
-          return (
-            <div
-              key={phase.id}
-              className={`dashboardPhaseTimeline__step is-${state}`}
-            >
-              <span
-                className="dashboardPhaseTimeline__dot"
-                aria-hidden="true"
-              />
-              <span className="dashboardPhaseTimeline__label">
-                {phase.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      <ProjectStagePath status={statusData.projectStatus} />
 
       <div className="dashboardStatusLayout dashboardStatusLayout--metrics">
         <motion.article
@@ -2809,6 +2770,7 @@ export function DashboardPage() {
     logout,
     setActiveDashboardTab,
   } = useAuth();
+  const [trackingExpanded, setTrackingExpanded] = useState(isProjectTrackingTab(activeDashboardTab));
   const [approvalsExpanded, setApprovalsExpanded] = useState(activeDashboardTab === "approvals");
   const [selectedApproval, setSelectedApproval] = useState<ApprovalCategory | null>(null);
   const [highlightDesignId, setHighlightDesignId] = useState<string | null>(null);
@@ -3248,6 +3210,7 @@ export function DashboardPage() {
   );
 
   const handleTabChange = (tabId: (typeof desktopNavItems)[number]["id"]) => {
+    if (isProjectTrackingTab(tabId)) setTrackingExpanded(true);
     startTabTransition(() => {
       setActiveDashboardTab(tabId);
     });
@@ -3487,6 +3450,10 @@ export function DashboardPage() {
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               >
                 {desktopNavItems.map((item) => {
+                  if (item.id === "status") return <ProjectTrackingNavigation key="projectTracking" mobile
+                    activeTab={activeDashboardTab} expanded={trackingExpanded}
+                    onToggle={() => setTrackingExpanded(value => !value)} onSelect={handleTabChange} />;
+                  if (isProjectTrackingTab(item.id)) return null;
                   if (item.id === "approvals") return <ApprovalNavigation key={item.id} mobile
                     active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
                     onToggle={() => setApprovalsExpanded(value => !value)}
@@ -3567,6 +3534,10 @@ export function DashboardPage() {
             aria-label="Client portal sections"
           >
             {desktopNavItems.map((item) => {
+              if (item.id === "status") return <ProjectTrackingNavigation key="projectTracking"
+                activeTab={activeDashboardTab} expanded={trackingExpanded}
+                onToggle={() => setTrackingExpanded(value => !value)} onSelect={handleTabChange} />;
+              if (isProjectTrackingTab(item.id)) return null;
               if (item.id === "approvals") return <ApprovalNavigation key={item.id}
                 active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
                 onToggle={() => setApprovalsExpanded(value => !value)}

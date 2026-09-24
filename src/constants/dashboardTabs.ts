@@ -24,3 +24,6 @@ export const dashboardTabs: { id: DashboardTabId; label: string }[] = [
   { id: 'documents', label: 'Documents & Reports' },
   { id: 'cases', label: 'Support Cases' },
 ]
+export function isProjectTrackingTab(tab: DashboardTabId) {
+  return ['status', 'vendor', 'payment', 'documents'].includes(tab)
+}
