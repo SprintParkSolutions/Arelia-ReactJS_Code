@@ -1,10 +1,11 @@
 import { BASE_URL, SITE_PATH, asRecord, asString, parseResponse } from './salesforceApi'
 export const BUDGET_SENT = 'Sent for Client Approval'
 export type BudgetReview = {
+  leadId?: string;
   opportunityId: string; opportunityName: string; status: string; customerBudget: number | null;
   supervisorBudget: number | null; estimatedDuration: string; clientRemarks: string; canRespond: boolean;
 }
-export type BudgetResult = { success: boolean; message: string; budget: BudgetReview | null }
+export type BudgetResult = { success: boolean; message: string; budget: BudgetReview | null; projects?: { id: string; result: BudgetResult }[] }
 export type BudgetDecision = 'Client Approved' | 'Client Requested Changes'
 const root = () => `${BASE_URL}${SITE_PATH}/services/apexrest/registration/lead/budget-review/`
 const amount = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : null
@@ -26,7 +27,7 @@ export async function getBudgetReview(leadId: string): Promise<BudgetResult> {
     const b = asRecord(data.budget)
     if (!asString(b?.opportunityId) || !asString(b?.status)) return { success: false, message: 'Invalid Budget Review response.', budget: null }
     if (b?.status === 'Not Sent') return { success: true, message: '', budget: null }
-    return { success: true, message: '', budget: {
+    return { success: true, message: '', budget: { leadId,
       opportunityId: asString(b?.opportunityId)!, opportunityName: asString(b?.opportunityName) || 'Project',
       status: asString(b?.status)!, customerBudget: amount(b?.customerBudget),
       supervisorBudget: amount(b?.finalBudget),
@@ -40,7 +41,7 @@ export async function submitBudgetDecision(leadId: string, budget: BudgetReview,
   if (!leadId || !budget.opportunityId) return { success: false, message: 'Budget Review access is unavailable.' }
   if (status === 'Client Requested Changes' && !comments.trim()) return { success: false, message: 'Please describe the changes you need.' }
   try {
-    const { response, data, message } = await request('', { leadId, opportunityId: budget.opportunityId,
+    const { response, data, message } = await request('', { leadId: budget.leadId || leadId, opportunityId: budget.opportunityId,
       action: status === 'Client Approved' ? 'APPROVE' : 'REQUEST_CHANGES', comments: comments.trim() })
     return { success: response.ok && data?.success === true && data.opportunityId === budget.opportunityId && data.status === status,
       message, conflict: response.status === 409 }

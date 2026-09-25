@@ -8,6 +8,11 @@ function mock(payload: unknown, status = 200) {
   vi.stubGlobal('fetch', fetcher); return fetcher
 }
 describe('design approval API', () => {
+  it('preserves projects without designs for navigation', async () => {
+    const projects = [{ id: 'opp1', name: 'Home' }, { id: 'opp2', name: 'Office' }]
+    mock({ success: true, data: { designs: [design], projects } })
+    expect((await getDesignApprovals('contact1')).projects).toEqual(projects)
+  })
   it('loads sent designs and hides drafts', async () => {
     const fetcher = mock({ success: true, data: { designs: [design, { ...design, designId: 'draft', status: 'Draft' }] } })
     expect((await getDesignApprovals('contact1')).designs).toEqual([design])

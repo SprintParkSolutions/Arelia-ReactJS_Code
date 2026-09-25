@@ -79,4 +79,11 @@ private class ProspectProformaInvoiceMobileControllerTest {
         System.assertEquals(1,invoices.size());
         System.assertEquals(String.valueOf(record.Id),((Map<String,Object>)invoices[0]).get('invoiceId'));
     }
+    @IsTest static void approvalDefaultsBlankComments() {
+        Lead lead = client();
+        Proforma_Invoice__c record = invoice(lead);
+        respond(lead, record, 'APPROVE', '   ', record.Secure_Token__c);
+        System.assertEquals(200, RestContext.response.statusCode);
+        System.assertEquals('Approved By Client', [SELECT Client_Comments__c FROM Proforma_Invoice__c WHERE Id = :record.Id].Client_Comments__c);
+    }
 }

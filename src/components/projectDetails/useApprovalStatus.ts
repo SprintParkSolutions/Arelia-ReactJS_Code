@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { requestProjectDetails, type ProjectDetailsResult } from '../../services/projectDetailsApi'
 
-export function useApprovalStatus(leadId?: string) {
-  const [observed, setObserved] = useState<{ leadId: string; status: ProjectDetailsResult['approvalStatus'] } | null>(null)
+export function useApprovalProjects(leadId?: string) {
+  const [observed, setObserved] = useState<{ leadId: string; result: ProjectDetailsResult } | null>(null)
   useEffect(() => {
     if (!leadId) return
     let active = true
@@ -12,8 +12,8 @@ export function useApprovalStatus(leadId?: string) {
       pending = true
       try {
         const response = await requestProjectDetails(leadId!)
-        if (active && response.success && response.approvalStatus) {
-          setObserved({ leadId: leadId!, status: response.approvalStatus })
+        if (active && response.success) {
+          setObserved({ leadId: leadId!, result: response })
         }
       } finally { pending = false }
     }
@@ -29,5 +29,8 @@ export function useApprovalStatus(leadId?: string) {
       document.removeEventListener('visibilitychange', onVisible)
     }
   }, [leadId])
-  return observed?.leadId === leadId ? observed?.status : undefined
+  return observed?.leadId === leadId ? observed?.result : undefined
+}
+export function useApprovalStatus(leadId?: string) {
+  return useApprovalProjects(leadId)?.approvalStatus
 }

@@ -73,7 +73,7 @@ global without sharing class ArchitectureDesignSiteNotificationApi {
 
         writeJson(200, new Map<String, Object>{
             'success' => true,
-            'data' => new Map<String, Object>{ 'designs' => items }
+            'data' => new Map<String, Object>{ 'designs' => items, 'projects' => projectItems(ownedOpportunities) }
         });
     }
 
@@ -227,19 +227,30 @@ global without sharing class ArchitectureDesignSiteNotificationApi {
         if (contacts.isEmpty()) return new List<Opportunity>();
         // Verify an actual relationship rather than trusting matching email text.
         Set<Id> convertedOpportunityIds = new Set<Id>();
+        Set<String> accountKeys = new Set<String>();
         for (Lead source : [
-            SELECT ConvertedOpportunityId FROM Lead
+            SELECT Id, Portal_Account_Key__c, ConvertedOpportunityId FROM Lead
             WHERE IsConverted = true AND ConvertedContactId = :contactId
         ]) {
+            accountKeys.add(String.isBlank(source.Portal_Account_Key__c) ? String.valueOf(source.Id) : source.Portal_Account_Key__c);
             if (source.ConvertedOpportunityId != null) convertedOpportunityIds.add(source.ConvertedOpportunityId);
+        }
+        for (Lead linked : [SELECT ConvertedOpportunityId FROM Lead
+            WHERE IsConverted = true AND (Id IN :accountKeys OR Portal_Account_Key__c IN :accountKeys)]) {
+            if (linked.ConvertedOpportunityId != null) convertedOpportunityIds.add(linked.ConvertedOpportunityId);
         }
         if (opportunityId == null) {
             return [SELECT Id, Name FROM Opportunity
-                WHERE Primary_Contact__c = :contactId OR Id IN :convertedOpportunityIds];
+                WHERE Primary_Contact__c = :contactId OR Id IN :convertedOpportunityIds ORDER BY CreatedDate ASC, Id ASC];
         }
         return [SELECT Id, Name FROM Opportunity
             WHERE Id = :opportunityId
             AND (Primary_Contact__c = :contactId OR Id IN :convertedOpportunityIds)];
+    }
+    private static List<Object> projectItems(List<Opportunity> projects) {
+        List<Object> items = new List<Object>();
+        for (Opportunity project : projects) items.add(new Map<String, Object>{ 'id' => project.Id, 'name' => project.Name });
+        return items;
     }
     private static Id parseId(String value) {
         if (String.isBlank(value)) return null;

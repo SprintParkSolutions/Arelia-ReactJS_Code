@@ -446,11 +446,9 @@ global without sharing class ProspectProformaInvoiceMobileController {
                     STATUS_APPROVED;
 
 
-                if (!String.isBlank(comments)) {
-
-                    invoice.Client_Comments__c =
-                        comments.trim();
-                }
+                invoice.Client_Comments__c = String.isBlank(comments)
+                    ? 'Approved By Client'
+                    : comments.trim();
             }
 
 

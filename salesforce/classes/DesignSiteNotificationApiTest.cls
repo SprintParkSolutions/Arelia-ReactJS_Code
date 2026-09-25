@@ -1,5 +1,5 @@
 @IsTest
-private class ArchitectureDesignSiteNotificationApiTest {
+private class DesignSiteNotificationApiTest {
     private static Architecture_Design__c fixture() {
         Contact client = new Contact(LastName = 'Design Client', Email = 'design-client@example.com');
         insert client;
@@ -92,5 +92,42 @@ private class ArchitectureDesignSiteNotificationApiTest {
         getFile(design, stranger.Id, linked.Id);
         System.assertEquals(404, RestContext.response.statusCode);
         Test.stopTest();
+    }
+    @IsTest static void linkedConvertedProjectsAreAvailableAcrossContacts() {
+        Lead first = new Lead(LastName = 'First Project', Company = 'First Company', Email = 'first-project@example.com',
+            Project_Request_Submitted__c = true, Site_Visit_Manager_Approval__c = true, Approval_Status__c = 'Approved');
+        insert first;
+        Lead second = new Lead(LastName = 'Second Project', Company = 'Second Company', Email = 'second-project@example.com',
+            Portal_Account_Key__c = String.valueOf(first.Id), Project_Request_Submitted__c = true,
+            Site_Visit_Manager_Approval__c = true, Approval_Status__c = 'Approved');
+        insert second;
+        String convertedStatus = [SELECT MasterLabel FROM LeadStatus WHERE IsConverted = true LIMIT 1].MasterLabel;
+        List<Database.LeadConvertResult> converted = new List<Database.LeadConvertResult>();
+        for (Lead source : new List<Lead>{ first, second }) {
+            Database.LeadConvert conversion = new Database.LeadConvert();
+            conversion.setLeadId(source.Id);
+            conversion.setOwnerId(UserInfo.getUserId());
+            conversion.setConvertedStatus(convertedStatus);
+            converted.add(Database.convertLead(conversion));
+        }
+        Architecture_Design__c design = new Architecture_Design__c(Opportunity__c = converted[1].getOpportunityId(), Status__c = 'Sent');
+        if (!Architecture_Design__c.Name.getDescribe().isAutoNumber()) design.put('Name', 'Second project design');
+        insert design;
+        RestContext.request = new RestRequest();
+        RestContext.response = new RestResponse();
+        RestContext.request.requestURI = '/services/apexrest/registration/opportunity/design-notification-approvals/';
+        RestContext.request.addParameter('contactId', String.valueOf(converted[0].getContactId()));
+        ArchitectureDesignSiteNotificationApi.getApprovals();
+        System.assertEquals(200, RestContext.response.statusCode);
+        Map<String, Object> body = (Map<String, Object>)JSON.deserializeUntyped(RestContext.response.responseBody.toString());
+        Map<String, Object> data = (Map<String, Object>)body.get('data');
+        System.assertEquals(2, ((List<Object>)data.get('projects')).size());
+        System.assertEquals(1, ((List<Object>)data.get('designs')).size());
+        Contact unrelated = new Contact(LastName = 'Unrelated');
+        insert unrelated;
+        post(design, unrelated.Id, 'Approved', '');
+        System.assertEquals(404, RestContext.response.statusCode);
+        post(design, converted[0].getContactId(), 'Approved', '');
+        System.assertEquals(200, RestContext.response.statusCode);
     }
 }

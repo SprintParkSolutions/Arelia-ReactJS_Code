@@ -22,8 +22,11 @@ export function useBudgetNotifications(leadId: string, result: BudgetResult | nu
   const entries = useMemo(() => parse(raw), [raw])
   useEffect(() => {
     if (!key || !result?.success) return
+    const results = result.projects?.map(project => project.result) || [result]
+    results.forEach(projectResult => {
+      if (!projectResult.success) return
     const saved = parse(read(key))
-    const budget = result.budget
+    const budget = projectResult.budget
     if (!budget) return
     const trackerKey = key + ':status:' + budget.opportunityId
     let previous: { status: string; id: string } | null = null
@@ -55,6 +58,7 @@ export function useBudgetNotifications(leadId: string, result: BudgetResult | nu
       message: `Budget Review for ${budget.opportunityName} is ready for your review and approval.`,
       timestamp: Date.now(), read: false, dismissed: false,
     }, ...saved])
+    })
   }, [key, result])
   function update(id?: string, dismiss = false) {
     if (key) write(key, parse(read(key)).map(n => !id || n.id === id ? { ...n, read: true, dismissed: n.dismissed || dismiss } : n))

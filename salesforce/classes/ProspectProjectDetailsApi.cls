@@ -5,6 +5,7 @@ global without sharing class ProspectProjectDetailsApi {
         public Boolean success;
         public String message;
         public Id leadId;
+        public List<ProjectDetailsResponse> projects;
 
         public Boolean projectSubmitted;
         public String approvalStatus;
@@ -54,7 +55,7 @@ global without sharing class ProspectProjectDetailsApi {
                 response.message = 'Invalid Salesforce Lead ID.';
                 return response;
             }
-            List<Lead> leadRecords = [SELECT Id,FirstName, LastName, Email, Phone, Site_Space__c,
+            List<Lead> leadRecords = [SELECT Id, Portal_Account_Key__c, FirstName, LastName, Email, Phone, Site_Space__c,
                         Type_Of_Project__c, Project_Scope__c, Plan_Level__c, Customer_Budget__c, Site_Location__c,
                         Project_Description__c, Approval_Status__c, Project_Request_Submitted__c FROM Lead WHERE Id = :leadId LIMIT 1 ];
             
@@ -81,6 +82,29 @@ global without sharing class ProspectProjectDetailsApi {
             response.siteLocation = leadRecord.Site_Location__c;
             response.projectDescription = leadRecord.Project_Description__c;
             
+            String accountKey = String.isBlank(leadRecord.Portal_Account_Key__c)
+                ? String.valueOf(leadRecord.Id) : leadRecord.Portal_Account_Key__c;
+            response.projects = new List<ProjectDetailsResponse>();
+            for (Lead project : [SELECT Id, Site_Space__c, Type_Of_Project__c, Project_Scope__c,
+                Plan_Level__c, Customer_Budget__c, Site_Location__c, Project_Description__c,
+                Project_Request_Submitted__c, Approval_Status__c FROM Lead
+                WHERE Id = :accountKey OR Portal_Account_Key__c = :accountKey
+                ORDER BY CreatedDate ASC, Id ASC]) {
+                ProjectDetailsResponse item = new ProjectDetailsResponse();
+                item.success = true;
+                item.leadId = project.Id;
+                item.projectSubmitted = project.Project_Request_Submitted__c == true;
+                item.approvalStatus = project.Approval_Status__c;
+                item.siteSpace = project.Site_Space__c == null ? null : String.valueOf(project.Site_Space__c);
+                item.typeOfProject = project.Type_Of_Project__c;
+                item.projectScope = project.Project_Scope__c;
+                item.planLevel = project.Plan_Level__c;
+                item.customerBudget = project.Customer_Budget__c == null ? null : String.valueOf(project.Customer_Budget__c);
+                item.siteLocation = project.Site_Location__c;
+                item.projectDescription = project.Project_Description__c;
+                response.projects.add(item);
+            }
+
             if (response.projectSubmitted) {
                 response.message = 'Submitted project details loaded successfully.';
             } else {
@@ -103,7 +127,7 @@ global without sharing class ProspectProjectDetailsApi {
     }
 
     /*
-     * Submits project details only once.
+     * Submits each project once; createNewProject inserts a separate linked Lead.
      */
     @HttpPost
     global static ProjectDetailsResponse updateProjectDetails() {
@@ -122,6 +146,7 @@ global without sharing class ProspectProjectDetailsApi {
             }
 
             Map<String, Object> requestData = (Map<String, Object>) JSON.deserializeUntyped( requestBody );
+            Boolean createNewProject = requestData.get('createNewProject') == true;
             String leadIdValue = getStringValue( requestData, 'leadId');
             if (String.isBlank(leadIdValue)) {
                 RestContext.response.statusCode = 400;
@@ -202,7 +227,9 @@ global without sharing class ProspectProjectDetailsApi {
                 return response;
             }
 
-            List<Lead> leadRecords = [SELECT Id, Project_Request_Submitted__c FROM Lead WHERE Id = :leadId LIMIT 1];
+            List<Lead> leadRecords = [SELECT Id, FirstName, LastName, Company, Email, Phone,
+                Enter_Password__c, Confirm_password__c, IsConverted, ConvertedContactId,
+                Portal_Account_Key__c, Project_Request_Submitted__c FROM Lead WHERE Id = :leadId LIMIT 1 FOR UPDATE];
 
             if (leadRecords.isEmpty()) {
                 RestContext.response.statusCode = 404;
@@ -216,7 +243,7 @@ global without sharing class ProspectProjectDetailsApi {
              * Server-side protection:
              * submitted records cannot be edited.
              */
-            if (leadRecord.Project_Request_Submitted__c == true) {
+            if (!createNewProject && leadRecord.Project_Request_Submitted__c == true) {
                 RestContext.response.statusCode = 409;
                 response.success = false;
                 response.projectSubmitted = true;
@@ -227,6 +254,34 @@ global without sharing class ProspectProjectDetailsApi {
                 return response;
             }
             
+            if (createNewProject) {
+                Lead source = leadRecord;
+                String email = source.Email;
+                String password = source.Enter_Password__c;
+                String firstName = source.FirstName;
+                String lastName = source.LastName;
+                String phone = source.Phone;
+                if (source.IsConverted && source.ConvertedContactId != null) {
+                    Contact client = [SELECT FirstName, LastName, Email, Phone, Password__c
+                        FROM Contact WHERE Id = :source.ConvertedContactId LIMIT 1];
+                    email = client.Email;
+                    password = client.Password__c;
+                    firstName = client.FirstName;
+                    lastName = client.LastName;
+                    phone = client.Phone;
+                }
+                if (String.isBlank(email) || String.isBlank(password)) {
+                    RestContext.response.statusCode = 400;
+                    response.message = 'The source customer does not have portal credentials.';
+                    return response;
+                }
+                leadRecord = new Lead(FirstName = firstName, LastName = lastName,
+                    Company = source.Company, Email = email, Phone = phone,
+                    Enter_Password__c = password, Confirm_password__c = password,
+                    Portal_Account_Key__c = String.isBlank(source.Portal_Account_Key__c)
+                        ? String.valueOf(source.Id) : source.Portal_Account_Key__c);
+            }
+
             leadRecord.Site_Space__c = siteSpace;
             leadRecord.Type_Of_Project__c = typeOfProject;
             leadRecord.Project_Scope__c = projectScope;
@@ -237,7 +292,19 @@ global without sharing class ProspectProjectDetailsApi {
             leadRecord.Project_Request_Quotation_Type__c = 'Manual';
             leadRecord.Project_Request_Submitted__c = true;
             
-            update as system leadRecord;
+            if (createNewProject) {
+                Database.DMLOptions options = new Database.DMLOptions();
+                options.DuplicateRuleHeader.allowSave = true;
+                options.DuplicateRuleHeader.runAsCurrentUser = true;
+                Database.SaveResult saved = Database.insert(leadRecord, options, AccessLevel.SYSTEM_MODE);
+                if (!saved.isSuccess()) {
+                    RestContext.response.statusCode = 400;
+                    response.message = saved.getErrors()[0].getMessage();
+                    return response;
+                }
+            } else {
+                update as system leadRecord;
+            }
             
             RestContext.response.statusCode = 200;
             response.success = true;

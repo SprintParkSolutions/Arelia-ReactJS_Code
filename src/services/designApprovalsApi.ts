@@ -4,7 +4,7 @@ export type Design = {
   designId: string; designName: string; opportunityId: string; opportunityName: string
   managerApproval?: boolean; status: string; comments: string; createdDate: string; canApprove: boolean; canRequestChanges: boolean; files: DesignFile[]
 }
-export type DesignsResult = { success: boolean; message: string; designs: Design[] }
+export type DesignsResult = { success: boolean; message: string; designs: Design[]; projects?: { id: string; name: string }[] }
 export type DecisionResult = { success: boolean; message: string; conflict?: boolean }
 const root = () => `${BASE_URL}${SITE_PATH}/services/apexrest/registration/opportunity/design-notification-approvals/`
 async function request(path: string, init?: RequestInit) {
@@ -39,7 +39,12 @@ export async function getDesignApprovals(contactId: string): Promise<DesignsResu
         canRequestChanges: d!.status === 'Sent' && d!.canRequestChanges === true, files,
       })
     }
-    return { success: true, message: '', designs }
+    const projectData = asRecord(data?.data)?.projects
+    const projects = Array.isArray(projectData) ? projectData.flatMap(value => {
+      const project = asRecord(value)
+      return asString(project?.id) ? [{ id: asString(project?.id)!, name: asString(project?.name) || 'Project' }] : []
+    }) : undefined
+    return { success: true, message: '', designs, projects }
   } catch { return { success: false, message: 'Unable to connect. Please try again.', designs: [] } }
 }
 export async function submitDesignDecision(contactId: string, design: Design, status: 'Approved' | 'Changes Requested', comments: string): Promise<DecisionResult> {

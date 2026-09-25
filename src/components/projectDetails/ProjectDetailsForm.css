@@ -1,3 +1,5 @@
+.projectDetailsList { display: grid; gap: 2rem; }
+.projectDetailsList > div > .dashboardSection__title { margin: 0.25rem 0 clamp(1rem, 2vw, 1.5rem); }
 .projectDetails { color: #eee8e0; }
 .projectDetails > p { color: #bfb8ae; margin: 1rem 0; }
 .projectDetails__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.3rem; border: 0; padding: 0; margin: 1.5rem 0; }

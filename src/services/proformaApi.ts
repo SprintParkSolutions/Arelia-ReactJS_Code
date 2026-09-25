@@ -1,7 +1,7 @@
 import { BASE_URL, SITE_PATH, asRecord, asString, parseResponse } from './salesforceApi'
 export type InvoiceFile = { fileVersionId: string; title: string; fileType: string }
-export type Invoice = { invoiceId: string; name: string; opportunityId: string; opportunityName: string; status: string; managerApproval?: boolean; comments: string; secureToken: string; createdDate: string; canApprove: boolean; canRequestChanges: boolean; files: InvoiceFile[] }
-export type InvoicesResult = { success: boolean; message: string; invoices: Invoice[] }
+export type Invoice = { leadId?: string; invoiceId: string; name: string; opportunityId: string; opportunityName: string; status: string; managerApproval?: boolean; comments: string; secureToken: string; createdDate: string; canApprove: boolean; canRequestChanges: boolean; files: InvoiceFile[] }
+export type InvoicesResult = { success: boolean; message: string; invoices: Invoice[]; projects?: { id: string; success: boolean; message: string }[] }
 const root = () => `${BASE_URL}${SITE_PATH}/services/apexrest/registration/lead/proforma-invoice/`
 async function request(path: string, init?: RequestInit) {
   if (!BASE_URL) throw new Error('Missing configuration')
@@ -32,12 +32,12 @@ export async function getProformaInvoices(leadId: string): Promise<InvoicesResul
     if (!response.ok || data?.success !== true || !Array.isArray(data.invoices)) return { success: false, message, invoices: [] }
     const invoices = data.invoices.map(value => parseInvoice(value))
     if (invoices.some(value => !value)) return { success: false, message: 'Invalid invoice response. Please retry.', invoices: [] }
-    return { success: true, message: '', invoices: invoices as Invoice[] }
+    return { success: true, message: '', invoices: (invoices as Invoice[]).map(invoice => ({ ...invoice, leadId })) }
   } catch { return { success: false, message: 'Unable to connect. Please try again.', invoices: [] } }
 }
 export async function getProformaInvoice(leadId: string, invoice: Invoice): Promise<{ success: boolean; message: string; invoice?: Invoice }> {
   try {
-    const { response, data, message } = await request('?' + new URLSearchParams({ leadId, invoiceId: invoice.invoiceId, secureToken: invoice.secureToken }))
+    const { response, data, message } = await request('?' + new URLSearchParams({ leadId: invoice.leadId || leadId, invoiceId: invoice.invoiceId, secureToken: invoice.secureToken }))
     if (!response.ok || data?.success !== true) return { success: false, message }
     const detail = parseInvoice(data.invoice, data.files)
     if (!detail || detail.invoiceId !== invoice.invoiceId || detail.opportunityId !== invoice.opportunityId) return { success: false, message: 'Unable to verify this invoice.' }
@@ -48,10 +48,10 @@ export async function submitProformaDecision(leadId: string, invoice: Invoice, s
   if (!leadId || !invoice.secureToken) return { success: false, message: 'Invoice access is unavailable. Please refresh.' }
   if (status === 'Changes Requested' && !comments.trim()) return { success: false, message: 'Please describe the changes you need.' }
   try {
-    const { response, data, message } = await request('', { method: 'POST', body: JSON.stringify({ leadId, invoiceId: invoice.invoiceId, secureToken: invoice.secureToken, action: status === 'Approved' ? 'APPROVE' : 'REQUEST_CHANGES', comments: comments.trim() }) })
+    const { response, data, message } = await request('', { method: 'POST', body: JSON.stringify({ leadId: invoice.leadId || leadId, invoiceId: invoice.invoiceId, secureToken: invoice.secureToken, action: status === 'Approved' ? 'APPROVE' : 'REQUEST_CHANGES', comments: comments.trim() || (status === 'Approved' ? 'Approved By Client' : '') }) })
     return { success: response.ok && data?.success === true && data.invoiceId === invoice.invoiceId && data.status === status, message, conflict: response.status === 409 }
   } catch { return { success: false, message: 'Unable to submit your response. Please try again.' } }
 }
 export function proformaFileUrl(leadId: string, invoice: Invoice, file: InvoiceFile) {
-  return root() + '?' + new URLSearchParams({ leadId, invoiceId: invoice.invoiceId, secureToken: invoice.secureToken, download: 'true', fileVersionId: file.fileVersionId })
+  return root() + '?' + new URLSearchParams({ leadId: invoice.leadId || leadId, invoiceId: invoice.invoiceId, secureToken: invoice.secureToken, download: 'true', fileVersionId: file.fileVersionId })
 }

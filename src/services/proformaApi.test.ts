@@ -46,3 +46,20 @@ describe('Proforma API', () => {
     expect(proformaFileUrl('lead1', invoice, { title: 'Invoice', fileType: 'PDF', fileVersionId: 'version1' })).toContain('leadId=lead1&invoiceId=invoice1&secureToken=test-token&download=true&fileVersionId=version1')
   })
 })
+
+it('uses the second project Lead for decisions, details and downloads', async () => {
+  const second = { ...invoice, leadId: 'lead2' }
+  let fetcher = mock({ success: true, invoiceId: 'invoice1', status: 'Approved', message: 'Saved' })
+  await submitProformaDecision('lead1', second, 'Approved', '')
+  expect(JSON.parse(fetcher.mock.calls[0][1].body).leadId).toBe('lead2')
+  fetcher = mock({ success: true, invoice: second, files: [] })
+  await getProformaInvoice('lead1', second)
+  expect(fetcher.mock.calls[0][0]).toContain('leadId=lead2')
+  expect(proformaFileUrl('lead1', second, { fileVersionId: 'version2', title: 'Invoice', fileType: 'PDF' })).toContain('leadId=lead2')
+})
+
+it.each(['', '   '])('defaults blank approval comments to Approved By Client', async comments => {
+  const fetcher = mock({ success: true, invoiceId: 'invoice1', status: 'Approved', message: 'Saved' })
+  expect((await submitProformaDecision('lead1', invoice, 'Approved', comments)).success).toBe(true)
+  expect(JSON.parse(fetcher.mock.calls[0][1].body).comments).toBe('Approved By Client')
+})

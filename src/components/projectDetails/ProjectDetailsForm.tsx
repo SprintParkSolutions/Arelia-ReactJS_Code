@@ -11,8 +11,8 @@ const fields: { key: keyof ProjectDetails; label: string; options?: string[] }[]
   { key: 'siteLocation', label: 'Site Location' },
   { key: 'projectDescription', label: 'Project Description' },
 ]
-export function ProjectDetailsForm({ leadId, result, onSaved, reload }: {
-  leadId: string; result: ProjectDetailsResult; onSaved: (result: ProjectDetailsResult) => void; reload: () => void
+export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewProject = false }: {
+  createNewProject?: boolean; leadId: string; result: ProjectDetailsResult; onSaved: (result: ProjectDetailsResult) => void; reload: () => void
 }) {
   const [values, setValues] = useState<ProjectDetails>(result.details!)
   const [errors, setErrors] = useState<Partial<Record<keyof ProjectDetails, string>>>({})
@@ -33,7 +33,7 @@ export function ProjectDetailsForm({ leadId, result, onSaved, reload }: {
     setErrors(next)
     if (Object.keys(next).length) return
     pending.current = true; setBusy(true); setMessage('')
-    const saved = await requestProjectDetails(leadId, cleaned)
+    const saved = await (createNewProject ? requestProjectDetails(leadId, cleaned, true) : requestProjectDetails(leadId, cleaned))
     pending.current = false; setBusy(false)
     if (saved.success) {
       setMessage('Project details submitted successfully.')

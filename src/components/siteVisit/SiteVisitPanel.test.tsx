@@ -2,7 +2,7 @@ import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-li
 import { describe, expect, it, vi } from 'vitest'
 import { SiteVisitPanel } from './SiteVisitPanel'
 import { useSiteVisitNotifications } from './useSiteVisitNotifications'
-const pending = { success: true, message: '', appointmentAvailable: true, actionRequired: true, appointmentStatus: 'Pending', appointmentDate: '2030-10-10', appointmentTimeSlot: '9AM-10AM', availableTimeSlots: ['9AM-10AM', '2PM-3PM'] }
+const pending = { success: true, message: '', appointmentAvailable: true, actionRequired: true, appointmentStatus: 'Pending', appointmentSentDate: '2030-10-01', appointmentDate: '2030-10-10', appointmentTimeSlot: '9AM-10AM', availableTimeSlots: ['9AM-10AM', '2PM-3PM'] }
 function visit() { return { appointment: pending, report: { success: true, message: 'Awaiting management approval', reportAvailable: false }, busy: false, retry: vi.fn(), submit: vi.fn().mockResolvedValue({ success: true, message: 'Saved' }) } }
 describe('site visit controls', () => {
   it('approves the displayed appointment', async () => {
@@ -51,4 +51,32 @@ describe('site visit controls', () => {
     hook.rerender({ appointment: { ...pending, actionRequired: false }, leadId: 'other-site-lead' })
     expect(hook.result.current.notifications).toHaveLength(0)
   })
+})
+
+it.each([
+  { appointmentSentDate: undefined },
+  { appointmentDate: undefined },
+  { appointmentTimeSlot: ' ' },
+  { actionRequired: false },
+  { appointmentStatus: 'Approved' },
+  { appointmentStatus: 'Rescheduled' },
+])('hides response controls and creates no request notification for %j', overrides => {
+  const data = visit()
+  const appointment = { ...pending, ...overrides }
+  render(<SiteVisitPanel leadId="unsent-visit" visit={{ ...data, appointment }} />)
+  expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Reschedule' })).not.toBeInTheDocument()
+  const history = renderHook(() => useSiteVisitNotifications('unsent-visit', appointment))
+  expect(history.result.current.notifications).toHaveLength(0)
+})
+it('shows controls when a complete request arrives and hides them after response', () => {
+  const data = visit()
+  const view = render(<SiteVisitPanel leadId="request-arrives" visit={{ ...data, appointment: { ...pending, appointmentSentDate: undefined } }} />)
+  expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+  view.rerender(<SiteVisitPanel leadId="request-arrives" visit={{ ...data, appointment: { ...pending, appointmentStatus: 'Appointment Rescheduled' } }} />)
+  expect(screen.getByRole('button', { name: 'Approve' })).toBeEnabled()
+  expect(screen.getByRole('button', { name: 'Reschedule' })).toBeEnabled()
+  view.rerender(<SiteVisitPanel leadId="request-arrives" visit={{ ...data, appointment: { ...pending, appointmentStatus: 'Approved', actionRequired: false } }} />)
+  expect(screen.queryByRole('button', { name: 'Approve' })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Reschedule' })).not.toBeInTheDocument()
 })

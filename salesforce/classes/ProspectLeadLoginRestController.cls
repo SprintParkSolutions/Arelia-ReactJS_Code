@@ -124,7 +124,8 @@ global without sharing class ProspectLeadLoginRestController {
                     Enter_Password__c,
                     Project_Request_Submitted__c,
                     IsConverted,
-                    ConvertedContactId
+                    ConvertedContactId,
+                    Portal_Account_Key__c
                 FROM Lead
                 WHERE (
                     (IsConverted = false AND Email = :email AND Enter_Password__c = :password)
@@ -151,6 +152,21 @@ global without sharing class ProspectLeadLoginRestController {
             // 6. EXACT LEAD MATCHED
             // =========================================================
             Lead leadRecord = matchingLeads[0];
+            // Additional projects retain the original portal identity and Contact access.
+            if (!String.isBlank(leadRecord.Portal_Account_Key__c)) {
+                String accountKey = leadRecord.Portal_Account_Key__c;
+                List<Lead> accountLeads = [SELECT Id, FirstName, LastName, Email, Phone,
+                    Enter_Password__c, Project_Request_Submitted__c, IsConverted, ConvertedContactId
+                    FROM Lead WHERE Id = :accountKey WITH SYSTEM_MODE LIMIT 1];
+                if (!accountLeads.isEmpty()) {
+                    Lead accountLead = accountLeads[0];
+                    if ((accountLead.IsConverted && contactsById.containsKey(accountLead.ConvertedContactId)) ||
+                        (!accountLead.IsConverted && accountLead.Email != null && accountLead.Email.equalsIgnoreCase(email)
+                        && accountLead.Enter_Password__c != null && accountLead.Enter_Password__c.equals(password))) {
+                        leadRecord = accountLead;
+                    }
+                }
+            }
             Contact convertedContact = leadRecord.IsConverted
                 ? contactsById.get(leadRecord.ConvertedContactId)
                 : null;

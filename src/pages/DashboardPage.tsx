@@ -4,21 +4,21 @@ import { useAgreementNotifications } from "../components/approvals/useAgreementN
 import { PaymentTermsApprovals } from "../components/approvals/PaymentTermsApprovals";
 import { usePaymentReview } from "../components/approvals/usePaymentReview";
 import { usePaymentNotifications } from "../components/approvals/usePaymentNotifications";
-import { BudgetReviewApprovals } from "../components/approvals/BudgetReviewApprovals";
+import { ProjectBudgetReviewApprovals } from "../components/approvals/ProjectBudgetReviewApprovals";
 import { useBudgetReview } from "../components/approvals/useBudgetReview";
 import { useBudgetNotifications } from "../components/approvals/useBudgetNotifications";
-import { ProformaApprovals } from "../components/approvals/ProformaApprovals";
+import { ProjectProformaApprovals } from "../components/approvals/ProjectProformaApprovals";
 import { useProformaApprovals } from "../components/approvals/useProformaApprovals";
 import { useProformaNotifications } from "../components/approvals/useProformaNotifications";
-import { DesignApprovals } from "../components/approvals/DesignApprovals";
+import { ProjectDesignApprovals } from "../components/approvals/ProjectDesignApprovals";
 import { useDesignApprovals } from "../components/approvals/useDesignApprovals";
 import { useDesignNotifications } from "../components/approvals/useDesignNotifications";
 import { ApprovalNavigation } from "../components/approvals/ApprovalNavigation";
 import type { ApprovalCategory } from "../components/approvals/approvalCategories";
 import { ReviewApprovals } from "../components/approvals/ReviewApprovals";
-import { SiteVisitPanel } from "../components/siteVisit/SiteVisitPanel";
-import { useSiteVisit } from "../components/siteVisit/useSiteVisit";
-import { useSiteVisitNotifications } from "../components/siteVisit/useSiteVisitNotifications";
+import { ProjectSiteVisitCarousel } from "../components/siteVisit/ProjectSiteVisitCarousel";
+import { useProjectSiteVisits } from "../components/siteVisit/useProjectSiteVisits";
+import { useProjectSiteVisitNotifications } from "../components/siteVisit/useSiteVisitNotifications";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useDeferredValue,
@@ -60,11 +60,12 @@ import {
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { LogoutModal } from "../components/auth/LogoutModal";
-import { ProjectDetailsForm } from "../components/projectDetails/ProjectDetailsForm";
+import { ProjectDetailsPanel } from "../components/projectDetails/ProjectDetailsPanel";
+import { useSupervisorNotifications } from "../components/projectDetails/useSupervisorNotifications";
 import { useSupervisor } from "../components/projectDetails/useSupervisor";
-import { SupervisorInformation } from "../components/projectDetails/SupervisorInformation";
-import { useApprovalStatus } from "../components/projectDetails/useApprovalStatus";
-import { useProjectReminder } from "../components/projectDetails/useProjectReminder";
+import { ProjectSupervisorsPanel } from "../components/projectDetails/ProjectSupervisorsPanel";
+import { useApprovalProjects } from "../components/projectDetails/useApprovalStatus";
+import { useProjectReminder, useProjectApprovalNotifications } from "../components/projectDetails/useProjectReminder";
 import { useProjectDetails } from "../components/projectDetails/useProjectDetails";
 import { dashboardTabs, isProjectTrackingTab } from "../constants/dashboardTabs";
 import { useAuth } from "../context/AuthContext";
@@ -221,6 +222,7 @@ type PortalNotification = {
   message: string;
   timestamp: number;
   read: boolean;
+  siteVisitLeadId?: string;
   documentUrl?: string;
   designId?: string;
   invoiceId?: string;
@@ -2780,19 +2782,23 @@ export function DashboardPage() {
   const agreementHistory = useAgreementNotifications(authClient?.leadId || "");
   const paymentReview = usePaymentReview(authClient?.leadId || "");
   const paymentHistory = usePaymentNotifications(authClient?.leadId || "", paymentReview.result);
-  const budgetReview = useBudgetReview(authClient?.leadId || "");
-  const budgetHistory = useBudgetNotifications(authClient?.leadId || "", budgetReview.result);
-  const proformaApprovals = useProformaApprovals(authClient?.leadId || "");
-  const proformaHistory = useProformaNotifications(authClient?.leadId || "", proformaApprovals.result);
+  const [highlightBudgetId, setHighlightBudgetId] = useState<string | null>(null);
   const leadId = authClient?.leadId;
   const projectDetails = useProjectDetails(leadId);
+  const [addingProject, setAddingProject] = useState(false);
   const needsProjectDetails = Boolean(leadId && !projectDetails.loading && projectDetails.result?.success && projectDetails.result.projectSubmitted === false);
-  const siteVisit = useSiteVisit(leadId);
-  const siteVisitHistory = useSiteVisitNotifications(leadId, siteVisit.appointment, siteVisit.report);
+  const [selectedSiteVisitLeadId, setSelectedSiteVisitLeadId] = useState<string>();
   const supervisor = useSupervisor(leadId);
-  const supervisorHistory = useProjectReminder(leadId, Boolean(supervisor.result?.success && supervisor.result.assigned), "supervisorAssignedNotification");
-  const approvalStatus = useApprovalStatus(leadId);
-  const approvalHistory = useProjectReminder(leadId, approvalStatus === "Approved", "projectApprovalNotification");
+  const approvedProjects = useApprovalProjects(leadId);
+  const proformaProjectIds = (approvedProjects || projectDetails.result)?.projects?.flatMap(project => project.leadId ? [project.leadId] : []);
+  const proformaApprovals = useProformaApprovals(leadId || "", proformaProjectIds);
+  const budgetReview = useBudgetReview(leadId || "", proformaProjectIds);
+  const budgetHistory = useBudgetNotifications(leadId || "", budgetReview.result);
+  const proformaHistory = useProformaNotifications(leadId || "", proformaApprovals.result);
+  const projectSiteVisits = useProjectSiteVisits(leadId, approvedProjects || projectDetails.result);
+  const siteVisitHistory = useProjectSiteVisitNotifications(projectSiteVisits);
+  const supervisorHistory = useSupervisorNotifications(leadId, approvedProjects || projectDetails.result, supervisor.result);
+  const approvalHistory = useProjectApprovalNotifications(leadId, approvedProjects);
   const projectReminderHistory = useProjectReminder(leadId, needsProjectDetails);
   const deferredDashboardTab = useDeferredValue(activeDashboardTab);
   const [isTabPending, startTabTransition] = useTransition();
@@ -3186,21 +3192,8 @@ export function DashboardPage() {
   };
   const reminderNotifications = projectReminderHistory.reminder && !projectReminderHistory.reminder.dismissed
     ? [projectReminder, ...notifications] : notifications;
-  const approvalNotifications: PortalNotification[] = approvalHistory.reminder && !approvalHistory.reminder.dismissed
-    ? [{
-        id: "project-details-approved",
-        type: "approvals",
-        message: "Your project details have been approved by the Arelia Team.",
-        timestamp: approvalHistory.reminder.timestamp,
-        read: approvalHistory.reminder.read,
-      }, ...reminderNotifications]
-    : reminderNotifications;
-  const supervisorNotifications: PortalNotification[] = supervisorHistory.reminder && !supervisorHistory.reminder.dismissed
-    ? [{ id: "supervisor-assigned", type: "supervisor", message: supervisor.result?.supervisorUser?.trim()
-          ? `${supervisor.result.supervisorUser.trim()} has been assigned as your project supervisor.`
-          : "A supervisor has been assigned to your project.",
-         timestamp: supervisorHistory.reminder.timestamp, read: supervisorHistory.reminder.read }, ...approvalNotifications]
-    : approvalNotifications;
+  const approvalNotifications: PortalNotification[] = [...approvalHistory.notifications, ...reminderNotifications];
+  const supervisorNotifications: PortalNotification[] = [...supervisorHistory.notifications, ...approvalNotifications];
   const visibleNotifications: PortalNotification[] = [...agreementHistory.notifications, ...paymentHistory.notifications, ...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
   const unreadNotificationCount = visibleNotifications.filter(
     (notification) => !notification.read,
@@ -3228,6 +3221,7 @@ export function DashboardPage() {
       return;
     }
     if (notification.budgetOpportunityId) {
+      setHighlightBudgetId(notification.budgetOpportunityId);
       budgetHistory.markRead(notification.id);
       setSelectedApproval("Budget Review Approvals");
       setApprovalsExpanded(true);
@@ -3253,15 +3247,15 @@ export function DashboardPage() {
       handleTabChange("approvals");
       return;
     }
-    if (notification.type === "siteVisit") { siteVisitHistory.markRead(notification.id); setIsNotificationPanelOpen(false); handleTabChange("siteVisit"); return; }
-    if (notification.id === "supervisor-assigned") {
-      supervisorHistory.markRead();
+    if (notification.type === "siteVisit") { setSelectedSiteVisitLeadId(notification.siteVisitLeadId); siteVisitHistory.markRead(notification.id); setIsNotificationPanelOpen(false); handleTabChange("siteVisit"); return; }
+    if (notification.id.startsWith("supervisor-assigned:")) {
+      supervisorHistory.markRead(notification.id);
       setIsNotificationPanelOpen(false);
       handleTabChange("supervisor");
       return;
     }
-    if (notification.id === "project-details-approved") {
-      approvalHistory.markRead();
+    if (notification.id.startsWith("project-details-approved:")) {
+      approvalHistory.markRead(notification.id);
       setIsNotificationPanelOpen(false);
       return;
     }
@@ -3309,8 +3303,8 @@ export function DashboardPage() {
     if (notificationId.startsWith("proforma-approval:")) { proformaHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("design-approval:")) { designHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("site-visit:")) { siteVisitHistory.dismiss(notificationId); return; }
-    if (notificationId === "supervisor-assigned") { supervisorHistory.dismiss(); return; }
-    if (notificationId === "project-details-approved") { approvalHistory.dismiss(); return; }
+    if (notificationId.startsWith("supervisor-assigned:")) { supervisorHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("project-details-approved:")) { approvalHistory.dismiss(notificationId); return; }
     if (notificationId === "project-details-reminder") { projectReminderHistory.dismiss(); return; }
     setNotifications((prev) => {
       const updated = prev.filter((n) => n.id !== notificationId);
@@ -3331,8 +3325,8 @@ export function DashboardPage() {
     proformaHistory.markAllRead();
     designHistory.markAllRead();
     siteVisitHistory.markAllRead();
-    supervisorHistory.markRead();
-    approvalHistory.markRead();
+    supervisorHistory.markAllRead();
+    approvalHistory.markAllRead();
     projectReminderHistory.markRead();
     setNotifications((prev) => {
       const updated = prev.map((item) => ({ ...item, read: true }));
@@ -3740,6 +3734,10 @@ export function DashboardPage() {
                               : "Your current project"}
                           </h2>
                         </div>
+                        {leadId && <button type="button" className="projectDetails__submit" onClick={() => {
+                          setAddingProject(true);
+                          handleTabChange("projectDetails");
+                        }}>Add Project</button>}
                         {projects.length > 1 ? (
                           <span className="dashboardSection__chip">
                             {projects.length} active projects
@@ -3936,7 +3934,9 @@ export function DashboardPage() {
                 ) : null}
 
                 {deferredDashboardTab === "supervisor" ? (
-                  <SupervisorInformation leadId={leadId} result={supervisor.result} retry={supervisor.retry} />
+                  <ProjectSupervisorsPanel leadId={leadId} projects={projectDetails.result}
+                    loading={projectDetails.loading} reload={projectDetails.reload}
+                    supervisor={supervisor} />
                 ) : null}
                 {deferredDashboardTab === "projectDetails" ? (
                   !leadId ? <section className="dashboardSection">
@@ -3956,16 +3956,20 @@ export function DashboardPage() {
                       <p role="alert">{projectDetails.result?.message || "Unable to load project details."}</p>
                       <button type="button" onClick={projectDetails.reload}>Retry</button>
                     </div>
-                    : <ProjectDetailsForm key={leadId} leadId={leadId} result={projectDetails.result}
-                        onSaved={projectDetails.setResult} reload={projectDetails.reload} />
+                    : <ProjectDetailsPanel key={leadId} leadId={leadId} result={projectDetails.result}
+                        addingProject={addingProject} onCancel={() => setAddingProject(false)}
+                        onSaved={() => { setAddingProject(false); projectDetails.reload(); }} reload={projectDetails.reload} />
                 ) : null}
-                {deferredDashboardTab === "siteVisit" ? <SiteVisitPanel key={leadId} leadId={leadId} visit={siteVisit} /> : null}
+                {deferredDashboardTab === "siteVisit" ? <ProjectSiteVisitCarousel visits={projectSiteVisits} selectedLeadId={selectedSiteVisitLeadId}
+                    onSelect={setSelectedSiteVisitLeadId} loading={Boolean(leadId && projectDetails.loading && !approvedProjects)}
+                    error={leadId && !approvedProjects && !projectDetails.loading && !projectDetails.result?.success ? projectDetails.result?.message || "Unable to load projects." : undefined}
+                    retry={projectDetails.reload} /> : null}
                   {deferredDashboardTab === "approvals" ? (
                     <ReviewApprovals selected={selectedApproval}>
-                      {selectedApproval === "3D Design Approvals" && <DesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} state={designApprovals} highlightId={highlightDesignId} />}
+                      {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} state={designApprovals} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
                       {selectedApproval === "Payment Terms Approvals" && <PaymentTermsApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} />}
-                      {selectedApproval === "Budget Review Approvals" && <BudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} />}
-                      {selectedApproval === "Proforma Invoice Approvals" && <ProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} highlightId={highlightInvoiceId} />}
+                      {selectedApproval === "Budget Review Approvals" && <ProjectBudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} highlightId={highlightBudgetId} onProjectChange={() => setHighlightBudgetId(null)} />}
+                      {selectedApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}
                     </ReviewApprovals>
                   ) : null}
                   {deferredDashboardTab === "status" ? (

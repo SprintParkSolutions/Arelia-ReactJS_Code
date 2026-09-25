@@ -9,14 +9,20 @@ private class ProspectLeadLoginRestControllerTest {
             Email = email, Phone = '9876543210',
             Enter_Password__c = PASSWORD, Confirm_password__c = PASSWORD
         );
-        insert record;
+        Database.DMLOptions options = new Database.DMLOptions();
+        options.DuplicateRuleHeader.allowSave = true;
+        Database.SaveResult saved = Database.insert(record, options);
+        System.assert(saved.isSuccess(), 'Test client must be created.');
         return record;
     }
 
     private static Database.LeadConvertResult convertLead(Lead record) {
+        update new Lead(Id = record.Id, Project_Request_Submitted__c = true,
+            Site_Visit_Manager_Approval__c = true, Approval_Status__c = 'Approved');
         LeadStatus convertedStatus = [SELECT MasterLabel FROM LeadStatus WHERE IsConverted = true LIMIT 1];
         Database.LeadConvert conversion = new Database.LeadConvert();
         conversion.setLeadId(record.Id);
+        conversion.setOwnerId(UserInfo.getUserId());
         conversion.setConvertedStatus(convertedStatus.MasterLabel);
         conversion.setOpportunityName('Portal login regression');
         Database.LeadConvertResult result = Database.convertLead(conversion);
@@ -34,6 +40,26 @@ private class ProspectLeadLoginRestControllerTest {
         ));
         RestContext.response = new RestResponse();
         return ProspectLeadLoginRestController.loginProspect();
+    }
+
+    @IsTest static void additionalProjectKeepsOriginalIdentity() {
+        Lead original = createLead('multiple@example.com');
+        Test.setCreatedDate(original.Id, DateTime.now().addDays(-1));
+        Lead additional = createLead(original.Email);
+        update new Lead(Id = additional.Id, Portal_Account_Key__c = String.valueOf(original.Id));
+        System.assertEquals(original.Id, login(original.Email, PASSWORD).leadId);
+    }
+
+    @IsTest static void additionalProjectKeepsConvertedIdentity() {
+        Lead original = createLead('converted-multiple@example.com');
+        Test.setCreatedDate(original.Id, DateTime.now().addDays(-1));
+        Database.LeadConvertResult converted = convertLead(original);
+        Lead additional = createLead(original.Email);
+        update new Lead(Id = additional.Id, Portal_Account_Key__c = String.valueOf(original.Id),
+            Enter_Password__c = CONTACT_PASSWORD, Confirm_password__c = CONTACT_PASSWORD);
+        ProspectLeadLoginRestController.LoginResponse result = login(original.Email, CONTACT_PASSWORD);
+        System.assertEquals(original.Id, result.leadId);
+        System.assertEquals(converted.getContactId(), result.contactId);
     }
 
     @IsTest static void unconvertedLeadStillLogsIn() {

@@ -33,3 +33,9 @@ describe('Budget Review API', () => {
     expect(await getBudgetReview('lead1')).toMatchObject({ success: false, message: 'Denied' })
   })
 })
+
+it('submits a second project budget using its Lead ID', async () => {
+  const fetcher = mock({ success: true, opportunityId: 'opp1', status: 'Client Approved', message: 'Saved' })
+  await submitBudgetDecision('lead1', { ...budget, leadId: 'lead2' }, 'Client Approved', '')
+  expect(JSON.parse(fetcher.mock.calls[0][1].body).leadId).toBe('lead2')
+})
