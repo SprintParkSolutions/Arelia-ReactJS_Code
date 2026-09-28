@@ -1,8 +1,8 @@
 import { BASE_URL, SITE_PATH, asRecord, asString, parseResponse } from './salesforceApi'
 export const PAYMENT_SENT = 'Sent for Client Approval'
 export type PaymentTerm = { id: string; label: string; percentage: number | null; dueDate: string }
-export type PaymentReview = { opportunityId: string; opportunityName: string; status: string; clientRemarks: string; canRespond: boolean; terms: PaymentTerm[] }
-export type PaymentResult = { success: boolean; message: string; payment: PaymentReview | null }
+export type PaymentReview = { leadId?: string; opportunityId: string; opportunityName: string; status: string; clientRemarks: string; canRespond: boolean; terms: PaymentTerm[] }
+export type PaymentResult = { success: boolean; message: string; payment: PaymentReview | null; projects?: { id: string; result: PaymentResult }[] }
 export type PaymentDecision = 'Client Approved' | 'Client Requested Changes'
 const root = () => `${BASE_URL}${SITE_PATH}/services/apexrest/registration/lead/payment-terms/`
 async function request(query: string, body?: object) {
@@ -34,7 +34,7 @@ export async function getPaymentReview(leadId: string): Promise<PaymentResult> {
         percentage: typeof term?.percentage === 'number' && Number.isFinite(term.percentage) ? term.percentage : null,
         dueDate: asString(term?.dueDate) || '' })
     }
-    return { success: true, message: '', payment: {
+    return { success: true, message: '', payment: { leadId,
       opportunityId: asString(p.opportunityId)!, opportunityName: asString(p.opportunityName) || 'Project',
       status: asString(p.status)!, clientRemarks: asString(p.clientRemarks) || '', terms,
       canRespond: p.status === PAYMENT_SENT && p.canRespond === true && terms.length > 0,
@@ -45,7 +45,7 @@ export async function submitPaymentDecision(leadId: string, payment: PaymentRevi
   if (!leadId || !payment.opportunityId) return { success: false, message: 'Payment Terms access is unavailable.' }
   if (status === 'Client Requested Changes' && !comments.trim()) return { success: false, message: 'Please describe the changes you need.' }
   try {
-    const { response, data, message } = await request('', { leadId, opportunityId: payment.opportunityId,
+    const { response, data, message } = await request('', { leadId: payment.leadId || leadId, opportunityId: payment.opportunityId,
       action: status === 'Client Approved' ? 'APPROVE' : 'REQUEST_CHANGES', comments: comments.trim() })
     return { success: response.ok && data?.success === true && data.opportunityId === payment.opportunityId && data.status === status,
       message, conflict: response.status === 409 }

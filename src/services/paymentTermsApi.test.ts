@@ -42,3 +42,12 @@ describe('Payment Terms API', () => {
     expect(await getPaymentReview('lead1')).toMatchObject({ success: false, message: 'Denied' })
   })
 })
+
+it('preserves the project Lead ID and uses it when submitting a decision', async () => {
+  mock({ success: true, paymentTermsAvailable: true, paymentTerms: raw })
+  const loaded = await getPaymentReview('lead2')
+  expect(loaded.payment?.leadId).toBe('lead2')
+  const fetcher = mock({ success: true, opportunityId: 'opp1', status: 'Client Approved', message: 'Saved' })
+  await submitPaymentDecision('lead1', loaded.payment!, 'Client Approved', '')
+  expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({ leadId: 'lead2', opportunityId: 'opp1', action: 'APPROVE' })
+})

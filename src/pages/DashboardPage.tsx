@@ -1,7 +1,7 @@
 import { ProjectStagePath } from "../components/ProjectStagePath";
 import { ProjectTrackingNavigation } from "../components/ProjectTrackingNavigation";
 import { useAgreementNotifications } from "../components/approvals/useAgreementNotifications";
-import { PaymentTermsApprovals } from "../components/approvals/PaymentTermsApprovals";
+import { ProjectPaymentTermsApprovals } from "../components/approvals/ProjectPaymentTermsApprovals";
 import { usePaymentReview } from "../components/approvals/usePaymentReview";
 import { usePaymentNotifications } from "../components/approvals/usePaymentNotifications";
 import { ProjectBudgetReviewApprovals } from "../components/approvals/ProjectBudgetReviewApprovals";
@@ -2780,8 +2780,7 @@ export function DashboardPage() {
   const designHistory = useDesignNotifications(authClient?.contactId || "", designApprovals.result);
   const [highlightInvoiceId, setHighlightInvoiceId] = useState<string | null>(null);
   const agreementHistory = useAgreementNotifications(authClient?.leadId || "");
-  const paymentReview = usePaymentReview(authClient?.leadId || "");
-  const paymentHistory = usePaymentNotifications(authClient?.leadId || "", paymentReview.result);
+  const [highlightPaymentId, setHighlightPaymentId] = useState<string | null>(null);
   const [highlightBudgetId, setHighlightBudgetId] = useState<string | null>(null);
   const leadId = authClient?.leadId;
   const projectDetails = useProjectDetails(leadId);
@@ -2793,6 +2792,8 @@ export function DashboardPage() {
   const proformaProjectIds = (approvedProjects || projectDetails.result)?.projects?.flatMap(project => project.leadId ? [project.leadId] : []);
   const proformaApprovals = useProformaApprovals(leadId || "", proformaProjectIds);
   const budgetReview = useBudgetReview(leadId || "", proformaProjectIds);
+  const paymentReview = usePaymentReview(leadId || "", proformaProjectIds);
+  const paymentHistory = usePaymentNotifications(leadId || "", paymentReview.result);
   const budgetHistory = useBudgetNotifications(leadId || "", budgetReview.result);
   const proformaHistory = useProformaNotifications(leadId || "", proformaApprovals.result);
   const projectSiteVisits = useProjectSiteVisits(leadId, approvedProjects || projectDetails.result);
@@ -3213,6 +3214,7 @@ export function DashboardPage() {
   const handleNotificationClick = (notification: PortalNotification) => {
     if (notification.id.startsWith("client-agreement:")) { agreementHistory.markRead(notification.id); setIsNotificationPanelOpen(false); return; }
     if (notification.paymentOpportunityId) {
+      setHighlightPaymentId(notification.paymentOpportunityId);
       paymentHistory.markRead(notification.id);
       setSelectedApproval("Payment Terms Approvals");
       setApprovalsExpanded(true);
@@ -3967,7 +3969,7 @@ export function DashboardPage() {
                   {deferredDashboardTab === "approvals" ? (
                     <ReviewApprovals selected={selectedApproval}>
                       {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} state={designApprovals} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
-                      {selectedApproval === "Payment Terms Approvals" && <PaymentTermsApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} />}
+                      {selectedApproval === "Payment Terms Approvals" && <ProjectPaymentTermsApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} highlightId={highlightPaymentId} onProjectChange={() => setHighlightPaymentId(null)} />}
                       {selectedApproval === "Budget Review Approvals" && <ProjectBudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} highlightId={highlightBudgetId} onProjectChange={() => setHighlightBudgetId(null)} />}
                       {selectedApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}
                     </ReviewApprovals>
