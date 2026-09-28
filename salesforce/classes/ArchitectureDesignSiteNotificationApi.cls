@@ -47,7 +47,7 @@ global without sharing class ArchitectureDesignSiteNotificationApi {
 
         List<Architecture_Design__c> designs = opportunityIds.isEmpty()
             ? new List<Architecture_Design__c>()
-            : [SELECT Id, Name, Opportunity__c, Status__c, Comments__c, CreatedDate, Manager_Approval__c
+            : [SELECT Id, Name, Opportunity__c, Status__c, Comments__c, CreatedDate, Manager_Approval__c, External_File_Link__c
                FROM Architecture_Design__c
                WHERE Opportunity__c IN :opportunityIds AND Status__c IN ('Sent', 'Approved', 'Changes Requested')
                ORDER BY CreatedDate DESC];
@@ -65,6 +65,7 @@ global without sharing class ArchitectureDesignSiteNotificationApi {
                 'comments' => design.Comments__c,
                 'createdDate' => design.CreatedDate,
                 'managerApproval' => design.Manager_Approval__c == true,
+                'externalFileLink' => design.External_File_Link__c,
                 'canApprove' => pending,
                 'canRequestChanges' => pending,
                 'files' => filesByDesign.containsKey(design.Id) ? filesByDesign.get(design.Id) : new List<Object>()

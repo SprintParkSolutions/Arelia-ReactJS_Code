@@ -1,11 +1,19 @@
 import { BASE_URL, SITE_PATH, asRecord, asString, parseResponse } from './salesforceApi'
 export type DesignFile = { versionId: string; title: string; extension: string }
 export type Design = {
+  externalFileLink?: string;
   designId: string; designName: string; opportunityId: string; opportunityName: string
   managerApproval?: boolean; status: string; comments: string; createdDate: string; canApprove: boolean; canRequestChanges: boolean; files: DesignFile[]
 }
 export type DesignsResult = { success: boolean; message: string; designs: Design[]; projects?: { id: string; name: string }[] }
 export type DecisionResult = { success: boolean; message: string; conflict?: boolean }
+export function safeDesignLink(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value.trim()) return undefined
+  try {
+    const url = new URL(value.trim())
+    return url.protocol === 'https:' && !url.username && !url.password ? url.href : undefined
+  } catch { return undefined }
+}
 const root = () => `${BASE_URL}${SITE_PATH}/services/apexrest/registration/opportunity/design-notification-approvals/`
 async function request(path: string, init?: RequestInit) {
   if (!BASE_URL) throw new Error('Salesforce is not configured.')
@@ -35,6 +43,7 @@ export async function getDesignApprovals(contactId: string): Promise<DesignsResu
         designName: asString(d!.designName) || 'Architecture design', opportunityName: asString(d!.opportunityName) || 'Project',
         status: asString(d!.status)!, comments: asString(d!.comments) || '', createdDate: asString(d!.createdDate) || '',
         managerApproval: d!.managerApproval === true,
+        ...(safeDesignLink(d!.externalFileLink) ? { externalFileLink: safeDesignLink(d!.externalFileLink) } : {}),
         canApprove: d!.status === 'Sent' && d!.canApprove === true,
         canRequestChanges: d!.status === 'Sent' && d!.canRequestChanges === true, files,
       })

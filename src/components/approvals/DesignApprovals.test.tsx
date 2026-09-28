@@ -50,3 +50,23 @@ describe('design review', () => {
     expect(hook.result.current.notifications).toHaveLength(0)
   })
 })
+
+it.each(['https://drive.google.com/file/d/example/view', 'https://1drv.ms/u/s!example', 'https://example-my.sharepoint.com/:f:/g/example'])('displays a clickable external design link: %s', url => {
+  const data = state()
+  render(<DesignApprovals contactId="contact1" state={{ ...data, result: { ...data.result, designs: [{ ...design, files: [], externalFileLink: url }] } }} highlightId={null} />)
+  const link = screen.getByRole('link', { name: /Open design link/ })
+  expect(link).toHaveAttribute('href', url)
+  expect(link).toHaveAttribute('target', '_blank')
+  expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+  expect(screen.getByText(url)).toBeInTheDocument()
+  expect(screen.queryByText('No files have been attached to this design.')).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Approve design' })).toBeEnabled()
+})
+it('shows attachments alongside a link and rejects unsafe links', () => {
+  const data = state()
+  const view = render(<DesignApprovals contactId="contact1" state={{ ...data, result: { ...data.result, designs: [{ ...design, externalFileLink: 'https://drive.google.com/drive/folders/example' }] } }} highlightId={null} />)
+  expect(screen.getByRole('button', { name: 'Download Layout' })).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: /Open design link/ })).toBeInTheDocument()
+  view.rerender(<DesignApprovals contactId="contact1" state={{ ...data, result: { ...data.result, designs: [{ ...design, externalFileLink: 'javascript:alert(1)' }] } }} highlightId={null} />)
+  expect(screen.queryByRole('link')).not.toBeInTheDocument()
+})

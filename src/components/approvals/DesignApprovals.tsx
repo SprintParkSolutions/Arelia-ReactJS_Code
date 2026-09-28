@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { FiDownload, FiFileText, FiCheckCircle } from 'react-icons/fi'
-import { designFileUrl, type Design, type DesignFile } from '../../services/designApprovalsApi'
+import { FiDownload, FiFileText, FiCheckCircle, FiExternalLink } from 'react-icons/fi'
+import { safeDesignLink, designFileUrl, type Design, type DesignFile } from '../../services/designApprovalsApi'
 import type { useDesignApprovals } from './useDesignApprovals'
 import './DesignApprovals.css'
 
@@ -47,12 +47,20 @@ function DesignCard({ contactId, design, state, highlighted }: { contactId: stri
     if (!result.success) { setError(result.message); return }
     setMode(null); setMessage(result.message)
   }
+  const externalLink = safeDesignLink(design.externalFileLink)
   const pending = design.status === 'Sent' && (design.canApprove || design.canRequestChanges)
   return <article ref={ref} tabIndex={-1} className={'designReview__card' + (highlighted ? ' is-highlighted' : '')} aria-label={design.designName}>
     <header className="designReview__header"><div><p className="designReview__eyebrow">{design.opportunityName}</p><h3>{design.designName}</h3></div><span className="designReview__status">{design.status === 'Sent' ? 'Awaiting your review' : design.status}</span></header>
     <div className="designReview__body">
       <h4>Design files</h4>
-      {design.files.length ? <ul className="designReview__files">{design.files.map(file => <DesignAttachment key={file.versionId} contactId={contactId} design={design} file={file} />)}</ul> : <p>No files have been attached to this design.</p>}
+      {design.files.length ? <ul className="designReview__files">{design.files.map(file => <DesignAttachment key={file.versionId} contactId={contactId} design={design} file={file} />)}</ul> : <>{!externalLink && <p>No files have been attached to this design.</p>}</>}
+      {externalLink && <div className="designReview__externalLink">
+        <div><h4>External design files</h4><p>View the shared design files before submitting your response.</p></div>
+        <a href={externalLink} target="_blank" rel="noopener noreferrer">
+          <span className="designReview__externalUrl">{externalLink}</span>
+          <span className="designReview__externalAction">Open design link <FiExternalLink aria-hidden="true" /><span className="designReview__externalHint">(new tab)</span></span>
+        </a>
+      </div>}
       {!pending && <div className="designReview__decision"><FiCheckCircle aria-hidden="true" /><div><strong>Response recorded: {design.status}</strong>{design.comments && <p>{design.comments}</p>}</div></div>}
       {pending && !mode && <div className="designReview__actions">
         <button type="button" className="designReview__primary" disabled={state.busy || !design.canApprove} onClick={() => setMode('Approved')}>Approve design</button>
@@ -60,7 +68,7 @@ function DesignCard({ contactId, design, state, highlighted }: { contactId: stri
       </div>}
       {pending && mode && <form onSubmit={event => { event.preventDefault(); void submit() }}>
         <fieldset disabled={state.busy}><legend>{mode === 'Approved' ? 'Confirm design approval' : 'Request design changes'}</legend>
-          <p>{mode === 'Approved' ? 'Submit your approval after reviewing the attached files. Your response cannot be submitted again.' : 'Describe the updates you need before this design can be approved.'}</p>
+          <p>{mode === 'Approved' ? 'Submit your approval after reviewing the design files and any shared link. Your response cannot be submitted again.' : 'Describe the updates you need before this design can be approved.'}</p>
           <label htmlFor={'design-comments-' + design.designId}>{mode === 'Approved' ? 'Comments (optional)' : 'Comments (required)'}</label>
           <textarea id={'design-comments-' + design.designId} required={mode === 'Changes Requested'} value={comments} onChange={event => setComments(event.target.value)} rows={4} />
           <div className="designReview__actions"><button className="designReview__primary" type="submit">{state.busy ? 'Submitting…' : mode === 'Approved' ? 'Confirm approval' : 'Submit change request'}</button><button type="button" onClick={() => { setMode(null); setError('') }}>Cancel</button></div>

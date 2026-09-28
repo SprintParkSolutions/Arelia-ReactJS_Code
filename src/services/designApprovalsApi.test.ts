@@ -50,3 +50,12 @@ describe('design approval API', () => {
     expect(await loginProspect('client@example.com', 'Password1!')).toMatchObject({ success: true, leadId: 'lead1', contactId: 'contact1' })
   })
 })
+
+it.each(['https://drive.google.com/file/d/example/view', 'https://1drv.ms/u/s!example'])('loads a design external link: %s', externalFileLink => {
+  mock({ success: true, data: { designs: [{ ...design, externalFileLink }] } })
+  return expect(getDesignApprovals('contact1')).resolves.toMatchObject({ designs: [{ externalFileLink }] })
+})
+it.each(['javascript:alert(1)', 'data:text/html,test', 'not a URL', 'https://user:password@example.com', ''])('omits unsafe or invalid external links: %s', async externalFileLink => {
+  mock({ success: true, data: { designs: [{ ...design, externalFileLink }] } })
+  expect((await getDesignApprovals('contact1')).designs[0].externalFileLink).toBeUndefined()
+})

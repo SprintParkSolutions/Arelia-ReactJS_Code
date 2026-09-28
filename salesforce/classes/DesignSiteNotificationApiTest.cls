@@ -130,4 +130,19 @@ private class DesignSiteNotificationApiTest {
         post(design, converted[0].getContactId(), 'Approved', '');
         System.assertEquals(200, RestContext.response.statusCode);
     }
+    @IsTest static void returnsExternalDesignLink() {
+        Architecture_Design__c design = fixture();
+        String link = 'https://drive.google.com/file/d/example/view';
+        update new Architecture_Design__c(Id = design.Id, External_File_Link__c = link);
+        RestContext.request = new RestRequest();
+        RestContext.response = new RestResponse();
+        RestContext.request.requestURI = '/services/apexrest/registration/opportunity/design-notification-approvals/';
+        RestContext.request.addParameter('contactId', String.valueOf(clientId(design)));
+        ArchitectureDesignSiteNotificationApi.getApprovals();
+        System.assertEquals(200, RestContext.response.statusCode);
+        Map<String, Object> body = (Map<String, Object>)JSON.deserializeUntyped(RestContext.response.responseBody.toString());
+        Map<String, Object> data = (Map<String, Object>)body.get('data');
+        List<Object> designs = (List<Object>)data.get('designs');
+        System.assertEquals(link, ((Map<String, Object>)designs[0]).get('externalFileLink'));
+    }
 }

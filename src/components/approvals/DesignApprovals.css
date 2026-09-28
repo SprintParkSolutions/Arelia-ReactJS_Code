@@ -42,3 +42,10 @@
 .paymentReview__table td { white-space: nowrap; }
 .paymentReview__table tbody tr:last-child > * { border-bottom: 0; }
 .paymentReview__caption { text-align: left; padding: 1rem 1.25rem; font-weight: 600; }
+.designReview__externalLink { margin: 20px 0; padding: 20px; border: 1px solid #d7b58140; border-radius: 14px; background: #d7b58108; }
+.designReview__externalLink p { color: #aaa69f; line-height: 1.6; }
+.designReview__externalLink a { display: flex; flex-direction: column; gap: 14px; color: #e2c797; text-decoration: none; }
+.designReview__externalUrl { overflow-wrap: anywhere; text-decoration: underline; text-underline-offset: 4px; line-height: 1.6; }
+.designReview__externalAction { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-weight: 600; }
+.designReview__externalHint { font-weight: 400; font-size: .85em; color: #aaa69f; }
+.designReview__externalLink a:focus-visible { outline: 2px solid #e2c797; outline-offset: 5px; border-radius: 4px; }
