@@ -2779,7 +2779,6 @@ export function DashboardPage() {
   const designApprovals = useDesignApprovals(authClient?.contactId || "");
   const designHistory = useDesignNotifications(authClient?.contactId || "", designApprovals.result);
   const [highlightInvoiceId, setHighlightInvoiceId] = useState<string | null>(null);
-  const agreementHistory = useAgreementNotifications(authClient?.leadId || "");
   const [highlightPaymentId, setHighlightPaymentId] = useState<string | null>(null);
   const [highlightBudgetId, setHighlightBudgetId] = useState<string | null>(null);
   const leadId = authClient?.leadId;
@@ -2790,6 +2789,7 @@ export function DashboardPage() {
   const supervisor = useSupervisor(leadId);
   const approvedProjects = useApprovalProjects(leadId);
   const proformaProjectIds = (approvedProjects || projectDetails.result)?.projects?.flatMap(project => project.leadId ? [project.leadId] : []);
+  const agreementHistory = useAgreementNotifications(leadId || "", proformaProjectIds);
   const proformaApprovals = useProformaApprovals(leadId || "", proformaProjectIds);
   const budgetReview = useBudgetReview(leadId || "", proformaProjectIds);
   const paymentReview = usePaymentReview(leadId || "", proformaProjectIds);
