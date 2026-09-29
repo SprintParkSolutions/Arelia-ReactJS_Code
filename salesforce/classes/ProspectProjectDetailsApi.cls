@@ -171,7 +171,10 @@ global without sharing class ProspectProjectDetailsApi {
             String projectDescription =getStringValue(requestData,'projectDescription');
             //String quotationType = getStringValue(requestData,'quotationType');
 
-            if (String.isBlank(siteSpace) || String.isBlank(typeOfProject) || String.isBlank(projectScope) ||
+            Boolean isComboPackage = typeOfProject == 'Interior Combo Package';
+            if (isComboPackage) projectScope = null;
+
+            if (String.isBlank(siteSpace) || String.isBlank(typeOfProject) || (!isComboPackage && String.isBlank(projectScope)) ||
                 String.isBlank(planLevel) || String.isBlank(customerBudget) || String.isBlank(siteLocation) 
                 || String.isBlank(projectDescription))
             {
@@ -199,7 +202,7 @@ global without sharing class ProspectProjectDetailsApi {
                 return response;
             }
 
-            if(!validProjectScopes.contains(projectScope)) {
+            if(!isComboPackage && !validProjectScopes.contains(projectScope)) {
                 RestContext.response.statusCode = 400;
                 response.message = 'Invalid Project Scope value.';
                 return response;

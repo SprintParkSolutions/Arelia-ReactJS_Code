@@ -55,3 +55,4 @@
   .projectSummary__grid { grid-template-columns: 1fr; }
   .projectSummary__item { padding: 17px; }
 }
+.projectDetails select:disabled { opacity: .6; cursor: not-allowed; }

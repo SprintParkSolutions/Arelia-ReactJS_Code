@@ -66,3 +66,24 @@ describe('project details', () => {
     await act(async () => resolve({ success: false, message: 'Try again' }))
   })
 })
+
+it('disables and clears scope for combo packages and submits without it', async () => {
+  request.mockResolvedValue({ success: true, message: '', projectSubmitted: true, details })
+  setup()
+  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: 'Interior Combo Package' } })
+  expect(screen.getByLabelText('Project Scope')).toBeDisabled()
+  expect(screen.getByLabelText('Project Scope')).toHaveValue('')
+  fireEvent.click(screen.getByRole('button', { name: 'Submit Project Details' }))
+  await act(async () => {})
+  expect(request).toHaveBeenCalledWith('00Q123', { ...details, typeOfProject: 'Interior Combo Package', projectScope: '' })
+})
+
+it('requires scope again when switching from combo to another project type', () => {
+  setup()
+  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: 'Interior Combo Package' } })
+  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: 'Office' } })
+  expect(screen.getByLabelText('Project Scope')).toBeEnabled()
+  fireEvent.click(screen.getByRole('button', { name: 'Submit Project Details' }))
+  expect(screen.getByText('Project Scope is required.')).toBeInTheDocument()
+  expect(request).not.toHaveBeenCalled()
+})
