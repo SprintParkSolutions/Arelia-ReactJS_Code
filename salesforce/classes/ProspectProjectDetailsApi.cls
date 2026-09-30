@@ -171,10 +171,10 @@ global without sharing class ProspectProjectDetailsApi {
             String projectDescription =getStringValue(requestData,'projectDescription');
             //String quotationType = getStringValue(requestData,'quotationType');
 
-            Boolean isComboPackage = typeOfProject == 'Interior Combo Package';
-            if (isComboPackage) projectScope = null;
+            Boolean isScopeDisabled = typeOfProject == 'Interior Combo Package' || typeOfProject == 'Only Project Plan';
+            if (isScopeDisabled) projectScope = null;
 
-            if (String.isBlank(siteSpace) || String.isBlank(typeOfProject) || (!isComboPackage && String.isBlank(projectScope)) ||
+            if (String.isBlank(siteSpace) || String.isBlank(typeOfProject) || (!isScopeDisabled && String.isBlank(projectScope)) ||
                 String.isBlank(planLevel) || String.isBlank(customerBudget) || String.isBlank(siteLocation) 
                 || String.isBlank(projectDescription))
             {
@@ -202,7 +202,7 @@ global without sharing class ProspectProjectDetailsApi {
                 return response;
             }
 
-            if(!isComboPackage && !validProjectScopes.contains(projectScope)) {
+            if(!isScopeDisabled && !validProjectScopes.contains(projectScope)) {
                 RestContext.response.statusCode = 400;
                 response.message = 'Invalid Project Scope value.';
                 return response;

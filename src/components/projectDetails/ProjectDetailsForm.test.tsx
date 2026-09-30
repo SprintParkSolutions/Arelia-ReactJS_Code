@@ -67,20 +67,20 @@ describe('project details', () => {
   })
 })
 
-it('disables and clears scope for combo packages and submits without it', async () => {
+it.each(['Interior Combo Package', 'Only Project Plan'])('disables and clears scope for %s and submits without it', async (typeOfProject) => {
   request.mockResolvedValue({ success: true, message: '', projectSubmitted: true, details })
   setup()
-  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: 'Interior Combo Package' } })
+  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: typeOfProject } })
   expect(screen.getByLabelText('Project Scope')).toBeDisabled()
   expect(screen.getByLabelText('Project Scope')).toHaveValue('')
   fireEvent.click(screen.getByRole('button', { name: 'Submit Project Details' }))
   await act(async () => {})
-  expect(request).toHaveBeenCalledWith('00Q123', { ...details, typeOfProject: 'Interior Combo Package', projectScope: '' })
+  expect(request).toHaveBeenCalledWith('00Q123', { ...details, typeOfProject, projectScope: '' })
 })
 
-it('requires scope again when switching from combo to another project type', () => {
+it.each(['Interior Combo Package', 'Only Project Plan'])('requires scope again when switching from %s to another project type', (typeOfProject) => {
   setup()
-  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: 'Interior Combo Package' } })
+  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: typeOfProject } })
   fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: 'Office' } })
   expect(screen.getByLabelText('Project Scope')).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: 'Submit Project Details' }))

@@ -7,7 +7,7 @@ const officeScopes = ['Conference Hall', 'Fully Office Interiors', 'Office Decor
 function getScopeOptions(typeOfProject: string): string[] {
   if (typeOfProject === 'Home') return homeScopes
   if (typeOfProject === 'Office') return officeScopes
-  if (typeOfProject === 'Interior Combo Package') return []
+  if (typeOfProject === 'Interior Combo Package' || typeOfProject === 'Only Project Plan') return []
   return [...homeScopes, ...officeScopes]
 }
 const fields: { key: keyof ProjectDetails; label: string; options?: string[] }[] = [
@@ -28,15 +28,15 @@ export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewP
   const [busy, setBusy] = useState(false)
   const [locked, setLocked] = useState(false)
   const pending = useRef(false)
-  const isComboPackage = values.typeOfProject === 'Interior Combo Package'
+  const isScopeDisabled = values.typeOfProject === 'Interior Combo Package' || values.typeOfProject === 'Only Project Plan'
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending.current || result.projectSubmitted || locked) return
     const cleaned = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()])) as ProjectDetails
-    if (isComboPackage) cleaned.projectScope = ''
+    if (isScopeDisabled) cleaned.projectScope = ''
     const next: typeof errors = {}
     fields.forEach(field => {
-      if (field.key === 'projectScope' && isComboPackage) return
+      if (field.key === 'projectScope' && isScopeDisabled) return
       const options = field.key === 'projectScope' ? getScopeOptions(cleaned.typeOfProject) : field.options
       if (!cleaned[field.key]) next[field.key] = `${field.label} is required.`
       else if (options && !options.includes(cleaned[field.key])) next[field.key] = 'Choose an available option.'
@@ -106,7 +106,7 @@ export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewP
           {fields.map(field => {
             const options = field.key === 'projectScope' ? getScopeOptions(values.typeOfProject) : field.options
             const id = `project-${field.key}`
-            const disabled = field.key === 'projectScope' && isComboPackage
+            const disabled = field.key === 'projectScope' && isScopeDisabled
             const props = { id, disabled, required: !disabled, value: disabled ? '' : values[field.key], 'aria-invalid': Boolean(errors[field.key]), 'aria-describedby': `${id}-error`,
               onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
                 const value = event.target.value
