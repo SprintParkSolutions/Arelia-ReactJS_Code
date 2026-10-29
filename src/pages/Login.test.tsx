@@ -29,22 +29,33 @@ function submit() {
   fireEvent.change(screen.getByLabelText('Password', { exact: true }), { target: { value: 'Example1!' } })
   fireEvent.click(screen.getByRole('button', { name: 'Enter Portal' }))
 }
-describe('login entry points', () => {
-  it.each(['/login', '/login?account=prospect'])('uses Lead authentication from %s', async path => {
-    setup(path); submit()
+describe('unified login', () => {
+  it.each(['/login', '/login?account=prospect', '/login?account=client'])('signs in leads from %s', async path => {
+    vi.mocked(loginProspect).mockResolvedValue({ success: true, leadId: 'lead-1' })
+    setup(path)
+    expect(screen.getByText('Client portal sign in')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Client portal sign in' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Consultation account sign in')).not.toBeInTheDocument()
+    submit()
     await waitFor(() => expect(loginProspect).toHaveBeenCalledWith('hello@example.com', 'Example1!'))
     expect(loginClient).not.toHaveBeenCalled()
   })
-  it('preserves explicit client portal authentication', async () => {
-    setup('/login?account=client'); submit()
-    await waitFor(() => expect(loginClient).toHaveBeenCalledWith('hello@example.com', 'Example1!'))
-    expect(loginProspect).not.toHaveBeenCalled()
-  })
-  it('lets users switch to client portal authentication', async () => {
+
+  it('authenticates clients when lead authentication does not succeed', async () => {
+    vi.mocked(loginClient).mockResolvedValue({ success: true, contactId: 'contact-1' })
     setup('/login')
-    fireEvent.click(screen.getByRole('button', { name: 'Client portal sign in' }))
     submit()
-    await waitFor(() => expect(loginClient).toHaveBeenCalledOnce())
-    expect(loginProspect).not.toHaveBeenCalled()
+    await waitFor(() => expect(loginClient).toHaveBeenCalledWith('hello@example.com', 'Example1!'))
+    expect(loginProspect).toHaveBeenCalledOnce()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Enter Portal' })).not.toBeDisabled())
+    expect(screen.queryByText('Invalid credentials.')).not.toBeInTheDocument()
+  })
+
+  it('shows an error when neither endpoint authenticates the account', async () => {
+    setup('/login')
+    submit()
+    await waitFor(() => expect(screen.getByText('Invalid credentials.')).toBeInTheDocument())
+    expect(loginProspect).toHaveBeenCalledOnce()
+    expect(loginClient).toHaveBeenCalledOnce()
   })
 })

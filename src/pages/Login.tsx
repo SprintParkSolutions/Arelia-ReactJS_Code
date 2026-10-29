@@ -20,7 +20,6 @@ type ForgotPasswordStep = 'closed' | 'request' | 'sent' | 'newPassword' | 'done'
 
 export function Login() {
   const location = useLocation()
-  const isProspect = new URLSearchParams(location.search).get('account') !== 'client'
   const [email, setEmail] = useState(() => localStorage.getItem('rememberedEmail') ?? '')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -196,7 +195,10 @@ export function Login() {
     setLoading(true)
     setError('')
 
-    const response = await (isProspect ? loginProspect(email, password) : loginClient(email, password))
+    const prospectResponse = await loginProspect(email, password)
+    const response = prospectResponse.success && (prospectResponse.contactId || prospectResponse.leadId)
+      ? prospectResponse
+      : await loginClient(email, password)
 
     if (response.success && (response.contactId || response.leadId)) {
       if (rememberMe) {
@@ -268,13 +270,8 @@ export function Login() {
           >
             <p className="loginPage__panelEyebrow">Private Client Portal</p>
             <h1 className="loginPage__panelTitle">Welcome Back</h1>
-            <p className="loginPage__panelIntro">{isProspect ? 'Sign in to your Arelia account' : 'Access your private Arelia workspace'}</p>
-            <button type="button" className="loginForm__forgot" disabled={loading || forgotLoading} onClick={() => {
-              setPassword('')
-              setError('')
-              closeForgotPanel()
-              navigate(isProspect ? '/login?account=client' : '/login', { replace: true })
-            }}>{isProspect ? 'Client portal sign in' : 'Consultation account sign in'}</button>
+            <p className="loginPage__panelIntro">Sign in to your Arelia account</p>
+            <p className="loginPage__signInLabel">Client portal sign in</p>
           </motion.div>
 
           <form className="loginForm" onSubmit={handleSubmit} noValidate>

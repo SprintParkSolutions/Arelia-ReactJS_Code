@@ -51,3 +51,8 @@ it('preserves the project Lead ID and uses it when submitting a decision', async
   await submitPaymentDecision('lead1', loaded.payment!, 'Client Approved', '')
   expect(JSON.parse(fetcher.mock.calls[0][1].body)).toMatchObject({ leadId: 'lead2', opportunityId: 'opp1', action: 'APPROVE' })
 })
+
+it.each(['lead1', 'lead2', 'lead3'])('treats a project without an Opportunity as empty Payment Terms for %s', async leadId => {
+  mock({ success: false, message: 'This prospect is not connected to an Opportunity.' }, 403)
+  expect(await getPaymentReview(leadId)).toEqual({ success: true, message: '', payment: null })
+})

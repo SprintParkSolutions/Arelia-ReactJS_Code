@@ -118,7 +118,7 @@ export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewP
               <label htmlFor={id}>{field.label}</label>
               {options ? <select {...props}><option value="">Select an option</option>{options.map(option => <option key={option}>{option}</option>)}</select>
                 : field.key === 'projectDescription' ? <textarea {...props} rows={4} />
-                : <input {...props} inputMode={field.key === 'customerBudget' ? 'decimal' : undefined} />}
+                : <input {...props} placeholder={field.key === 'siteSpace' ? 'Enter site area (sq ft)' : undefined} inputMode={field.key === 'customerBudget' ? 'decimal' : undefined} />}
               <span id={`${id}-error`} className="projectDetails__error">{errors[field.key]}</span>
             </div>
           })}

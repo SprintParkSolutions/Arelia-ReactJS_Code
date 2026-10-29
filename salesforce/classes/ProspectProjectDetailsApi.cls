@@ -7,6 +7,10 @@ global without sharing class ProspectProjectDetailsApi {
         public Id leadId;
         public List<ProjectDetailsResponse> projects;
 
+        public Boolean isConverted;
+        public Id convertedOpportunityId;
+        public Id convertedAccountId;
+        public Id convertedContactId;
         public Boolean projectSubmitted;
         public String approvalStatus;
 
@@ -57,7 +61,7 @@ global without sharing class ProspectProjectDetailsApi {
             }
             List<Lead> leadRecords = [SELECT Id, Portal_Account_Key__c, FirstName, LastName, Email, Phone, Site_Space__c,
                         Type_Of_Project__c, Project_Scope__c, Plan_Level__c, Customer_Budget__c, Site_Location__c,
-                        Project_Description__c, Approval_Status__c, Project_Request_Submitted__c FROM Lead WHERE Id = :leadId LIMIT 1 ];
+                        Project_Description__c, Approval_Status__c, Project_Request_Submitted__c, IsConverted, ConvertedOpportunityId, ConvertedAccountId, ConvertedContactId FROM Lead WHERE Id = :leadId LIMIT 1 ];
             
             if (leadRecords.isEmpty()) {
                 RestContext.response.statusCode = 404;
@@ -70,6 +74,10 @@ global without sharing class ProspectProjectDetailsApi {
             response.leadId = leadRecord.Id;
             response.projectSubmitted = leadRecord.Project_Request_Submitted__c == true;
             response.approvalStatus = leadRecord.Approval_Status__c;
+            response.isConverted = leadRecord.IsConverted;
+            response.convertedOpportunityId = leadRecord.ConvertedOpportunityId;
+            response.convertedAccountId = leadRecord.ConvertedAccountId;
+            response.convertedContactId = leadRecord.ConvertedContactId;
             response.firstName = leadRecord.FirstName;
             response.lastName = leadRecord.LastName;
             response.email = leadRecord.Email;
@@ -87,7 +95,7 @@ global without sharing class ProspectProjectDetailsApi {
             response.projects = new List<ProjectDetailsResponse>();
             for (Lead project : [SELECT Id, Site_Space__c, Type_Of_Project__c, Project_Scope__c,
                 Plan_Level__c, Customer_Budget__c, Site_Location__c, Project_Description__c,
-                Project_Request_Submitted__c, Approval_Status__c FROM Lead
+                Project_Request_Submitted__c, Approval_Status__c, IsConverted, ConvertedOpportunityId, ConvertedAccountId, ConvertedContactId FROM Lead
                 WHERE Id = :accountKey OR Portal_Account_Key__c = :accountKey
                 ORDER BY CreatedDate ASC, Id ASC]) {
                 ProjectDetailsResponse item = new ProjectDetailsResponse();
@@ -95,6 +103,10 @@ global without sharing class ProspectProjectDetailsApi {
                 item.leadId = project.Id;
                 item.projectSubmitted = project.Project_Request_Submitted__c == true;
                 item.approvalStatus = project.Approval_Status__c;
+                item.isConverted = project.IsConverted;
+                item.convertedOpportunityId = project.ConvertedOpportunityId;
+                item.convertedAccountId = project.ConvertedAccountId;
+                item.convertedContactId = project.ConvertedContactId;
                 item.siteSpace = project.Site_Space__c == null ? null : String.valueOf(project.Site_Space__c);
                 item.typeOfProject = project.Type_Of_Project__c;
                 item.projectScope = project.Project_Scope__c;

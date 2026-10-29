@@ -1,4 +1,4 @@
-import { canRespondToSiteVisit } from './siteVisitRequest'
+import { canRespondToSiteVisit, isFutureSiteVisitSlot } from './siteVisitRequest'
 import { useState } from 'react'
 import { FiCalendar, FiClock, FiMapPin } from 'react-icons/fi'
 import { DocumentDownload } from './DocumentDownload'
@@ -21,12 +21,13 @@ export function SiteVisitPanel({ leadId, visit }: { leadId?: string; visit: Retu
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const { appointment, report, busy } = visit
+  const availableSlots = appointment?.availableTimeSlots?.filter(value => date && isFutureSiteVisitSlot(date, value)) || []
   const requested = appointment?.appointmentStatus === 'Rescheduled'
   const canRespond = canRespondToSiteVisit(appointment)
   async function respond(response: 'Approved' | 'Rescheduled') {
     if (!canRespond || busy) return
     setError(''); setMessage('')
-    if (response === 'Rescheduled' && (!date || date < today() || !slot || !appointment?.availableTimeSlots?.includes(slot))) { setError('Choose a date today or later and an available time slot.'); return }
+    if (response === 'Rescheduled' && (!date || date < today() || !slot || !appointment?.availableTimeSlots?.includes(slot) || !isFutureSiteVisitSlot(date, slot))) { setError('Choose an available appointment date and time in the future.'); return }
     const result = await visit.submit(response, date, slot)
     if (!result.success) { setError(result.message); return }
     setMessage(result.message); setRescheduling(false)
@@ -51,8 +52,8 @@ export function SiteVisitPanel({ leadId, visit }: { leadId?: string; visit: Retu
             {!rescheduling ? <div className="siteVisit__actions"><button className="projectDetails__submit" disabled={busy || !appointment?.appointmentDate || !appointment?.appointmentTimeSlot} onClick={() => void respond('Approved')}>{busy ? 'Saving…' : 'Approve'}</button><button disabled={busy} onClick={() => setRescheduling(true)}>Reschedule</button></div>
             : <form onSubmit={event => { event.preventDefault(); void respond('Rescheduled') }}>
               <fieldset disabled={busy}><legend>Choose your preferred appointment</legend><div className="siteVisit__fields">
-                <label htmlFor="visit-date">Preferred date<input id="visit-date" type="date" required min={today()} value={date} onChange={event => setDate(event.target.value)} /></label>
-                <label htmlFor="visit-slot">Preferred time slot<select id="visit-slot" required value={slot} onChange={event => setSlot(event.target.value)}><option value="">Select a time slot</option>{appointment?.availableTimeSlots?.map(value => <option key={value}>{value}</option>)}</select></label>
+                <label htmlFor="visit-date">Preferred date<input id="visit-date" type="date" required min={today()} value={date} onChange={event => { setDate(event.target.value); setSlot('') }} /></label>
+                <label htmlFor="visit-slot">Preferred time slot<select id="visit-slot" required value={slot} onChange={event => setSlot(event.target.value)}><option value="">{date && !availableSlots.length ? 'No Time Slots Available' : 'Select a time slot'}</option>{availableSlots.map(value => <option key={value}>{value}</option>)}</select></label>
               </div><div className="siteVisit__actions"><button type="submit" className="projectDetails__submit">{busy ? 'Submitting…' : 'Submit reschedule request'}</button><button type="button" onClick={() => setRescheduling(false)}>Cancel</button></div></fieldset>
             </form>}
           </div>}

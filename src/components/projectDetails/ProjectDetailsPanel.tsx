@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { ProjectNavigation } from '../ProjectNavigation'
 import { ProjectDetailsForm } from './ProjectDetailsForm'
 import type { ProjectDetailsResult } from '../../services/projectDetailsApi'
 
@@ -6,19 +8,22 @@ const emptyProject: ProjectDetailsResult = {
   details: { siteSpace: '', typeOfProject: '', projectScope: '', planLevel: '', customerBudget: '', siteLocation: '', projectDescription: '' },
 }
 
-export function ProjectDetailsPanel({ leadId, result, addingProject, onCancel, onSaved, reload }: {
+export function ProjectDetailsPanel({ leadId, result, addingProject, onCancel, onSaved, reload, selectedLeadId, onSelectProject }: {
   leadId: string; result: ProjectDetailsResult; addingProject: boolean
+  selectedLeadId?: string; onSelectProject?: (leadId: string) => void
   onCancel: () => void; onSaved: () => void; reload: () => void
 }) {
-  if (addingProject) return <>
+  const [selectedId, setSelectedId] = useState(leadId)
+  if (addingProject && result.projectSubmitted === true) return <>
     <ProjectDetailsForm key="new-project" leadId={leadId} result={emptyProject} createNewProject onSaved={onSaved} reload={reload} />
     <button type="button" className="projectDetails__submit" onClick={onCancel}>Back to projects</button>
   </>
-  const projects = result.projects?.length ? result.projects : [result]
-  return <div className="projectDetailsList">
-    {projects.map((project, index) => <div key={project.leadId || leadId}>
-      {projects.length > 1 && <h2 className="dashboardSection__title">Project {index + 1}</h2>}
-      <ProjectDetailsForm leadId={project.leadId || leadId} result={project} onSaved={onSaved} reload={reload} />
-    </div>)}
+  const projects = (result.projects?.length ? result.projects : [result]).map(project => ({
+    ...project, id: project.leadId || leadId,
+  }))
+  const selected = projects.find(project => project.id === (selectedLeadId ?? selectedId)) || projects[0]
+  return <div className="projectDetailsList siteVisitCarousel">
+    <ProjectNavigation projects={projects} selectedId={selected.id} onSelect={id => { setSelectedId(id); onSelectProject?.(id) }} eyebrow="PROJECT DETAILS BY PROJECT" />
+    <ProjectDetailsForm key={selected.id} leadId={selected.id} result={selected} onSaved={onSaved} reload={reload} />
   </div>
 }

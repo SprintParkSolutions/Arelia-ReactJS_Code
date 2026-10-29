@@ -48,3 +48,18 @@ describe('project details API', () => {
     expect(await requestProjectDetails('00Q123')).toMatchObject({ success: false, message: 'Unable to connect. Please try again.' })
   })
 })
+
+it('preserves conversion fields at account and project level without treating approval as conversion', async () => {
+  const conversion = { isConverted: true, convertedOpportunityId: 'opp1', convertedAccountId: 'account1', convertedContactId: 'contact1' }
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+    success: true, leadId: 'lead1', projectSubmitted: true, ...conversion,
+    projects: [
+      { leadId: 'lead1', projectSubmitted: true, ...conversion },
+      { leadId: 'lead2', projectSubmitted: true, approvalStatus: 'Approved' },
+    ],
+  }))))
+  const result = await requestProjectDetails('lead1')
+  expect(result).toMatchObject(conversion)
+  expect(result.projects?.[0]).toMatchObject(conversion)
+  expect(result.projects?.[1]).toMatchObject({ isConverted: false, approvalStatus: 'Approved' })
+})

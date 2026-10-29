@@ -39,3 +39,8 @@ it('submits a second project budget using its Lead ID', async () => {
   await submitBudgetDecision('lead1', { ...budget, leadId: 'lead2' }, 'Client Approved', '')
   expect(JSON.parse(fetcher.mock.calls[0][1].body).leadId).toBe('lead2')
 })
+
+it.each(['lead1', 'lead2', 'lead3'])('treats a project without an Opportunity as an empty Budget Review for %s', async leadId => {
+  mock({ success: false, message: 'This prospect is not connected to an Opportunity.' }, 403)
+  expect(await getBudgetReview(leadId)).toEqual({ success: true, message: '', budget: null })
+})

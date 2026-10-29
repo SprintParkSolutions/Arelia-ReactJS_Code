@@ -4,11 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ConsultationSignup } from './ConsultationSignup'
 import { registerProspect, sendOtp } from '../../services/salesforceApi'
 vi.mock('../../services/salesforceApi', () => ({ registerProspect: vi.fn(), sendOtp: vi.fn() }))
+const { login } = vi.hoisted(() => ({ login: vi.fn() }))
+vi.mock('../../context/AuthContext', () => ({ useAuth: () => ({ login }) }))
 const register = vi.mocked(registerProspect)
 const send = vi.mocked(sendOtp)
 const close = vi.fn()
 function setup() {
-  render(<MemoryRouter><Routes><Route path="/" element={<ConsultationSignup onClose={close} />} /><Route path="/login" element={<h1>Sign In Screen</h1>} /></Routes></MemoryRouter>)
+  render(<MemoryRouter><Routes><Route path="/" element={<ConsultationSignup onClose={close} />} /><Route path="/login" element={<h1>Sign In Screen</h1>} /><Route path="/dashboard" element={<h1>Dashboard</h1>} /></Routes></MemoryRouter>)
 }
 function fill(password = 'Example1!', confirmation = password, email = 'ada@example.com') {
   for (const [label, value] of Object.entries({ 'First Name': 'Ada', 'Last Name': 'Lovelace', 'Email Address': email, 'Phone Number': '9876543210', Password: password, 'Confirm Password': confirmation })) {
@@ -107,18 +109,23 @@ describe('consultation signup', () => {
     expect(register).not.toHaveBeenCalled()
     await act(async () => resolve({ success: false }))
   })
-  it('shows success, clears passwords and redirects to sign in', async () => {
-    vi.useFakeTimers()
+  it('starts a session and opens the dashboard after OTP verification and registration', async () => {
     setup(); fill(); submit()
-    await act(async () => {})
-    fireEvent.change(screen.getByLabelText('Enter OTP'), { target: { value: send.mock.calls[0][1] } })
-    fireEvent.click(screen.getByRole('button', { name: 'Verify OTP' }))
-    await act(async () => {})
-    expect(screen.getByRole('status')).toHaveTextContent('Taking you to Sign In')
+    await verifySentCode()
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument()
+    expect(login).toHaveBeenCalledExactlyOnceWith({
+      leadId: '00Q123', name: 'Ada Lovelace', email: 'ada@example.com', phone: '+919876543210',
+    })
     expect(screen.queryByLabelText('Password', { exact: true })).not.toBeInTheDocument()
-    await act(async () => vi.advanceTimersByTime(1800))
-    expect(screen.getByText('Sign In Screen')).toBeInTheDocument()
     expect(close).toHaveBeenCalledOnce()
+  })
+  it('does not start a session if registration returns no lead ID', async () => {
+    register.mockResolvedValue({ success: true })
+    setup(); fill(); submit()
+    await verifySentCode()
+    expect(await screen.findByText('Unable to create your account. Please try again.')).toBeInTheDocument()
+    expect(login).not.toHaveBeenCalled()
+    expect(close).not.toHaveBeenCalled()
   })
   it('does not create a Lead until the emailed OTP matches', async () => {
     setup(); fill(); submit()

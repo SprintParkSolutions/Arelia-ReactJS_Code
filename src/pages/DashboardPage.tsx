@@ -1,3 +1,5 @@
+import { PendingApprovals } from "../components/approvals/PendingApprovals";
+import { buildPendingApprovals, type PendingItem } from "../components/approvals/pendingApprovalItems";
 import { ProjectStagePath } from "../components/ProjectStagePath";
 import { ProjectTrackingNavigation } from "../components/ProjectTrackingNavigation";
 import { useAgreementNotifications } from "../components/approvals/useAgreementNotifications";
@@ -65,7 +67,7 @@ import { useSupervisorNotifications } from "../components/projectDetails/useSupe
 import { useSupervisor } from "../components/projectDetails/useSupervisor";
 import { ProjectSupervisorsPanel } from "../components/projectDetails/ProjectSupervisorsPanel";
 import { useApprovalProjects } from "../components/projectDetails/useApprovalStatus";
-import { useProjectReminder, useProjectApprovalNotifications } from "../components/projectDetails/useProjectReminder";
+import { useProjectReminder, useProjectApprovalNotifications, useProjectConversionNotifications } from "../components/projectDetails/useProjectReminder";
 import { useProjectDetails } from "../components/projectDetails/useProjectDetails";
 import { dashboardTabs, isProjectTrackingTab } from "../constants/dashboardTabs";
 import { useAuth } from "../context/AuthContext";
@@ -2774,7 +2776,7 @@ export function DashboardPage() {
   } = useAuth();
   const [trackingExpanded, setTrackingExpanded] = useState(isProjectTrackingTab(activeDashboardTab));
   const [approvalsExpanded, setApprovalsExpanded] = useState(activeDashboardTab === "approvals");
-  const [selectedApproval, setSelectedApproval] = useState<ApprovalCategory | null>(null);
+  const [selectedApproval, setSelectedApproval] = useState<ApprovalCategory>("3D Design Approvals");
   const [highlightDesignId, setHighlightDesignId] = useState<string | null>(null);
   const designApprovals = useDesignApprovals(authClient?.contactId || "");
   const designHistory = useDesignNotifications(authClient?.contactId || "", designApprovals.result);
@@ -2784,6 +2786,8 @@ export function DashboardPage() {
   const leadId = authClient?.leadId;
   const projectDetails = useProjectDetails(leadId);
   const [addingProject, setAddingProject] = useState(false);
+  const [selectedSupervisorLeadId, setSelectedSupervisorLeadId] = useState<string>();
+  const [selectedProjectDetailsLeadId, setSelectedProjectDetailsLeadId] = useState<string>();
   const needsProjectDetails = Boolean(leadId && !projectDetails.loading && projectDetails.result?.success && projectDetails.result.projectSubmitted === false);
   const [selectedSiteVisitLeadId, setSelectedSiteVisitLeadId] = useState<string>();
   const supervisor = useSupervisor(leadId);
@@ -2799,6 +2803,7 @@ export function DashboardPage() {
   const projectSiteVisits = useProjectSiteVisits(leadId, approvedProjects || projectDetails.result);
   const siteVisitHistory = useProjectSiteVisitNotifications(projectSiteVisits);
   const supervisorHistory = useSupervisorNotifications(leadId, approvedProjects || projectDetails.result, supervisor.result);
+  const conversionHistory = useProjectConversionNotifications(leadId, approvedProjects);
   const approvalHistory = useProjectApprovalNotifications(leadId, approvedProjects);
   const projectReminderHistory = useProjectReminder(leadId, needsProjectDetails);
   const deferredDashboardTab = useDeferredValue(activeDashboardTab);
@@ -2933,6 +2938,16 @@ export function DashboardPage() {
           ...project,
           completionPercentage: undefined as number | undefined,
         }));
+  const pendingOverview = buildPendingApprovals({
+    projectDetails: approvedProjects || projectDetails.result,
+    leadIds: proformaProjectIds?.length ? proformaProjectIds : leadId ? [leadId] : [],
+    projects,
+    visits: projectSiteVisits,
+    designs: designApprovals.result,
+    invoices: proformaApprovals.result,
+    budgets: budgetReview.result,
+    payments: paymentReview.result,
+  });
   const activeProject =
     projects.find((project) => project.id === selectedProjectId) || projects[0];
   const activeProjectId = activeProject?.id || resolvedProject?.id;
@@ -3193,7 +3208,7 @@ export function DashboardPage() {
   };
   const reminderNotifications = projectReminderHistory.reminder && !projectReminderHistory.reminder.dismissed
     ? [projectReminder, ...notifications] : notifications;
-  const approvalNotifications: PortalNotification[] = [...approvalHistory.notifications, ...reminderNotifications];
+  const approvalNotifications: PortalNotification[] = [...conversionHistory.notifications, ...approvalHistory.notifications, ...reminderNotifications];
   const supervisorNotifications: PortalNotification[] = [...supervisorHistory.notifications, ...approvalNotifications];
   const visibleNotifications: PortalNotification[] = [...agreementHistory.notifications, ...paymentHistory.notifications, ...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
   const unreadNotificationCount = visibleNotifications.filter(
@@ -3251,17 +3266,30 @@ export function DashboardPage() {
     }
     if (notification.type === "siteVisit") { setSelectedSiteVisitLeadId(notification.siteVisitLeadId); siteVisitHistory.markRead(notification.id); setIsNotificationPanelOpen(false); handleTabChange("siteVisit"); return; }
     if (notification.id.startsWith("supervisor-assigned:")) {
+      setSelectedSupervisorLeadId(notification.id.slice("supervisor-assigned:".length));
       supervisorHistory.markRead(notification.id);
       setIsNotificationPanelOpen(false);
       handleTabChange("supervisor");
       return;
     }
+    if (notification.id.startsWith("project-converted:")) {
+      conversionHistory.markRead(notification.id);
+      setSelectedApproval("3D Design Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
     if (notification.id.startsWith("project-details-approved:")) {
+      setAddingProject(false);
+      setSelectedProjectDetailsLeadId(notification.id.slice("project-details-approved:".length));
+      handleTabChange("projectDetails");
       approvalHistory.markRead(notification.id);
       setIsNotificationPanelOpen(false);
       return;
     }
     if (notification.type === "projectDetails") {
+      setAddingProject(false);
       projectReminderHistory.markRead();
       setIsNotificationPanelOpen(false);
       handleTabChange("projectDetails");
@@ -3306,6 +3334,7 @@ export function DashboardPage() {
     if (notificationId.startsWith("design-approval:")) { designHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("site-visit:")) { siteVisitHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("supervisor-assigned:")) { supervisorHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("project-converted:")) { conversionHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("project-details-approved:")) { approvalHistory.dismiss(notificationId); return; }
     if (notificationId === "project-details-reminder") { projectReminderHistory.dismiss(); return; }
     setNotifications((prev) => {
@@ -3328,6 +3357,7 @@ export function DashboardPage() {
     designHistory.markAllRead();
     siteVisitHistory.markAllRead();
     supervisorHistory.markAllRead();
+    conversionHistory.markAllRead();
     approvalHistory.markAllRead();
     projectReminderHistory.markRead();
     setNotifications((prev) => {
@@ -3342,6 +3372,27 @@ export function DashboardPage() {
     });
   };
 
+  const reviewPendingItem = (item: PendingItem) => {
+    if (item.kind === "siteVisit") {
+      setSelectedSiteVisitLeadId(item.targetId);
+      handleTabChange("siteVisit");
+      return;
+    }
+    const categories: Record<Exclude<PendingItem['kind'], 'siteVisit'>, ApprovalCategory> = {
+      design: "3D Design Approvals",
+      invoice: "Proforma Invoice Approvals",
+      budget: "Budget Review Approvals",
+      payment: "Payment Terms Approvals",
+    };
+    setHighlightDesignId(item.kind === "design" ? item.targetId : null);
+    setHighlightInvoiceId(item.kind === "invoice" ? item.targetId : null);
+    setHighlightBudgetId(item.kind === "budget" ? item.targetId : null);
+    setHighlightPaymentId(item.kind === "payment" ? item.targetId : null);
+    setSelectedApproval(categories[item.kind]);
+    setApprovalsExpanded(true);
+    handleTabChange("approvals");
+  };
+  const pendingApprovalsPanel = <PendingApprovals overview={pendingOverview} onReview={reviewPendingItem} />;
   return (
     <main className="dashboardPage">
       <LogoutModal
@@ -3610,7 +3661,7 @@ export function DashboardPage() {
             </div>
           </header>
 
-          {needsProjectDetails && activeDashboardTab !== "projectDetails" ? (
+          {needsProjectDetails && activeDashboardTab !== "projectDetails" && activeDashboardTab !== "profile" ? (
             <button type="button" className="projectDetailsReminder" onClick={() => handleNotificationClick(projectReminder)}>
               Please fill in your project details form. <span aria-hidden="true">→</span>
             </button>
@@ -3693,6 +3744,15 @@ export function DashboardPage() {
                       {client ? (
                         <div className="dashboardHero__contactRow">
                           <div className="dashboardHero__contactItem">
+                            <FiBriefcase aria-hidden="true" />
+                            <div>
+                              <span>Full Name</span>
+                              <strong>
+                                {client.name || "Not available"}
+                              </strong>
+                            </div>
+                          </div>
+                          <div className="dashboardHero__contactItem">
                             <FiMail aria-hidden="true" />
                             <div>
                               <span>Email</span>
@@ -3706,15 +3766,6 @@ export function DashboardPage() {
                               <strong>{client.phone || "Not available"}</strong>
                             </div>
                           </div>
-                          <div className="dashboardHero__contactItem">
-                            <FiBriefcase aria-hidden="true" />
-                            <div>
-                              <span>Company</span>
-                              <strong>
-                                {client.company || "Not available"}
-                              </strong>
-                            </div>
-                          </div>
                         </div>
                       ) : null}
                     </motion.header>
@@ -3725,6 +3776,7 @@ export function DashboardPage() {
                       animate="visible"
                       variants={{ visible: staggerTransition }}
                     >
+                      {projects.length > 0 ? (<>
                       <div className="dashboardSection__heading dashboardSection__heading--profile">
                         <div>
                           <p className="dashboardSection__eyebrow">
@@ -3736,10 +3788,13 @@ export function DashboardPage() {
                               : "Your current project"}
                           </h2>
                         </div>
-                        {leadId && <button type="button" className="projectDetails__submit" onClick={() => {
-                          setAddingProject(true);
-                          handleTabChange("projectDetails");
-                        }}>Add Project</button>}
+                        {leadId && <button type="button" className="projectDetails__submit"
+                          disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
+                          onClick={() => {
+                            setAddingProject(projectDetails.result?.projectSubmitted === true);
+                            if (needsProjectDetails) projectReminderHistory.markRead();
+                            handleTabChange("projectDetails");
+                          }}>{projectDetails.result?.projectSubmitted === true ? "Add Additional Project" : "Complete Project Details"}</button>}
                         {projects.length > 1 ? (
                           <span className="dashboardSection__chip">
                             {projects.length} active projects
@@ -3931,12 +3986,33 @@ export function DashboardPage() {
                           </div>
                         </motion.div>
                       </div>
+                      {pendingOverview.count > 0 && <div className="dashboardSnapshotApprovals">{pendingApprovalsPanel}</div>}
+                      </>) : (
+                        <div className={pendingOverview.count > 0 ? "dashboardOverviewGrid" : undefined}>
+                        <div className="dashboardProjectWelcome">
+                          <span className="dashboardProjectSpotlight__icon" aria-hidden="true"><FiHome /></span>
+                          <h2 className="dashboardSection__title">{projectDetails.result?.projectSubmitted === true ? "Ready to plan another project?" : "Ready to start your project?"}</h2>
+                          <p className="dashboardSection__lead">{projectDetails.result?.projectSubmitted === true ? "Your project details have been submitted. Share your ideas for another space by adding an additional project." : "Share your project details so we can help create your perfect space."}</p>
+                          <div className="dashboardProjectWelcome__action">
+                            {leadId && <button type="button" className="projectDetails__submit"
+                          disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
+                          onClick={() => {
+                            setAddingProject(projectDetails.result?.projectSubmitted === true);
+                            if (needsProjectDetails) projectReminderHistory.markRead();
+                            handleTabChange("projectDetails");
+                          }}>{projectDetails.result?.projectSubmitted === true ? "Add Additional Project" : "Complete Project Details"}</button>}
+                          </div>
+                        </div>
+                        {pendingApprovalsPanel}
+                        </div>
+                      )}
                     </motion.section>
                   </>
                 ) : null}
 
                 {deferredDashboardTab === "supervisor" ? (
                   <ProjectSupervisorsPanel leadId={leadId} projects={projectDetails.result}
+                    selectedLeadId={selectedSupervisorLeadId} onSelectProject={setSelectedSupervisorLeadId}
                     loading={projectDetails.loading} reload={projectDetails.reload}
                     supervisor={supervisor} />
                 ) : null}
@@ -3959,6 +4035,7 @@ export function DashboardPage() {
                       <button type="button" onClick={projectDetails.reload}>Retry</button>
                     </div>
                     : <ProjectDetailsPanel key={leadId} leadId={leadId} result={projectDetails.result}
+                        selectedLeadId={selectedProjectDetailsLeadId} onSelectProject={setSelectedProjectDetailsLeadId}
                         addingProject={addingProject} onCancel={() => setAddingProject(false)}
                         onSaved={() => { setAddingProject(false); projectDetails.reload(); }} reload={projectDetails.reload} />
                 ) : null}
@@ -3968,7 +4045,7 @@ export function DashboardPage() {
                     retry={projectDetails.reload} /> : null}
                   {deferredDashboardTab === "approvals" ? (
                     <ReviewApprovals selected={selectedApproval}>
-                      {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} state={designApprovals} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
+                      {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} projectLeadIds={proformaProjectIds} accountProjects={(approvedProjects || projectDetails.result)?.projects} state={designApprovals} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
                       {selectedApproval === "Payment Terms Approvals" && <ProjectPaymentTermsApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} highlightId={highlightPaymentId} onProjectChange={() => setHighlightPaymentId(null)} />}
                       {selectedApproval === "Budget Review Approvals" && <ProjectBudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} highlightId={highlightBudgetId} onProjectChange={() => setHighlightBudgetId(null)} />}
                       {selectedApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}

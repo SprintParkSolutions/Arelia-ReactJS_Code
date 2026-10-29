@@ -47,3 +47,57 @@ it('notifies for every project independently, including later manager approval',
   expect(view.result.current.notifications.find(entry => entry.id === 'design-approval:' + designs[1].designId)?.read).toBe(true)
   expect(view.result.current.notifications.find(entry => entry.id === 'design-approval:' + designs[2].designId)?.read).toBe(false)
 })
+
+it('shows shared navigation for every account project when the design API has no projects or designs', () => {
+  const data = { ...state(), result: { success: true, message: '', designs: [] } }
+  render(<ProjectDesignApprovals contactId="contact1" projectLeadIds={['lead1', 'lead2', 'lead3']} state={data} highlightId={null} />)
+  expect(screen.getByRole('heading', { name: 'Project 1' })).toBeInTheDocument()
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Project 2', exact: true }))
+  expect(screen.getByRole('heading', { name: 'Project 2' })).toBeInTheDocument()
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Next project' }))
+  expect(screen.getByRole('heading', { name: 'Project 3' })).toBeInTheDocument()
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+})
+it('uses every account project for an empty view even when the API returns only one converted project', () => {
+  const data = { ...state(), result: { success: true, message: '', designs: [], projects: [{ id: 'opp-1', name: 'Home 1' }] } }
+  render(<ProjectDesignApprovals contactId="contact1" projectLeadIds={['lead1', 'lead2']} state={data} highlightId={null} />)
+  expect(screen.getByRole('heading', { name: 'Project 1' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Project 2', exact: true })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Next project' }))
+  expect(screen.getByRole('heading', { name: 'Project 2' })).toBeInTheDocument()
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'Next project' })).toBeDisabled()
+})
+it('shows all three unconverted projects without a Contact or design API result', () => {
+  const data = { ...state(), result: null }
+  render(<ProjectDesignApprovals contactId="" projectLeadIds={['lead1', 'lead2', 'lead3']} state={data} highlightId={null} />)
+  expect(screen.getByRole('heading', { name: 'Project 1' })).toBeInTheDocument()
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Project 3', exact: true }))
+  expect(screen.getByRole('heading', { name: 'Project 3' })).toBeInTheDocument()
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+})
+
+it('keeps all Lead tabs when only the second project has converted and received a design', () => {
+  const data = { ...state(), result: { ...result, designs: [designs[1]], projects: [result.projects[1]] } }
+  const accountProjects = [1, 2, 3].map(index => ({
+    success: true, message: '', leadId: 'lead' + index,
+    convertedOpportunityId: index === 2 ? designs[1].opportunityId : undefined,
+  }))
+  const view = render(<ProjectDesignApprovals contactId="contact1" state={data}
+    accountProjects={accountProjects} highlightId={null} />)
+  expect(screen.getByRole('heading', { name: 'Project 1' })).toBeInTheDocument()
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Project 2', exact: true }))
+  expect(screen.getByRole('heading', { name: 'Design 2' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Project 3', exact: true }))
+  expect(screen.getByText(/No designs have been sent/)).toBeInTheDocument()
+  expect(screen.queryByRole('heading', { name: 'Design 2' })).not.toBeInTheDocument()
+  view.rerender(<ProjectDesignApprovals contactId="contact1" state={data}
+    accountProjects={accountProjects} highlightId={designs[1].designId} />)
+  expect(screen.getByRole('heading', { name: 'Project 2' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Design 2' })).toBeInTheDocument()
+})

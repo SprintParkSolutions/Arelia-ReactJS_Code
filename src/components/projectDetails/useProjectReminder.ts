@@ -85,3 +85,14 @@ export function useProjectNotifications(
     markRead: (id: string) => update(id), markAllRead: () => update(), dismiss: (id: string) => update(id, true),
   }
 }
+
+export function useProjectConversionNotifications(leadId: string | undefined, result?: ProjectDetailsResult) {
+  const projects = result?.success
+    ? result.projects?.length ? result.projects : [{ ...result, leadId: result.leadId || leadId }]
+    : []
+  return useProjectNotifications(projects.map((project, index) => ({
+    leadId: project.leadId,
+    needed: Boolean(project.isConverted && project.convertedOpportunityId && project.convertedAccountId && project.convertedContactId),
+    message: `${projects.length > 1 ? `Project ${index + 1}: ` : ''}You will soon receive a 3D design for your review and approval.`,
+  })), 'projectConversionNotification', 'project-converted', 'approvals')
+}

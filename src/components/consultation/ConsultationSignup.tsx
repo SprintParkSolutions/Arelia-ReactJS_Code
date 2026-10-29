@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type SubmitEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import { FiCheckCircle, FiEye, FiEyeOff, FiUserPlus } from 'react-icons/fi'
 import { registerProspect, sendOtp } from '../../services/salesforceApi'
 import { getCountries, getCountryCallingCode, parsePhoneNumber, type Country } from 'react-phone-number-input'
@@ -30,6 +31,7 @@ const rules = [
 
 export function ConsultationSignup({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate()
+  const { login } = useAuth()
   const [country, setCountry] = useState<Country>('IN')
   const [values, setValues] = useState(emptyValues)
   const [errors, setErrors] = useState<Partial<Record<keyof Values, string>>>({})
@@ -46,15 +48,6 @@ export function ConsultationSignup({ onClose }: { onClose: () => void }) {
     mounted.current = true
     return () => { mounted.current = false }
   }, [])
-  useEffect(() => {
-    if (!success) return
-    const timer = window.setTimeout(() => {
-      onClose()
-      navigate('/login?account=prospect', { state: { signupSuccess: true } })
-    }, 1800)
-    return () => window.clearTimeout(timer)
-  }, [success, navigate, onClose])
-
   async function submit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
     if (pending.current || success) return
@@ -131,11 +124,19 @@ export function ConsultationSignup({ onClose }: { onClose: () => void }) {
     try {
       const result = await registerProspect(current.values)
       if (!mounted.current) return
-      if (result.success) {
+      if (result.success && result.leadId) {
+        login({
+          leadId: result.leadId,
+          name: [current.values.firstName.trim(), current.values.lastName.trim()].join(' '),
+          email: current.values.email,
+          phone: current.values.phone,
+        })
         challenge.current = null
         setValues(emptyValues)
         setVerifying(false)
         setSuccess(true)
+        onClose()
+        navigate('/dashboard', { replace: true })
       } else {
         setMessage(result.message || 'Unable to create your account. Please try again.')
       }
@@ -189,11 +190,11 @@ export function ConsultationSignup({ onClose }: { onClose: () => void }) {
     <div className="consultation-signup">
       <div className="consultation-signup__intro">
         <span className="consultation-signup__icon" aria-hidden="true">{success ? <FiCheckCircle /> : <FiUserPlus />}</span>
-        <p className="consultation-signup__eyebrow">Book Consultation</p>
+        <p className="consultation-signup__eyebrow">BEGIN YOUR JOURNEY</p>
         <h2>{success ? 'Account Created' : 'Create Your Account'}</h2>
         <p>{success ? 'Your account has been created successfully.' : 'Tell us about yourself to begin your Arelia journey.'}</p>
       </div>
-      {success ? <p role="status">Taking you to Sign In…</p> : (
+      {success ? <p role="status">Taking you to your dashboard…</p> : (
         <form onSubmit={submit} noValidate aria-busy={busy}>
           <div className="consultation-signup__fields">
             {fields.map(({ name, label, autoComplete, maxLength }) => {
@@ -250,8 +251,10 @@ export function ConsultationSignup({ onClose }: { onClose: () => void }) {
             <ul>{rules.map(rule => <li key={rule.label} className={rule.test(values.password) ? 'is-met' : ''}>
               <FiCheckCircle aria-hidden="true" />{rule.label}
               <span className="consultation-signup__sr"> — {rule.test(values.password) ? 'met' : 'not met'}</span>
-            </li>)}</ul>
-            <small>Maximum 20 characters.</small>
+            </li>)}
+              <li><FiCheckCircle aria-hidden="true" />Maximum 20 characters.</li>
+            </ul>
+
           </div>
           {message && <p className="consultation-signup__error" role="alert">{message}</p>}
           <button className="consultation-signup__submit" disabled={busy} type="submit">

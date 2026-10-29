@@ -18,6 +18,7 @@ export async function getPaymentReview(leadId: string): Promise<PaymentResult> {
   if (!leadId) return { success: true, message: '', payment: null }
   try {
     const { response, data, message } = await request('?' + new URLSearchParams({ leadId }))
+    if (response.status === 403 && data?.success === false && message === 'This prospect is not connected to an Opportunity.') return { success: true, message: '', payment: null }
     if (!response.ok || data?.success !== true) return { success: false, message, payment: null }
     if (data.paymentTermsAvailable === false) return { success: true, message: '', payment: null }
     const p = asRecord(data.paymentTerms)

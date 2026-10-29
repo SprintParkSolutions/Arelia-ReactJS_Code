@@ -5,8 +5,15 @@ export type ProjectDetails = {
 }
 export type ProjectDetailsResult = {
   leadId?: string; projects?: ProjectDetailsResult[];
+  isConverted?: boolean; convertedOpportunityId?: string; convertedAccountId?: string; convertedContactId?: string;
   approvalStatus?: 'Pending' | 'Approved' | 'Rejected';
   success: boolean; message: string; projectSubmitted?: boolean; details?: ProjectDetails; conflict?: boolean
+}
+function conversionFields(data: Record<string, unknown>) {
+  return { isConverted: data.isConverted === true,
+    convertedOpportunityId: asString(data.convertedOpportunityId),
+    convertedAccountId: asString(data.convertedAccountId),
+    convertedContactId: asString(data.convertedContactId) }
 }
 const endpoint = `${BASE_URL}${SITE_PATH}/services/apexrest/registration/lead/project-details`
 export async function requestProjectDetails(leadId: string, values?: ProjectDetails, createNewProject = false): Promise<ProjectDetailsResult> {
@@ -35,14 +42,14 @@ export async function requestProjectDetails(leadId: string, values?: ProjectDeta
       const project = asRecord(item)
       if (!project || !asString(project.leadId) || typeof project.projectSubmitted !== 'boolean') return null
       return {
-        success: true, message: '', leadId: asString(project.leadId), projectSubmitted: project.projectSubmitted,
+        ...conversionFields(project), success: true, message: '', leadId: asString(project.leadId), projectSubmitted: project.projectSubmitted,
         approvalStatus: (['Pending', 'Approved', 'Rejected'].includes(asString(project.approvalStatus) || '') ? project.approvalStatus : undefined) as ProjectDetailsResult['approvalStatus'],
         details: Object.fromEntries(Object.keys(details).map(key => [key,
           typeof project[key] === 'number' ? String(project[key]) : asString(project[key]) || '',
         ])) as ProjectDetails,
       }
     }).filter((project): project is NonNullable<typeof project> => project !== null) : undefined
-    return { leadId: asString(data.leadId), projects, approvalStatus, success: true, projectSubmitted: data.projectSubmitted, details, message: asString(data.message) || '' }
+    return { ...conversionFields(data), leadId: asString(data.leadId), projects, approvalStatus, success: true, projectSubmitted: data.projectSubmitted, details, message: asString(data.message) || '' }
   } catch {
     return { success: false, message: 'Unable to connect. Please try again.' }
   }

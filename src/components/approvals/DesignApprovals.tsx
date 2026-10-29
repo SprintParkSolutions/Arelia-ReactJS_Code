@@ -80,7 +80,7 @@ function DesignCard({ contactId, design, state, highlighted }: { contactId: stri
   </article>
 }
 export function DesignApprovals({ contactId, state, highlightId }: { contactId: string; state: ReturnType<typeof useDesignApprovals>; highlightId: string | null }) {
-  if (!contactId) return null
+  if (!contactId) return <div className="dashboardEmptyState">No designs have been sent for your review yet. We will notify you when a design is ready.</div>
   if (!state.result) return <p role="status">Loading design approvals…</p>
   if (!state.result.success) return <div className="designReview"><p role="alert">{state.result.message}</p><button type="button" onClick={state.retry}>Retry</button></div>
   if (!state.result.designs.length) return <div className="dashboardEmptyState">No designs have been sent for your review yet. We will notify you when a design is ready.</div>

@@ -22,6 +22,7 @@ export async function getBudgetReview(leadId: string): Promise<BudgetResult> {
   if (!leadId) return { success: true, message: '', budget: null }
   try {
     const { response, data, message } = await request('?' + new URLSearchParams({ leadId }))
+    if (response.status === 403 && data?.success === false && message === 'This prospect is not connected to an Opportunity.') return { success: true, message: '', budget: null }
     if (!response.ok || data?.success !== true) return { success: false, message, budget: null }
     if (data.budgetAvailable === false) return { success: true, message: '', budget: null }
     const b = asRecord(data.budget)

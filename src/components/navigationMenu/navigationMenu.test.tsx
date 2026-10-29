@@ -45,7 +45,7 @@ describe('mobile navigation', () => {
   it('opens consultation and dismisses the navigation', async () => {
     const onOpenConsultation = vi.fn()
     openMenu(onOpenConsultation)
-    fireEvent.click(screen.getByRole('button', { name: 'Book Consultation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Sign Up' }))
     expect(onOpenConsultation).toHaveBeenCalledOnce()
     expect(document.body.style.overflow).toBe('auto')
     await waitFor(() => expect(screen.queryByRole('navigation')).not.toBeInTheDocument())
