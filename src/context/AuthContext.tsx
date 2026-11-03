@@ -8,6 +8,7 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
+import { requestProjectDetails } from '../services/projectDetailsApi'
 import type { DashboardTabId } from '../constants/dashboardTabs'
 import {
   AUTH_STORAGE_KEYS,
@@ -72,6 +73,51 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     return () => window.clearInterval(interval)
   }, [])
+
+  // Resolve conversion without restarting the session or changing navigation.
+  useEffect(() => {
+    if (!client?.leadId || client.contactId) return
+    const leadId = client.leadId
+    const sessionStartedAt = window.localStorage.getItem(AUTH_STORAGE_KEYS.loginAt)
+    let active = true
+    let pending = false
+
+    const refreshIdentity = async () => {
+      if (!active || pending || document.visibilityState === 'hidden') return
+      pending = true
+      try {
+        const result = await requestProjectDetails(leadId)
+        if (!active || !result.success || !result.isConverted || !result.convertedContactId) return
+        const current = readStoredClient()
+        // Ignore responses from a session that logged out, expired, or changed.
+        if (!current || current.leadId !== leadId || current.contactId ||
+          window.localStorage.getItem(AUTH_STORAGE_KEYS.loginAt) !== sessionStartedAt) return
+        const next = { ...current, contactId: result.convertedContactId }
+        window.localStorage.setItem(AUTH_STORAGE_KEYS.data, JSON.stringify(next))
+        window.localStorage.setItem(AUTH_STORAGE_KEYS.contactId, next.contactId)
+        window.localStorage.setItem(AUTH_STORAGE_KEYS.token, next.contactId)
+        active = false
+        setClient(next)
+        window.dispatchEvent(new Event('client-auth-change'))
+      } catch {
+        // Keep the existing session usable and retry on the next check.
+      } finally {
+        pending = false
+      }
+    }
+
+    const refresh = () => { void refreshIdentity() }
+    refresh()
+    const timer = window.setInterval(refresh, 30_000)
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+    }
+  }, [client])
 
   const login = (nextClient: AuthClient) => {
     const normalizedClient = {
