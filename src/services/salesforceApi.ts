@@ -132,6 +132,9 @@ export type PaymentTerm = {
   percentage?: number
   paymentReceived?: boolean
   dueDate?: string
+  amount?: number
+  paidAmount?: number
+  totalAmount?: number
 }
 
 export type SupportCasePayload = {
@@ -375,9 +378,12 @@ function normalizePaymentTerm(rawTerm: unknown): PaymentTerm | undefined {
     id: asString(term.id || term.Id),
     label,
     name: asString(term.name || term.Name),
-    percentage: asNumber(term.percentage || term.Percent__c),
+    percentage: asNumber(term.percentage ?? term.Percentage__c ?? term.Percent__c),
     paymentReceived: asBoolean(term.paymentReceived || term.isPaid || term.Payment_Received__c),
     dueDate: asString(term.dueDate || term.Due_Date__c),
+    amount: asNumber(term.amount),
+    paidAmount: asNumber(term.paidAmount),
+    totalAmount: asNumber(term.totalAmount),
   }
 }
 

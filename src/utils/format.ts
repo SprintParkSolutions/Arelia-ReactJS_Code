@@ -24,5 +24,5 @@ export function formatDateTime(value?: string) {
 
 export function formatCurrency(amount?: number) {
   if (amount == null || Number.isNaN(amount)) return '—'
-  return `₹ ${Math.round(amount).toLocaleString('en-IN')}`
+  return `₹ ${amount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
 }

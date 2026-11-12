@@ -1,3 +1,4 @@
+import { PaymentTermsPanel } from "../components/payment/PaymentTermsPanel";
 import { PendingApprovals } from "../components/approvals/PendingApprovals";
 import { buildPendingApprovals, type PendingItem } from "../components/approvals/pendingApprovalItems";
 import { ProjectStagePath } from "../components/ProjectStagePath";
@@ -119,21 +120,6 @@ function getInitials(fullName?: string | null) {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
 }
 
-// Formats a 1-based position as an ordinal string (1st, 2nd, 3rd, 4th, ...).
-function getOrdinal(position: number) {
-  const remainder = position % 100;
-  if (remainder >= 11 && remainder <= 13) return `${position}th`;
-  switch (position % 10) {
-    case 1:
-      return `${position}st`;
-    case 2:
-      return `${position}nd`;
-    case 3:
-      return `${position}rd`;
-    default:
-      return `${position}th`;
-  }
-}
 
 // Picks an icon representing a vendor's trade from its free-text category label.
 function VendorCategoryIcon({ category }: { category?: string }) {
@@ -484,14 +470,29 @@ function diffNotificationSnapshots(
       (next.vendorCategories ?? {})[vendorName] || vendorName;
     const previousStatus = getVendorProgressStatus(prevCompletion);
     const nextStatus = getVendorProgressStatus(completion);
+    const changedTasks = Object.entries(next.vendorTasks)
+      .filter(([taskKey, task]) => {
+        const previousTask = previous.vendorTasks[taskKey];
+        return (
+          task.vendorName === vendorName &&
+          previousTask &&
+          task.status &&
+          previousTask.status !== task.status
+        );
+      })
+      .map(([, task]) => `"${task.taskName}" (${task.status})`);
+    const taskDetails = changedTasks.length
+      ? ` Updated ${changedTasks.length === 1 ? "task" : "tasks"}: ${changedTasks.join("; ")}.`
+      : "";
+    const progressMessage =
+      completion >= 100
+        ? `${displayLabel} finished all assigned tasks. Status: ${nextStatus}.`
+        : previousStatus !== nextStatus
+          ? `${displayLabel} status changed from ${previousStatus} to ${nextStatus} (${prevCompletion}% to ${completion}%).`
+          : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%. Status: ${nextStatus}.`;
     entries.push({
       type: "vendor",
-      message:
-        completion >= 100
-          ? `${displayLabel} finished all assigned tasks. Status: ${nextStatus}.`
-          : previousStatus !== nextStatus
-            ? `${displayLabel} status changed from ${previousStatus} to ${nextStatus} (${prevCompletion}% to ${completion}%).`
-            : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%. Status: ${nextStatus}.`,
+      message: progressMessage + taskDetails,
     });
   });
 
@@ -1574,39 +1575,33 @@ function PaymentTermsTab({
 }) {
   const [terms, setTerms] = useState<PaymentTerm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
+  const { client } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
     async function loadTerms() {
       if (!projectName) {
+        setTerms([]);
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
-
-      const res = await getPaymentTerms(projectName);
-      if (Array.isArray(res) && res.length > 0) {
-        setTerms(res);
-        setIsLoading(false);
-        return;
-      }
-
-      // Salesforce's dashboard summary and project status endpoints can
-      // format the same project's name slightly differently. Retry with
-      // that alternate name before concluding there's really no schedule.
-      if (fallbackProjectName && fallbackProjectName !== projectName) {
-        const fallbackRes = await getPaymentTerms(fallbackProjectName);
-        if (Array.isArray(fallbackRes) && fallbackRes.length > 0) {
-          setTerms(fallbackRes);
-          setIsLoading(false);
-          return;
+      setTerms([]);
+      try {
+        let result = await getPaymentTerms(projectName);
+        if (cancelled) return;
+        // Retry the dashboard's alternate spelling of the same project.
+        if ((!Array.isArray(result) || result.length === 0) &&
+            fallbackProjectName && fallbackProjectName !== projectName) {
+          result = await getPaymentTerms(fallbackProjectName);
         }
+        if (!cancelled) setTerms(Array.isArray(result) ? result : []);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-
-      setTerms(Array.isArray(res) ? res : []);
-      setIsLoading(false);
     }
     void loadTerms();
+    return () => { cancelled = true; };
   }, [projectName, fallbackProjectName]);
 
   if (isLoading)
@@ -1624,174 +1619,15 @@ function PaymentTermsTab({
     );
   }
 
-  const paidPercentage = terms
-    .filter((term) => term.paymentReceived)
-    .reduce((sum, term) => sum + (term.percentage ?? 0), 0);
-  const paidCount = terms.filter((term) => term.paymentReceived).length;
-
   return (
-    <motion.section
-      className="dashboardSection"
-      initial="hidden"
-      animate="visible"
-      variants={{ visible: staggerTransition }}
-    >
-      <div className="dashboardSection__heading">
-        <div>
-          <p className="dashboardSection__eyebrow">Financial Schedule</p>
-          <h2 className="dashboardSection__title">
-            Payment schedule and milestone release
-          </h2>
-          <p className="dashboardSection__lead">
-            Your bespoke payment structure with transparent milestone release
-            across execution phases.
-          </p>
-        </div>
-        {projectName ? (
-          <span className="dashboardSection__chip">{projectName}</span>
-        ) : null}
-      </div>
-
-      <motion.article className="dashboardSpotlightCard" variants={fadeUpItem}>
-        <div className="dashboardSpotlightCard__head">
-          <span>Contract Paid to Date</span>
-          <strong>{Math.round(paidPercentage)}%</strong>
-        </div>
-
-        <div className="dashboardPaymentSummaryBar__labels">
-          {terms.map((term, index) => {
-            const width = term.percentage ?? 0;
-            return (
-              <span
-                key={`label-${term.label || term.name || index}`}
-                className="dashboardPaymentSummaryBar__label"
-                style={{ width: `${width}%` }}
-              >
-                {getOrdinal(index + 1)} · {width}%
-              </span>
-            );
-          })}
-        </div>
-
-        <div className="dashboardPaymentSummaryBar">
-          {terms.map((term, index) => {
-            const width = term.percentage ?? 0;
-            return (
-              <motion.div
-                key={`segment-${term.label || term.name || index}`}
-                className={`dashboardPaymentSummaryBar__segment ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${width}%` }}
-                transition={{
-                  duration: 0.9,
-                  delay: index * 0.1,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                title={`${getOrdinal(index + 1)} installment — ${width}% ${term.paymentReceived ? "received" : "pending"}`}
-              />
-            );
-          })}
-        </div>
-
-        <div className="dashboardSpotlightCard__meta">
-          <span>
-            {paidCount} of {terms.length} milestones received
-          </span>
-          <span>{Math.round(100 - paidPercentage)}% remaining</span>
-        </div>
-      </motion.article>
-
-      <h3 className="dashboardPaymentTimeline__heading">Milestone Details</h3>
-
-      <div className="dashboardPaymentTimeline">
-        {terms.map((term, index) => {
-          const ordinal = getOrdinal(index + 1);
-          const amount =
-            contractBudget != null && term.percentage != null
-              ? `₹ ${Math.round((contractBudget * term.percentage) / 100).toLocaleString("en-IN")}`
-              : "—";
-
-          return (
-            <motion.div
-              key={`${term.label || term.name || "term"}-${index}`}
-              className="dashboardPaymentTimeline__row"
-              variants={fadeUpItem}
-            >
-              <div
-                className={`dashboardPaymentTimeline__node ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-              >
-                <span className="dashboardPaymentTimeline__ordinal">
-                  {ordinal}
-                </span>
-              </div>
-              <motion.article
-                className={`dashboardPaymentCard ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                whileHover={{ y: -3, transition: { duration: 0.2 } }}
-              >
-                <div className="dashboardPaymentCard__main">
-                  <span
-                    className={`dashboardPaymentCard__phase ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                  >
-                    {term.paymentReceived ? "Completed" : "Pending"}
-                  </span>
-                  <h3>{term.label || term.name}</h3>
-                </div>
-
-                <div className="dashboardPaymentCard__columns">
-                  <div className="dashboardPaymentCard__col">
-                    <span>Percentage</span>
-                    <strong>{term.percentage ?? 0}%</strong>
-                  </div>
-                  <div className="dashboardPaymentCard__col">
-                    <span>Due Date</span>
-                    <strong>
-                      <FiCalendar aria-hidden="true" />
-                      {formatDate(term.dueDate) || "Not set"}
-                    </strong>
-                  </div>
-                  <div className="dashboardPaymentCard__col">
-                    <span>Amount</span>
-                    <strong>{amount}</strong>
-                  </div>
-                  <div className="dashboardPaymentCard__col">
-                    <span>Status</span>
-                    <span
-                      className={`dashboardPaymentCard__status ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                    >
-                      {term.paymentReceived ? "Received" : "Upcoming"}
-                    </span>
-                  </div>
-                  {term.id ? (
-                    <div className="dashboardPaymentCard__col">
-                      <span>&nbsp;</span>
-                      {term.paymentReceived ? (
-                        <button
-                          type="button"
-                          className="dashboardPaymentCard__payButton dashboardPaymentCard__payButton--ghost"
-                          onClick={() => navigate(`/payment/receipt/${term.id}`)}
-                        >
-                          View Receipt
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="dashboardPaymentCard__payButton"
-                          onClick={() => navigate(`/payment/${term.id}`)}
-                        >
-                          Pay Now
-                        </button>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </motion.article>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      <QuickLinks exclude="payment" onNavigate={onNavigate} />
-    </motion.section>
+    <PaymentTermsPanel
+      terms={terms}
+      projectName={projectName}
+      contractBudget={contractBudget}
+      customerName={client?.name}
+      contactId={client?.contactId || client?.leadId}
+      onSupport={() => onNavigate("cases")}
+    />
   );
 }
 
@@ -2963,6 +2799,39 @@ export function DashboardPage() {
   const contactId =
     authClient?.contactId || localStorage.getItem("contactId") || "";
 
+  // Announce each available project once, retaining dismissal across reloads.
+  const availableProjectsKey = JSON.stringify(
+    (projects.length > 0 ? projects : resolvedProject ? [resolvedProject] : [])
+      .filter((project) => project.id && project.name?.trim())
+      .map((project) => ({ id: project.id, name: project.name })),
+  );
+  useEffect(() => {
+    if (isLoading || !contactId) return;
+    const availableProjects = JSON.parse(availableProjectsKey) as { id: string; name: string }[];
+    const storageKey = getCustomerNotificationStorageKeys(contactId).list;
+    const newEntries: PortalNotification[] = [];
+    for (const project of availableProjects) {
+      const seenKey = `portalProjectAvailableSeen:${contactId}:${project.id}`;
+      if (localStorage.getItem(seenKey)) continue;
+      newEntries.push({
+        id: `project-available:${project.id}`,
+        type: "status",
+        message: "Your project is scheduled to begin shortly. Stay tuned for further updates as we prepare to get started.",
+        projectId: project.id,
+        projectName: project.name,
+        timestamp: Date.now(),
+        read: false,
+      });
+      localStorage.setItem(seenKey, "true");
+    }
+    if (!newEntries.length) return;
+    setNotifications((previous) => {
+      const merged = [...newEntries, ...previous].slice(0, MAX_STORED_NOTIFICATIONS);
+      writeStoredNotifications(storageKey, merged);
+      return merged;
+    });
+  }, [isLoading, contactId, availableProjectsKey]);
+
   // Polls the same data the individual tabs already fetch on their own, so a
   // status/vendor/payment/document change is surfaced as a notification even
   // if the client never visits that tab during this session.
@@ -3227,7 +3096,7 @@ export function DashboardPage() {
   };
 
   const handleNotificationClick = (notification: PortalNotification) => {
-    if (notification.id.startsWith("client-agreement:")) { agreementHistory.markRead(notification.id); setIsNotificationPanelOpen(false); return; }
+    if (notification.id.startsWith("client-agreement:") || notification.id.startsWith("client-agreement-signed:")) { agreementHistory.markRead(notification.id); setIsNotificationPanelOpen(false); return; }
     if (notification.paymentOpportunityId) {
       setHighlightPaymentId(notification.paymentOpportunityId);
       paymentHistory.markRead(notification.id);
@@ -3327,7 +3196,7 @@ export function DashboardPage() {
   };
 
   const handleDeleteNotification = (notificationId: string) => {
-    if (notificationId.startsWith("client-agreement:")) { agreementHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("client-agreement:") || notificationId.startsWith("client-agreement-signed:")) { agreementHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("payment-approval:")) { paymentHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("budget-approval:")) { budgetHistory.dismiss(notificationId); return; }
     if (notificationId.startsWith("proforma-approval:")) { proformaHistory.dismiss(notificationId); return; }
@@ -4070,6 +3939,7 @@ export function DashboardPage() {
                 ) : null}
                 {deferredDashboardTab === "payment" ? (
                   <PaymentTermsTab
+                    key={activeProjectId || activeProjectName}
                     projectName={activeProjectName}
                     fallbackProjectName={dashboardProjectName}
                     contractBudget={activeProjectBudget}

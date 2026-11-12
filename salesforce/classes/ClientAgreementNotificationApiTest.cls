@@ -20,7 +20,7 @@ private class ClientAgreementNotificationApiTest {
         conversion.setOpportunityName('Agreement project');
         Database.LeadConvertResult result = Database.convertLead(conversion);
         System.assert(result.isSuccess());
-        update new Opportunity(Id=result.getOpportunityId(), Client_Agreement_Sent__c=false);
+        update new Opportunity(Id=result.getOpportunityId(), Client_Agreement_Sent__c=false, Client_Agreement_Signed__c=false);
         System.assertEquals(false, readNotice(lead.Id, null).showNotification);
         update new Opportunity(Id=result.getOpportunityId(), Client_Agreement_Sent__c=true, Email__c='agreement@example.com');
         ClientAgreementNotificationApi.NotificationResponse notice = readNotice(lead.Id, null);
@@ -28,6 +28,15 @@ private class ClientAgreementNotificationApiTest {
         System.assertEquals(true, notice.showNotification);
         System.assertEquals(result.getOpportunityId(), notice.opportunityId);
         System.assert(notice.notificationMessage.contains('agreement@example.com'));
+        // Signing creates a distinct notice even when the sent checkbox is false.
+        update new Opportunity(Id=result.getOpportunityId(), Client_Agreement_Sent__c=false, Client_Agreement_Signed__c=true);
+        notice = readNotice(lead.Id, null);
+        System.assertEquals(true, notice.clientAgreementSigned);
+        System.assertEquals(true, notice.showNotification);
+        System.assertEquals('CLIENT_AGREEMENT_SIGNED', notice.notificationType);
+        System.assertEquals('Your Client Agreement has been successfully signed. Please check your registered email address to download a copy of the signed agreement.', notice.notificationMessage);
+        update new Opportunity(Id=result.getOpportunityId(), Client_Agreement_Sent__c=true);
+        System.assertEquals('CLIENT_AGREEMENT_SIGNED', readNotice(lead.Id, null).notificationType);
         System.assertEquals(false, readNotice(null, result.getOpportunityId()).success);
         System.assertEquals(400, RestContext.response.statusCode);
         // A mismatching record ID must not disclose another Opportunity.

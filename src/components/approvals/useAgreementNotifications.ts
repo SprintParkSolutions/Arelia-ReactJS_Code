@@ -33,7 +33,7 @@ export function useAgreementNotifications(leadId: string, projectLeadIds?: strin
         const notice = await getAgreementNotice(projectLeadId)
         if (!active || !notice) return
         const saved = parse(read(key))
-        const id = 'client-agreement:' + notice.opportunityId
+        const id = (notice.notificationType === 'CLIENT_AGREEMENT_SIGNED' ? 'client-agreement-signed:' : 'client-agreement:') + notice.opportunityId
         if (saved.some(n => n.id === id)) return
         write(key, [{ id, leadId: projectLeadId, type: 'approvals', opportunityId: notice.opportunityId,
           message: notice.message, timestamp: Date.now(), read: false, dismissed: false }, ...saved])
