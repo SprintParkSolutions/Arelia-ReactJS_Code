@@ -1,3 +1,4 @@
+import { getPaymentReminder, paymentReminderDate } from "../utils/paymentReminders";
 import { PaymentTermsPanel } from "../components/payment/PaymentTermsPanel";
 import { PendingApprovals } from "../components/approvals/PendingApprovals";
 import { buildPendingApprovals, type PendingItem } from "../components/approvals/pendingApprovalItems";
@@ -2959,8 +2960,8 @@ export function DashboardPage() {
               }))
             : [];
 
-          const PAYMENT_DUE_DAYS = 30;
-          const today = new Date().toISOString().slice(0, 10);
+          const now = new Date();
+          const today = paymentReminderDate(now);
           const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${projectId}`;
           let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
           try {
@@ -2973,22 +2974,11 @@ export function DashboardPage() {
           const paymentDueEntries: NotificationEntry[] = [];
 
           termsList.forEach((term) => {
-            if (!term.dueDate || term.paymentReceived) return;
-            const daysUntilDue = Math.ceil(
-              (new Date(term.dueDate).getTime() - Date.now()) /
-                (24 * 60 * 60 * 1000),
-            );
-            if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
-            const alertKey = `${term.label || term.name}:${term.dueDate}`;
+            const message = getPaymentReminder(term, now);
+            if (!message) return;
+            const alertKey = `${term.id || term.label || term.name}:${term.dueDate}`;
             if (seenToday.includes(alertKey)) return;
             seenToday.push(alertKey);
-            const label = term.label || term.name || "Payment";
-            const message =
-              daysUntilDue === 0
-                ? `"${label}" payment is due today.`
-                : daysUntilDue === 1
-                  ? `"${label}" payment is due tomorrow.`
-                  : `"${label}" payment is due in ${daysUntilDue} days.`;
             paymentDueEntries.push(
               {
                 ...annotateNotificationWithProject(
