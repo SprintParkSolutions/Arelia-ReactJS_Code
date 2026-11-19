@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import { PAYMENT_SENT, type PaymentResult } from '../../services/paymentTermsApi'
 type Entry = { id: string; type: 'approvals'; paymentOpportunityId: string; message: string; timestamp: number; read: boolean; dismissed: boolean }
+export const PAYMENT_APPROVAL_MESSAGE = 'Your agreed payment terms have been successfully finalized and recorded in our system. The next step in your project is to review and sign the Client Agreement to proceed further.'
+export const PAYMENT_APPROVAL_CONFIRMATION_PREFIX = 'payment-approval:confirmed:'
 const memory = new Map<string, string>()
 const event = 'payment-notifications-updated'
 function read(key: string) { try { return localStorage.getItem(key) || memory.get(key) || '[]' } catch { return memory.get(key) || '[]' } }
@@ -11,6 +13,20 @@ function write(key: string, entries: Entry[]) {
   const raw = JSON.stringify(entries); memory.set(key, raw)
   try { localStorage.setItem(key, raw) } catch { /* Keep session history when storage is unavailable. */ }
   window.dispatchEvent(new Event(event))
+}
+export function recordPaymentApproval(leadId: string, opportunityId: string) {
+  if (!leadId) return
+  const key = 'paymentNotifications:' + leadId
+  const timestamp = Date.now()
+  write(key, [{
+    id: PAYMENT_APPROVAL_CONFIRMATION_PREFIX + opportunityId + ':' + timestamp,
+    type: 'approvals',
+    paymentOpportunityId: opportunityId,
+    message: PAYMENT_APPROVAL_MESSAGE,
+    timestamp,
+    read: false,
+    dismissed: false,
+  }, ...parse(read(key))])
 }
 function subscribe(fn: () => void) {
   window.addEventListener(event, fn); window.addEventListener('storage', fn)
@@ -34,7 +50,7 @@ export function usePaymentNotifications(leadId: string, result: PaymentResult | 
       const value = JSON.parse(read(trackerKey))
       if (typeof value.status === 'string' && typeof value.id === 'string') previous = value
     } catch { /* Initialize tracking for this browser. */ }
-    const existing = saved.filter(n => n.paymentOpportunityId === payment.opportunityId && !n.id.startsWith('payment-approval:manager:'))
+    const existing = saved.filter(n => n.paymentOpportunityId === payment.opportunityId && !n.id.startsWith('payment-approval:manager:') && !n.id.startsWith(PAYMENT_APPROVAL_CONFIRMATION_PREFIX))
     const resent = previous !== null && previous.status !== PAYMENT_SENT && payment.status === PAYMENT_SENT
     const id = resent || !existing.length
       ? 'payment-approval:' + payment.opportunityId + ':local:' + (existing.length + 1)

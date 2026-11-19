@@ -1,3 +1,5 @@
+import { ProjectCompletionConfetti } from "../components/ProjectCompletionConfetti";
+import { claimProjectCompletion, projectCompletionMessage, normalizeProjectCompletionNotification } from "../utils/projectCompletion";
 import { getPaymentReminder, paymentReminderDate } from "../utils/paymentReminders";
 import { PaymentTermsPanel } from "../components/payment/PaymentTermsPanel";
 import { PendingApprovals } from "../components/approvals/PendingApprovals";
@@ -7,7 +9,7 @@ import { ProjectTrackingNavigation } from "../components/ProjectTrackingNavigati
 import { useAgreementNotifications } from "../components/approvals/useAgreementNotifications";
 import { ProjectPaymentTermsApprovals } from "../components/approvals/ProjectPaymentTermsApprovals";
 import { usePaymentReview } from "../components/approvals/usePaymentReview";
-import { usePaymentNotifications } from "../components/approvals/usePaymentNotifications";
+import { PAYMENT_APPROVAL_CONFIRMATION_PREFIX, usePaymentNotifications } from "../components/approvals/usePaymentNotifications";
 import { ProjectBudgetReviewApprovals } from "../components/approvals/ProjectBudgetReviewApprovals";
 import { useBudgetReview } from "../components/approvals/useBudgetReview";
 import { useBudgetNotifications } from "../components/approvals/useBudgetNotifications";
@@ -110,6 +112,12 @@ const fadeUpItem = {
 };
 
 // Centered placeholder shown when a tab has no data to display yet.
+function renderNotificationMessage(notification: PortalNotification) {
+  if (!notification.id.startsWith(PAYMENT_APPROVAL_CONFIRMATION_PREFIX)) return notification.message;
+  const [before, after] = notification.message.split("Client Agreement");
+  return <>{before}<strong>Client Agreement</strong>{after}</>;
+}
+
 function GlassEmptyState({ message }: { message: string }) {
   return <div className="dashboardEmptyState">{message}</div>;
 }
@@ -318,7 +326,7 @@ function writeNotificationSnapshot(
 function readStoredNotifications(key: string): PortalNotification[] {
   try {
     const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as PortalNotification[]) : [];
+    return raw ? (JSON.parse(raw) as PortalNotification[]).map(normalizeProjectCompletionNotification) : [];
   } catch {
     return [];
   }
@@ -777,7 +785,7 @@ function NotificationBell({
                             <NotificationTypeIcon type={notification.type} />
                           </span>
                           <span className="dashboardWorkspace__notificationCopy">
-                            <span>{notification.message}</span>
+                            <span>{renderNotificationMessage(notification)}</span>
                             <small>
                               {formatRelativeTime(notification.timestamp)}
                               {" \u00B7 "}
@@ -2283,7 +2291,7 @@ function NotificationsTab({
                       <NotificationTypeIcon type={notification.type} />
                     </span>
                     <span className="dashboardWorkspace__notificationCopy">
-                      <span>{notification.message}</span>
+                      <span>{renderNotificationMessage(notification)}</span>
                       <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
                     </span>
                     {(notification.type !== "approvals" || notification.designId || notification.invoiceId || notification.budgetOpportunityId || notification.paymentOpportunityId) && <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true"><FiArrowRight /></span>}
@@ -2665,6 +2673,7 @@ export function DashboardPage() {
     string | null
   >(null);
   const [highlightCaseId, setHighlightCaseId] = useState<string | null>(null);
+  const [completionCelebration, setCompletionCelebration] = useState(0);
   const [notifications, setNotifications] = useState<PortalNotification[]>(
     () => {
       const initialContactId =
@@ -2851,8 +2860,19 @@ export function DashboardPage() {
       ]);
 
       const projectsList = statusRes?.success ? statusRes.projects : [];
+      const completedProjects = projectsList.filter((project) =>
+        claimProjectCompletion(contactId, project),
+      );
+      if (completedProjects.length > 0) {
+        setCompletionCelebration((previous) => previous + 1);
+      }
       const casesList = Array.isArray(supportCases) ? supportCases : [];
-      const allEntries: NotificationEntry[] = [];
+      const allEntries: NotificationEntry[] = completedProjects.map((project) => ({
+        type: "status",
+        message: projectCompletionMessage(project.projectName),
+        projectId: project.id,
+        projectName: project.projectName,
+      }));
 
       await Promise.all(
         contactProjects.map(async (project) => {
@@ -3254,6 +3274,7 @@ export function DashboardPage() {
   const pendingApprovalsPanel = <PendingApprovals overview={pendingOverview} onReview={reviewPendingItem} />;
   return (
     <main className="dashboardPage">
+      <ProjectCompletionConfetti celebration={completionCelebration} />
       <LogoutModal
         isOpen={showLogoutConfirm}
         onCancel={() => setShowLogoutConfirm(false)}

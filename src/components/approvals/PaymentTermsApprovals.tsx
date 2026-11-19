@@ -19,7 +19,7 @@ function PaymentCard({ payment, state }: { payment: PaymentReview; state: State 
     setError(''); setMessage('')
     const response = await state.submit(payment, mode, comments)
     if (!response.success) { setError(response.message); return }
-    setMode(null); setMessage(response.message)
+    setMode(null); if (mode === 'Client Requested Changes') setMessage(response.message)
   }
   return <article className="designReview__card" aria-label="Payment Terms">
     <header className="designReview__header"><div><p className="designReview__eyebrow">{payment.opportunityName}</p><h3>Payment Terms</h3></div><span className="designReview__status">{payment.status === PAYMENT_SENT ? 'Awaiting your review' : payment.status}</span></header>
@@ -35,7 +35,13 @@ function PaymentCard({ payment, state }: { payment: PaymentReview; state: State 
           </tr>)}</tbody>
         </table>
       </div> : <p>No payment terms have been added yet.</p>}
-      {payment.status !== PAYMENT_SENT && <div className="designReview__decision"><div><strong>{payment.status}</strong>{payment.clientRemarks && <p>{payment.clientRemarks}</p>}</div></div>}
+      <div role="status">{payment.status !== PAYMENT_SENT && <div className="designReview__decision">
+        <div>
+          <strong>{payment.status}</strong>
+          {payment.status === 'Client Approved' && <p>Your agreed payment terms have been successfully finalized and recorded in our system. The next step in your project is to review and sign the <strong>Client Agreement</strong> to proceed further.</p>}
+          {payment.clientRemarks && <p>{payment.clientRemarks}</p>}
+        </div>
+      </div>}</div>
       {payment.canRespond && !mode && <div className="designReview__actions"><button type="button" className="designReview__primary" disabled={state.busy} onClick={() => setMode('Client Approved')}>Approve payment terms</button><button type="button" disabled={state.busy} onClick={() => setMode('Client Requested Changes')}>Request changes</button></div>}
       {payment.canRespond && mode && <form onSubmit={event => { event.preventDefault(); void submit() }}>
         <fieldset disabled={state.busy}><legend>{mode === 'Client Approved' ? 'Confirm payment terms approval' : 'Request payment terms changes'}</legend>

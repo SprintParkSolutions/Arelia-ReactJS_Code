@@ -3,8 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { ProjectPaymentTermsApprovals } from './ProjectPaymentTermsApprovals'
 import { usePaymentReview } from './usePaymentReview'
 import { usePaymentNotifications } from './usePaymentNotifications'
-import { getPaymentReview, type PaymentReview, type PaymentResult } from '../../services/paymentTermsApi'
-vi.mock('../../services/paymentTermsApi', async original => ({ ...await original<typeof import('../../services/paymentTermsApi')>(), getPaymentReview: vi.fn() }))
+import { getPaymentReview, submitPaymentDecision, type PaymentReview, type PaymentResult } from '../../services/paymentTermsApi'
+vi.mock('../../services/paymentTermsApi', async original => ({ ...await original<typeof import('../../services/paymentTermsApi')>(), getPaymentReview: vi.fn(), submitPaymentDecision: vi.fn() }))
 const ids = ['payment-first', 'payment-second', 'payment-third']
 const payments: PaymentReview[] = ids.map((leadId, index) => ({ leadId, opportunityId: `multi-payment-${index}`, opportunityName: `Home ${index + 1}`, status: 'Sent for Client Approval', terms: [{ id: `term-${index}`, label: `Stage ${index + 1}`, percentage: 25, dueDate: '2030-10-01' }], clientRemarks: '', canRespond: true }))
 const result: PaymentResult = { success: true, message: '', payment: null, projects: ids.map((id, index) => ({ id, result: { success: true, message: '', payment: payments[index] } })) }
@@ -57,6 +57,33 @@ it('polls all projects, discovers additional projects and stops on unmount', asy
   view.unmount()
   await act(async () => vi.advanceTimersByTime(60000))
   expect(getPaymentReview).toHaveBeenCalledTimes(7)
+})
+it('adds an unread confirmation for a successful payment approval', async () => {
+  const account = 'payment-confirmation-test'
+  const view = renderHook(() => {
+    const review = usePaymentReview(account, [ids[1]])
+    return { review, history: usePaymentNotifications(account, review.result) }
+  })
+  await waitFor(() => expect(view.result.current.history.notifications).toHaveLength(1))
+
+  vi.mocked(submitPaymentDecision).mockResolvedValueOnce({ success: false, message: 'Try again' })
+  await act(async () => { await view.result.current.review.submit(payments[1], 'Client Approved', '') })
+  expect(view.result.current.history.notifications).toHaveLength(1)
+
+  vi.mocked(getPaymentReview).mockResolvedValueOnce({ success: true, message: '', payment: { ...payments[1], status: 'Client Approved', canRespond: false } })
+  vi.mocked(submitPaymentDecision).mockResolvedValueOnce({ success: true, message: 'Saved' })
+  await act(async () => { await view.result.current.review.submit(payments[1], 'Client Approved', '') })
+  expect(view.result.current.history.notifications).toHaveLength(2)
+  const [confirmation] = view.result.current.history.notifications
+  expect(confirmation).toMatchObject({
+    paymentOpportunityId: payments[1].opportunityId,
+    message: 'Your agreed payment terms have been successfully finalized and recorded in our system. The next step in your project is to review and sign the Client Agreement to proceed further.',
+    read: false,
+  })
+  act(() => view.result.current.history.markRead(confirmation.id))
+  view.unmount()
+  const reopened = renderHook(() => usePaymentNotifications(account, null))
+  expect(reopened.result.current.notifications.find(item => item.id === confirmation.id)?.read).toBe(true)
 })
 it('tracks notifications independently and creates a new notification for resent terms', () => {
   const view = renderHook(({ value }) => usePaymentNotifications('multi-payment-history', value), { initialProps: { value: result } })

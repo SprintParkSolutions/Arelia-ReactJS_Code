@@ -361,7 +361,7 @@ function normalizeProjectStatusRecord(rawProject: unknown): ProjectStatusRecord 
     startDate: asString(project.startDate || project.StartDate),
     endDate: asString(project.endDate || project.EndDate),
     completionPercentage: roundPercentage(
-      project.completionPercentage || project.progress || project.percentComplete,
+      project.completionPercentage ?? project.progress ?? project.percentComplete,
     ),
     vendors: asArray(project.vendors).map(normalizeProjectVendor).filter(Boolean) as ProjectVendor[],
   }

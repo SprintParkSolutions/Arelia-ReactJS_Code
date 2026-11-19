@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getPaymentReview, submitPaymentDecision, type PaymentReview, type PaymentResult, type PaymentDecision } from '../../services/paymentTermsApi'
+import { recordPaymentApproval } from './usePaymentNotifications'
 export function usePaymentReview(leadId: string, projectLeadIds?: string[]) {
   const projectKey = JSON.stringify([...new Set(projectLeadIds?.length ? projectLeadIds : leadId ? [leadId] : [])])
   const [state, setState] = useState<{ leadId: string; result: PaymentResult } | null>(null)
@@ -35,6 +36,7 @@ export function usePaymentReview(leadId: string, projectLeadIds?: string[]) {
     lock.current = true; generation.current++; setBusy(true)
     try {
       const result = await submitPaymentDecision(leadId, payment, status, comments)
+      if (result.success && status === 'Client Approved') recordPaymentApproval(leadId, payment.opportunityId)
       if (result.success || result.conflict) setState(previous => {
         if (previous?.leadId !== leadId) return previous
         const update = (value: PaymentResult): PaymentResult => value.payment?.opportunityId === payment.opportunityId
