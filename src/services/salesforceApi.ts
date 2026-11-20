@@ -39,6 +39,7 @@ export type PortalProject = {
   startDate?: string
   endDate?: string
   description?: string
+  completionPercentage?: number
 }
 
 export type ContactProjectLookup = {
@@ -109,6 +110,8 @@ export type ProjectVendorTasksResponse = {
 }
 
 export type ProjectStatusRecord = {
+  leadId?: string
+  opportunityId?: string
   id?: string
   projectName: string
   projectStatus?: string
@@ -348,6 +351,8 @@ function normalizeProjectStatusRecord(rawProject: unknown): ProjectStatusRecord 
 
   return {
     id: asString(project.id || project.Id || project.projectId || project.ProjectId) || projectName,
+    leadId: asString(project.leadId ?? project.LeadId ?? project.Lead__c),
+    opportunityId: asString(project.opportunityId ?? project.OpportunityId ?? project.Opportunity__c),
     projectName,
     projectStatus: asString(project.projectStatus || project.status || project.Status),
     projectType: asString(
@@ -702,6 +707,7 @@ export async function getClientPortalDetails({
         id: asString(dashboardData.projectId || dashboardData.id) || projectLookup?.id || '',
         name: dashboardData.projectName,
         status: progress != null ? `Progress: ${progress}%` : 'Active',
+        completionPercentage: progress,
         startDate: asString(dashboardData.startDate),
         endDate: asString(dashboardData.endDate),
         description: budget != null ? `Estimated Budget: Rs ${budget.toLocaleString()}` : undefined,

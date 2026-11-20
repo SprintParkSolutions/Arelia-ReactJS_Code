@@ -37,6 +37,13 @@ it('opens a blank form and creates a new project only on submission', async () =
   expect(requestProjectDetails).not.toHaveBeenCalled()
   const labels = ['Site Space', 'Type of Project', 'Project Scope', 'Plan Level', 'Customer Budget', 'Site Location', 'Project Description']
   labels.forEach((label, index) => {
+    if (label === 'Type of Project') {
+      const picker = screen.getByRole('button', { name: /^Type of Project/ })
+      expect(picker).toHaveTextContent('Select an option')
+      fireEvent.click(picker)
+      fireEvent.click(screen.getByRole('button', { name: details.typeOfProject }))
+      return
+    }
     expect(screen.getByLabelText(label)).toHaveValue('')
     fireEvent.change(screen.getByLabelText(label), { target: { value: Object.values(details)[index] } })
   })

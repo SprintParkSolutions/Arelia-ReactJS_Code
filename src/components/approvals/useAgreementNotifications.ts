@@ -59,5 +59,10 @@ export function useAgreementNotifications(leadId: string, projectLeadIds?: strin
     const index = ids.indexOf(entry.leadId || leadId)
     return { ...entry, message: ids.length > 1 && index >= 0 ? `Project ${index + 1}: ${entry.message}` : entry.message }
   })
-  return { notifications, markRead: (id: string) => update(id), markAllRead: () => update(), dismiss: (id: string) => update(id, true) }
+  const milestones = entries.map(entry => ({
+    leadId: entry.leadId || leadId,
+    opportunityId: entry.opportunityId,
+    signed: entry.id.startsWith('client-agreement-signed:'),
+  }))
+  return { notifications, milestones, markRead: (id: string) => update(id), markAllRead: () => update(), dismiss: (id: string) => update(id, true) }
 }

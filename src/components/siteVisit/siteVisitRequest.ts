@@ -1,4 +1,4 @@
-import type { Appointment } from '../../services/siteVisitApi'
+import type { Appointment, VisitReport } from '../../services/siteVisitApi'
 
 export function canRespondToSiteVisit(appointment: Appointment | null | undefined): boolean {
   return Boolean(appointment?.success && appointment.appointmentAvailable && appointment.actionRequired
@@ -19,4 +19,13 @@ export function isFutureSiteVisitSlot(date: string, slot: string, now = new Date
   if (period) hour = hour % 12 + (period === 'PM' ? 12 : 0)
   const start = new Date(date + 'T' + String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0') + ':00')
   return Number.isFinite(start.getTime()) && start.getTime() > now.getTime()
+}
+
+export function approvedSiteVisitReportId(leadId: string, report?: VisitReport | null): string | undefined {
+  const details = report?.report
+  if (report?.success && report.reportAvailable && details?.leadId === leadId &&
+      details.managementApproval === true && details.finalSubmitted === true &&
+      typeof details.reportId === 'string' && details.reportId.trim()) {
+    return details.reportId
+  }
 }

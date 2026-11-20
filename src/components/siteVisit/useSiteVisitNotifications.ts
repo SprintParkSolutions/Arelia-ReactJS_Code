@@ -1,4 +1,4 @@
-import { canRespondToSiteVisit } from './siteVisitRequest'
+import { approvedSiteVisitReportId, canRespondToSiteVisit } from './siteVisitRequest'
 import { useEffect, useMemo, useSyncExternalStore } from 'react'
 import type { Appointment, VisitReport } from '../../services/siteVisitApi'
 type Entry = { id: string; type: 'siteVisit'; message: string; timestamp: number; read: boolean; dismissed: boolean }
@@ -39,9 +39,9 @@ export function useProjectSiteVisitNotifications(visits: ProjectVisit[]) {
         add('site-visit:' + [appointment.appointmentSentDate, appointment.appointmentDate, appointment.appointmentTimeSlot, appointment.appointmentStatus].join(':'),
           `Arelia has requested a site visit on ${appointment.appointmentDate}, ${appointment.appointmentTimeSlot}. Please approve or request a new date and time.`)
       }
-      const details = report?.report
-      if (report?.success && report.reportAvailable && details?.managementApproval === true && details.finalSubmitted === true && details.leadId === leadId && typeof details.reportId === 'string' && details.reportId) {
-        add('site-visit:report:' + details.reportId, 'Your site visit report has been approved by the Arelia Team and is ready to view.')
+      const reportId = approvedSiteVisitReportId(leadId, report)
+      if (reportId) {
+        add('site-visit:report:' + reportId, 'Your site visit report has been approved by the Arelia Team and is ready to view.')
       }
       if (changed) write(key, saved)
     })

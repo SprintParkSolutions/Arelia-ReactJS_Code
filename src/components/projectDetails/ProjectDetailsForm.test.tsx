@@ -70,7 +70,7 @@ describe('project details', () => {
 it.each(['Interior Combo Package', 'Only Project Plan'])('disables and clears scope for %s and submits without it', async (typeOfProject) => {
   request.mockResolvedValue({ success: true, message: '', projectSubmitted: true, details })
   setup()
-  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: typeOfProject } })
+  chooseProjectType(typeOfProject)
   expect(screen.getByLabelText('Project Scope')).toBeDisabled()
   expect(screen.getByLabelText('Project Scope')).toHaveValue('')
   fireEvent.click(screen.getByRole('button', { name: 'Submit Project Details' }))
@@ -80,10 +80,29 @@ it.each(['Interior Combo Package', 'Only Project Plan'])('disables and clears sc
 
 it.each(['Interior Combo Package', 'Only Project Plan'])('requires scope again when switching from %s to another project type', (typeOfProject) => {
   setup()
-  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: typeOfProject } })
-  fireEvent.change(screen.getByLabelText('Type of Project'), { target: { value: 'Office' } })
+  chooseProjectType(typeOfProject)
+  chooseProjectType('Office')
   expect(screen.getByLabelText('Project Scope')).toBeEnabled()
   fireEvent.click(screen.getByRole('button', { name: 'Submit Project Details' }))
   expect(screen.getByText('Project Scope is required.')).toBeInTheDocument()
   expect(request).not.toHaveBeenCalled()
+})
+
+function chooseProjectType(type: string) {
+  fireEvent.click(screen.getByRole('button', { name: /^Type of Project/ }))
+  fireEvent.click(screen.getByRole('button', { name: type }))
+}
+
+it('offers combo package guidance separately from selecting the project type', () => {
+  setup()
+  const trigger = screen.getByRole('button', { name: /^Type of Project/ })
+  fireEvent.click(trigger)
+  const option = screen.getByRole('button', { name: 'Interior Combo Package' })
+  expect(option).toHaveAccessibleDescription(/combines residential, commercial, or hospitality spaces/)
+  const help = screen.getByLabelText('Help with Interior Combo Package')
+  fireEvent.click(help)
+  expect(help).toHaveAttribute('aria-expanded', 'true')
+  expect(trigger).toHaveTextContent('Home')
+  fireEvent.click(option)
+  expect(trigger).toHaveTextContent('Interior Combo Package')
 })

@@ -1,6 +1,7 @@
 import { useRef, useState, type SubmitEvent } from 'react'
 import { requestProjectDetails, type ProjectDetails, type ProjectDetailsResult } from '../../services/projectDetailsApi'
 import { FiCheckCircle, FiHome, FiLayers, FiMapPin, FiMaximize, FiLock, FiFileText, FiCreditCard } from 'react-icons/fi'
+import { ProjectTypePicker } from './ProjectTypePicker'
 import './ProjectDetailsForm.css'
 const homeScopes = ['Full Home Interiors', 'Home Decor', 'Kitchen', 'Bed Room', 'Hall Interior', '1BHK', '2BHK', '3BHK', '4BHK', '5BHK', '1RK']
 const officeScopes = ['Conference Hall', 'Fully Office Interiors', 'Office Decor', 'Office Space', 'Dining Hall', 'Cabins']
@@ -10,14 +11,14 @@ function getScopeOptions(typeOfProject: string): string[] {
   if (typeOfProject === 'Interior Combo Package' || typeOfProject === 'Only Project Plan') return []
   return [...homeScopes, ...officeScopes]
 }
-const fields: { key: keyof ProjectDetails; label: string; options?: string[] }[] = [
-  { key: 'siteSpace', label: 'Site Space' },
+const fields: { key: keyof ProjectDetails; label: string; options?: string[]; placeholder?: string }[] = [
+  { key: 'siteSpace', label: 'Site Space', placeholder: 'Enter site area (sq ft)' },
   { key: 'typeOfProject', label: 'Type of Project', options: ['Home', 'Office', 'Interior Combo Package', 'Only Project Plan'] },
   { key: 'projectScope', label: 'Project Scope', options: [...homeScopes, ...officeScopes] },
   { key: 'planLevel', label: 'Plan Level', options: ['Standard', 'Premium', 'Luxury'] },
-  { key: 'customerBudget', label: 'Customer Budget' },
-  { key: 'siteLocation', label: 'Site Location' },
-  { key: 'projectDescription', label: 'Project Description' },
+  { key: 'customerBudget', label: 'Customer Budget', placeholder: 'Enter Budget in INR' },
+  { key: 'siteLocation', label: 'Site Location', placeholder: 'Enter Site Address' },
+  { key: 'projectDescription', label: 'Project Description', placeholder: 'Enter your Project Details' },
 ]
 export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewProject = false }: {
   createNewProject?: boolean; leadId: string; result: ProjectDetailsResult; onSaved: (result: ProjectDetailsResult) => void; reload: () => void
@@ -107,18 +108,20 @@ export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewP
             const options = field.key === 'projectScope' ? getScopeOptions(values.typeOfProject) : field.options
             const id = `project-${field.key}`
             const disabled = field.key === 'projectScope' && isScopeDisabled
-            const props = { id, disabled, required: !disabled, value: disabled ? '' : values[field.key], 'aria-invalid': Boolean(errors[field.key]), 'aria-describedby': `${id}-error`,
-              onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-                const value = event.target.value
-                const clearScope = field.key === 'typeOfProject' && !getScopeOptions(value).includes(values.projectScope)
-                setValues(current => ({ ...current, [field.key]: value, ...(clearScope ? { projectScope: '' } : {}) }))
-                setErrors(current => ({ ...current, [field.key]: undefined, ...(clearScope ? { projectScope: undefined } : {}) }))
-              } }
+            const changeValue = (value: string) => {
+              const clearScope = field.key === 'typeOfProject' && !getScopeOptions(value).includes(values.projectScope)
+              setValues(current => ({ ...current, [field.key]: value, ...(clearScope ? { projectScope: '' } : {}) }))
+              setErrors(current => ({ ...current, [field.key]: undefined, ...(clearScope ? { projectScope: undefined } : {}) }))
+            }
+            const props = { id, disabled, required: !disabled, value: disabled ? '' : values[field.key], 'aria-invalid': Boolean(errors[field.key]), 'aria-describedby': id + '-error',
+              onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => changeValue(event.target.value) }
             return <div key={field.key}>
-              <label htmlFor={id}>{field.label}</label>
-              {options ? <select {...props}><option value="">Select an option</option>{options.map(option => <option key={option}>{option}</option>)}</select>
-                : field.key === 'projectDescription' ? <textarea {...props} rows={4} />
-                : <input {...props} placeholder={field.key === 'siteSpace' ? 'Enter site area (sq ft)' : undefined} inputMode={field.key === 'customerBudget' ? 'decimal' : undefined} />}
+              <label id={id + '-label'} htmlFor={id}>{field.label}</label>
+              {field.key === 'typeOfProject' && options
+                ? <ProjectTypePicker id={id} options={options} value={props.value} invalid={props['aria-invalid']} onChange={changeValue} />
+                : options ? <select {...props}><option value="">Select an option</option>{options.map(option => <option key={option}>{option}</option>)}</select>
+                : field.key === 'projectDescription' ? <textarea {...props} placeholder={field.placeholder} rows={4} />
+                : <input {...props} placeholder={field.placeholder} inputMode={field.key === 'customerBudget' ? 'decimal' : undefined} />}
               <span id={`${id}-error`} className="projectDetails__error">{errors[field.key]}</span>
             </div>
           })}

@@ -56,3 +56,75 @@
   .projectSummary__item { padding: 17px; }
 }
 .projectDetails select:disabled { opacity: .6; cursor: not-allowed; }
+
+.projectTypePicker { position: relative; }
+.projectTypePicker button { font: inherit; cursor: pointer; }
+.projectTypePicker__trigger {
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem;
+  padding: .9rem;
+  border: 1px solid #766246;
+  border-radius: .8rem;
+  background: #151412;
+  color: #fff;
+  text-align: start;
+}
+.projectTypePicker__trigger svg { flex: none; }
+.projectTypePicker__options {
+  position: absolute;
+  z-index: 5;
+  inset-inline: 0;
+  top: 100%;
+  margin: .25rem 0 0;
+  padding: .3rem;
+  list-style: none;
+  border: 1px solid #766246;
+  border-radius: .65rem;
+  background: #1c1916;
+  box-shadow: 0 8px 20px #0007;
+}
+.projectTypePicker__item { display: flex; flex-wrap: wrap; align-items: center; }
+.projectTypePicker__option {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: .5rem .65rem;
+  border: 0;
+  border-radius: .35rem;
+  background: transparent;
+  color: #fff;
+  text-align: start;
+}
+.projectTypePicker__option:hover, .projectTypePicker__option[aria-pressed="true"] { background: #34291d; }
+.projectTypePicker .projectTypePicker__info {
+  display: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #e7c99c;
+}
+.projectTypePicker .projectTypePicker__help {
+  display: none;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: .4rem .65rem .65rem;
+  color: #e7c99c;
+  font-size: .875rem;
+  line-height: 1.4;
+}
+.projectTypePicker__option:focus-visible ~ .projectTypePicker__help { display: block; }
+@media (hover: hover) {
+  .projectTypePicker__item:hover .projectTypePicker__help { display: block; }
+}
+@media (hover: none) and (pointer: coarse) {
+  .projectTypePicker .projectTypePicker__info { display: grid; }
+  .projectTypePicker .projectTypePicker__help.is-open { display: block; }
+}

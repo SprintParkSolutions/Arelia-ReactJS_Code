@@ -3,8 +3,9 @@ import { useState } from 'react'
 import { ProjectNavigation } from '../ProjectNavigation'
 import { DesignApprovals } from './DesignApprovals'
 import type { useDesignApprovals } from './useDesignApprovals'
-export function ProjectDesignApprovals({ contactId, state, highlightId, onProjectChange, projectLeadIds, accountProjects }: {
+export function ProjectDesignApprovals({ contactId, state, highlightId, onProjectChange, projectLeadIds, accountProjects, requestedProjectId }: {
   accountProjects?: ProjectDetailsResult[]
+  requestedProjectId?: string
   projectLeadIds?: string[]
   contactId: string; state: ReturnType<typeof useDesignApprovals>; highlightId: string | null; onProjectChange?: () => void
 }) {
@@ -32,8 +33,8 @@ export function ProjectDesignApprovals({ contactId, state, highlightId, onProjec
   const highlighted = highlightedOpportunity
     ? projects.find(project => project.opportunityId === highlightedOpportunity)?.id
     : undefined
-  const requested = selection?.highlight === highlightId ? selection.id : highlighted
-  const selected = projects.find(project => project.id === requested) || projects[0]
+  const requested = selection?.highlight === highlightId ? selection.id : highlighted || requestedProjectId
+  const selected = projects.find(project => project.id === requested || (requested && project.opportunityId === requested)) || projects[0]
   const result = { ...designResult, designs: designResult.designs.filter(design => design.opportunityId === selected.opportunityId) }
   return <section className="siteVisitCarousel" aria-label="3D designs by project">
     <ProjectNavigation projects={projects} selectedId={selected.id} onSelect={id => { setSelection({ id, highlight: onProjectChange ? null : highlightId }); onProjectChange?.() }} eyebrow="3D DESIGNS BY PROJECT" />

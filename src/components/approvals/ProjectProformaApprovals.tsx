@@ -2,14 +2,17 @@ import { useState } from 'react'
 import { ProjectNavigation } from '../ProjectNavigation'
 import { ProformaApprovals } from './ProformaApprovals'
 import type { useProformaApprovals } from './useProformaApprovals'
-export function ProjectProformaApprovals({ leadId, state, highlightId, onProjectChange }: {
+export function ProjectProformaApprovals({ leadId, state, highlightId, onProjectChange, requestedProjectId }: {
+  requestedProjectId?: string
   leadId: string; state: ReturnType<typeof useProformaApprovals>; highlightId: string | null; onProjectChange: () => void
 }) {
   const [selection, setSelection] = useState<{ id: string; highlight: string | null } | null>(null)
   const projects = state.result?.projects || [{ id: leadId, success: true, message: '' }]
   if (!state.result?.success || !projects.length) return <ProformaApprovals leadId={leadId} state={state} highlightId={highlightId} />
   const highlighted = state.result.invoices.find(invoice => invoice.invoiceId === highlightId)?.leadId
-  const requested = selection?.highlight === highlightId ? selection.id : highlighted
+  const requestedLeadId = projects.some(project => project.id === requestedProjectId) ? requestedProjectId
+    : state.result.invoices.find(invoice => invoice.opportunityId === requestedProjectId)?.leadId
+  const requested = selection?.highlight === highlightId ? selection.id : highlighted || requestedLeadId
   const selected = projects.find(project => project.id === requested) || projects[0]
   const result = { ...state.result, success: selected.success, message: selected.message,
     invoices: state.result.invoices.filter(invoice => (invoice.leadId || leadId) === selected.id) }
