@@ -227,7 +227,7 @@ export default function NavigationMenu({
                       className="navigationMenu__action navigationMenu__action--accent"
                       onClick={onOpenConsultation}
                     >
-                      Book Consultation
+                      Sign Up
                     </button>
                     <a href={phoneHref} className="navigationMenu__iconButton" aria-label="Call Arelia">
                       <FiPhone aria-hidden="true" />
@@ -328,7 +328,7 @@ export default function NavigationMenu({
                           setIsMobileMenuOpen(false)
                         }}
                       >
-                        Book Consultation
+                        Sign Up
                       </button>
                     </div>
                   </>

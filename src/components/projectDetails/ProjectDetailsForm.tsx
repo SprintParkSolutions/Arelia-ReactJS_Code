@@ -1,0 +1,134 @@
+import { useRef, useState, type SubmitEvent } from 'react'
+import { requestProjectDetails, type ProjectDetails, type ProjectDetailsResult } from '../../services/projectDetailsApi'
+import { FiCheckCircle, FiHome, FiLayers, FiMapPin, FiMaximize, FiLock, FiFileText, FiCreditCard } from 'react-icons/fi'
+import { ProjectTypePicker } from './ProjectTypePicker'
+import './ProjectDetailsForm.css'
+const homeScopes = ['Full Home Interiors', 'Home Decor', 'Kitchen', 'Bed Room', 'Hall Interior', '1BHK', '2BHK', '3BHK', '4BHK', '5BHK', '1RK']
+const officeScopes = ['Conference Hall', 'Fully Office Interiors', 'Office Decor', 'Office Space', 'Dining Hall', 'Cabins']
+function getScopeOptions(typeOfProject: string): string[] {
+  if (typeOfProject === 'Home') return homeScopes
+  if (typeOfProject === 'Office') return officeScopes
+  if (typeOfProject === 'Interior Combo Package' || typeOfProject === 'Only Project Plan') return []
+  return [...homeScopes, ...officeScopes]
+}
+const fields: { key: keyof ProjectDetails; label: string; options?: string[]; placeholder?: string }[] = [
+  { key: 'siteSpace', label: 'Site Space', placeholder: 'Enter site area (sq ft)' },
+  { key: 'typeOfProject', label: 'Type of Project', options: ['Home', 'Office', 'Interior Combo Package', 'Only Project Plan'] },
+  { key: 'projectScope', label: 'Project Scope', options: [...homeScopes, ...officeScopes] },
+  { key: 'planLevel', label: 'Plan Level', options: ['Standard', 'Premium', 'Luxury'] },
+  { key: 'customerBudget', label: 'Customer Budget', placeholder: 'Enter Budget in INR' },
+  { key: 'siteLocation', label: 'Site Location', placeholder: 'Enter Site Address' },
+  { key: 'projectDescription', label: 'Project Description', placeholder: 'Enter your Project Details' },
+]
+export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewProject = false }: {
+  createNewProject?: boolean; leadId: string; result: ProjectDetailsResult; onSaved: (result: ProjectDetailsResult) => void; reload: () => void
+}) {
+  const [values, setValues] = useState<ProjectDetails>(result.details!)
+  const [errors, setErrors] = useState<Partial<Record<keyof ProjectDetails, string>>>({})
+  const [message, setMessage] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [locked, setLocked] = useState(false)
+  const pending = useRef(false)
+  const isScopeDisabled = values.typeOfProject === 'Interior Combo Package' || values.typeOfProject === 'Only Project Plan'
+  async function submit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (pending.current || result.projectSubmitted || locked) return
+    const cleaned = Object.fromEntries(Object.entries(values).map(([key, value]) => [key, value.trim()])) as ProjectDetails
+    if (isScopeDisabled) cleaned.projectScope = ''
+    const next: typeof errors = {}
+    fields.forEach(field => {
+      if (field.key === 'projectScope' && isScopeDisabled) return
+      const options = field.key === 'projectScope' ? getScopeOptions(cleaned.typeOfProject) : field.options
+      if (!cleaned[field.key]) next[field.key] = `${field.label} is required.`
+      else if (options && !options.includes(cleaned[field.key])) next[field.key] = 'Choose an available option.'
+    })
+    if (cleaned.customerBudget && (!/^\d+(\.\d+)?$/.test(cleaned.customerBudget) || !Number.isFinite(Number(cleaned.customerBudget)) || Number(cleaned.customerBudget) <= 0)) next.customerBudget = 'Enter a budget greater than zero.'
+    setErrors(next)
+    if (Object.keys(next).length) return
+    pending.current = true; setBusy(true); setMessage('')
+    const saved = await (createNewProject ? requestProjectDetails(leadId, cleaned, true) : requestProjectDetails(leadId, cleaned))
+    pending.current = false; setBusy(false)
+    if (saved.success) {
+      setMessage('Project details submitted successfully.')
+      onSaved(saved)
+    } else if (saved.conflict) {
+      setLocked(true)
+      reload()
+    } else setMessage(saved.message)
+  }
+  if (result.projectSubmitted) {
+    const icons = { siteSpace: FiMaximize, typeOfProject: FiHome, projectScope: FiLayers, planLevel: FiLayers, customerBudget: FiCreditCard, siteLocation: FiMapPin, projectDescription: FiFileText }
+    const displayValue = (key: keyof ProjectDetails) => {
+      const value = result.details?.[key]
+      if (!value) return 'Not available'
+      if ((key === 'customerBudget' || key === 'siteSpace') && /^\d+(\.\d+)?$/.test(value)) {
+        return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(Number(value))
+      }
+      return value
+    }
+    return (
+      <section className="dashboardSection projectDetails projectDetails--summary">
+        <header className="projectSummary__header">
+          <div>
+            <p className="projectSummary__eyebrow">YOUR PROJECT BRIEF</p>
+            <h2 className="dashboardSection__title">Your Project Blueprint</h2>
+            <p className="projectSummary__subtitle">Your submitted requirements, together in one place.</p>
+          </div>
+          <span className="projectSummary__badge" role="status"><FiCheckCircle aria-hidden="true" />Submitted</span>
+        </header>
+        <div className="projectSummary__body">
+          <dl className="projectSummary__grid">
+            {fields.filter(field => field.key !== 'projectDescription').map(field => {
+              const Icon = icons[field.key]
+              return <div key={field.key} className="projectSummary__item">
+                <span className="projectSummary__icon" aria-hidden="true"><Icon /></span>
+                <div><dt>{field.label}</dt><dd className={field.key === 'customerBudget' ? 'projectSummary__budget' : undefined}>{displayValue(field.key)}</dd></div>
+              </div>
+            })}
+          </dl>
+          <div className="projectSummary__description">
+            <h3><FiFileText aria-hidden="true" />Project Description</h3>
+            <p>{result.details?.projectDescription || 'Not available'}</p>
+          </div>
+        </div>
+        <footer className="projectSummary__footer">
+          <FiLock aria-hidden="true" />
+          <p><strong>Your details are saved.</strong> This summary is read-only. Please contact our team if you need to make changes.</p>
+        </footer>
+      </section>
+    )
+  }
+  return (
+    <section className="dashboardSection projectDetails">
+      <h2 className="dashboardSection__title">Your Project Blueprint</h2>
+      <p>Tell us about your project. Once submitted, these details cannot be edited.</p>
+      <form onSubmit={submit} noValidate aria-busy={busy}>
+        <fieldset disabled={busy || locked} className="projectDetails__grid">
+          {fields.map(field => {
+            const options = field.key === 'projectScope' ? getScopeOptions(values.typeOfProject) : field.options
+            const id = `project-${field.key}`
+            const disabled = field.key === 'projectScope' && isScopeDisabled
+            const changeValue = (value: string) => {
+              const clearScope = field.key === 'typeOfProject' && !getScopeOptions(value).includes(values.projectScope)
+              setValues(current => ({ ...current, [field.key]: value, ...(clearScope ? { projectScope: '' } : {}) }))
+              setErrors(current => ({ ...current, [field.key]: undefined, ...(clearScope ? { projectScope: undefined } : {}) }))
+            }
+            const props = { id, disabled, required: !disabled, value: disabled ? '' : values[field.key], 'aria-invalid': Boolean(errors[field.key]), 'aria-describedby': id + '-error',
+              onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => changeValue(event.target.value) }
+            return <div key={field.key}>
+              <label id={id + '-label'} htmlFor={id}>{field.label}</label>
+              {field.key === 'typeOfProject' && options
+                ? <ProjectTypePicker id={id} options={options} value={props.value} invalid={props['aria-invalid']} onChange={changeValue} />
+                : options ? <select {...props}><option value="">Select an option</option>{options.map(option => <option key={option}>{option}</option>)}</select>
+                : field.key === 'projectDescription' ? <textarea {...props} placeholder={field.placeholder} rows={4} />
+                : <input {...props} placeholder={field.placeholder} inputMode={field.key === 'customerBudget' ? 'decimal' : undefined} />}
+              <span id={`${id}-error`} className="projectDetails__error">{errors[field.key]}</span>
+            </div>
+          })}
+        </fieldset>
+        {message && <p role="alert" className="projectDetails__error">{message}</p>}
+        <button type="submit" disabled={busy || locked} className="projectDetails__submit">{busy ? 'Submitting…' : 'Submit Project Details'}</button>
+      </form>
+    </section>
+  )
+}

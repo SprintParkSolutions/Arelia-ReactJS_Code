@@ -1,7 +1,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useEffect, useEffectEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { ConsultationForm } from './ConsultationForm'
+import { ConsultationSignup } from './ConsultationSignup'
 import './ConsultationForm.css'
 
 type ConsultationModalProps = {
@@ -65,13 +65,7 @@ export function ConsultationModal({ isOpen, onClose }: ConsultationModalProps) {
               <span />
             </button>
 
-            <ConsultationForm
-              mode="modal"
-              title="Book your consultation"
-              description="A few details are enough to start a refined conversation about your project, timeline, and design direction."
-              submitLabel="Request Consultation"
-              onSuccess={onClose}
-            />
+            <ConsultationSignup onClose={onClose} />
           </div>
         </motion.div>
       ) : null}

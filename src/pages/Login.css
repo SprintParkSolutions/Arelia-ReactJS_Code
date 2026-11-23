@@ -335,6 +335,13 @@
   box-shadow: 0 0 0 3px rgba(200, 169, 126, 0.25);
 }
 
+.loginPage__signInLabel {
+  color: #d9a957;
+  cursor: default;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 .loginForm__forgot {
   border: 0;
   background: transparent;

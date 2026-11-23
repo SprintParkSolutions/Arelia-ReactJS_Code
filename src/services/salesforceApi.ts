@@ -14,6 +14,8 @@ export type LoginClientResponse = {
   contactId?: string
   leadId?: string
   name?: string
+  email?: string
+  phone?: string
 }
 
 export type ForgotPasswordResponse = {
@@ -37,11 +39,14 @@ export type PortalProject = {
   startDate?: string
   endDate?: string
   description?: string
+  completionPercentage?: number
 }
 
 export type ContactProjectLookup = {
   id: string
   name?: string
+  email?: string
+  phone?: string
 }
 
 export type SupportCaseRecord = {
@@ -105,6 +110,8 @@ export type ProjectVendorTasksResponse = {
 }
 
 export type ProjectStatusRecord = {
+  leadId?: string
+  opportunityId?: string
   id?: string
   projectName: string
   projectStatus?: string
@@ -128,6 +135,9 @@ export type PaymentTerm = {
   percentage?: number
   paymentReceived?: boolean
   dueDate?: string
+  amount?: number
+  paidAmount?: number
+  totalAmount?: number
 }
 
 export type SupportCasePayload = {
@@ -341,6 +351,8 @@ function normalizeProjectStatusRecord(rawProject: unknown): ProjectStatusRecord 
 
   return {
     id: asString(project.id || project.Id || project.projectId || project.ProjectId) || projectName,
+    leadId: asString(project.leadId ?? project.LeadId ?? project.Lead__c),
+    opportunityId: asString(project.opportunityId ?? project.OpportunityId ?? project.Opportunity__c),
     projectName,
     projectStatus: asString(project.projectStatus || project.status || project.Status),
     projectType: asString(
@@ -354,7 +366,7 @@ function normalizeProjectStatusRecord(rawProject: unknown): ProjectStatusRecord 
     startDate: asString(project.startDate || project.StartDate),
     endDate: asString(project.endDate || project.EndDate),
     completionPercentage: roundPercentage(
-      project.completionPercentage || project.progress || project.percentComplete,
+      project.completionPercentage ?? project.progress ?? project.percentComplete,
     ),
     vendors: asArray(project.vendors).map(normalizeProjectVendor).filter(Boolean) as ProjectVendor[],
   }
@@ -371,9 +383,12 @@ function normalizePaymentTerm(rawTerm: unknown): PaymentTerm | undefined {
     id: asString(term.id || term.Id),
     label,
     name: asString(term.name || term.Name),
-    percentage: asNumber(term.percentage || term.Percent__c),
+    percentage: asNumber(term.percentage ?? term.Percentage__c ?? term.Percent__c),
     paymentReceived: asBoolean(term.paymentReceived || term.isPaid || term.Payment_Received__c),
     dueDate: asString(term.dueDate || term.Due_Date__c),
+    amount: asNumber(term.amount),
+    paidAmount: asNumber(term.paidAmount),
+    totalAmount: asNumber(term.totalAmount),
   }
 }
 
@@ -528,6 +543,8 @@ export async function loginClient(email: string, password: string): Promise<Logi
       contactId: data?.contactId ? String(data.contactId) : undefined,
       leadId: data?.leadId ? String(data.leadId) : undefined,
       name: data?.name ? String(data.name) : undefined,
+      email: asString(data?.email),
+      phone: asString(data?.phone),
     }
   } catch (error) {
     console.error('Error logging in:', error)
@@ -690,6 +707,7 @@ export async function getClientPortalDetails({
         id: asString(dashboardData.projectId || dashboardData.id) || projectLookup?.id || '',
         name: dashboardData.projectName,
         status: progress != null ? `Progress: ${progress}%` : 'Active',
+        completionPercentage: progress,
         startDate: asString(dashboardData.startDate),
         endDate: asString(dashboardData.endDate),
         description: budget != null ? `Estimated Budget: Rs ${budget.toLocaleString()}` : undefined,
@@ -939,7 +957,7 @@ export async function sendOtp(
       body: JSON.stringify({ email, otp }),
     })
     const data = asRecord(await parseResponse(response))
-    return { success: response.status === 200, message: asString(data?.message) }
+    return { success: response.ok && data?.success === true, message: asString(data?.message) }
   } catch {
     return { success: false, message: 'An error occurred while sending OTP.' }
   }
@@ -1040,5 +1058,62 @@ export async function getVendorTaskMedia(taskId: string): Promise<VendorTaskMedi
   } catch (error) {
     console.error('Error fetching vendor task media:', error)
     return null
+  }
+}
+
+export type ProspectSignup = {
+  phone: string
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  confirmPassword: string
+}
+
+export async function registerProspect(values: ProspectSignup): Promise<{ success: boolean; message?: string; leadId?: string }> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+  try {
+    const response = await fetch(`${REGISTRATION_BASE_URL}/leads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        firstName: values.firstName.trim(),
+        lastName: values.lastName.trim(),
+        email: values.email.trim().toLowerCase(),
+        phone: values.phone.trim(),
+        password: values.password,
+        confirmPassword: values.confirmPassword,
+        companyName: 'self',
+      }),
+    })
+    const data = asRecord(await parseResponse(response))
+    const leadId = asString(data?.leadId)
+    return { success: response.ok && data?.success === true && Boolean(leadId), leadId, message: asString(data?.message) }
+  } catch {
+    return { success: false, message: 'Unable to connect. Please try again.' }
+  }
+}
+
+export async function loginProspect(email: string, password: string): Promise<LoginClientResponse> {
+  if (!BASE_URL) return { success: false, message: getMissingConfigMessage() }
+  try {
+    const response = await fetch(`${REGISTRATION_BASE_URL}/lead/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
+    })
+    const data = asRecord(await parseResponse(response))
+    const leadId = asString(data?.leadId)
+    return {
+      success: response.ok && data?.success === true && Boolean(leadId),
+      message: asString(data?.message) || 'Unable to sign in.',
+      leadId,
+      contactId: response.ok && data?.success === true ? asString(data?.contactId) : undefined,
+      name: asString(data?.fullName),
+      email: asString(data?.email),
+      phone: asString(data?.phone),
+    }
+  } catch {
+    return { success: false, message: 'Unable to connect. Please try again.' }
   }
 }

@@ -77,7 +77,7 @@ const designCards: DesignCard[] = [
     title: "Residential Interior Design in Hyderabad",
     location: "Beautiful Homes Designed Around You",
     description:
-      "Transform your home with thoughtfully planned Residential interiors by Arelia Space. From space planning and custom furniture to lighting, finishes, and complete home interiors, we create elegant and functional spaces tailored to your lifestyle.",
+      "Transform your home with thoughtfully planned Residential interiors by Arelia. From space planning and custom furniture to lighting, finishes, and complete home interiors, we create elegant and functional spaces tailored to your lifestyle.",
     image: obsidianResidenceImage,
     features: ["Space Planning", "Custom Furniture", "Premium Finishes", "Lighting Design"],
   },
@@ -87,7 +87,7 @@ const designCards: DesignCard[] = [
     title: "Commercial Interior Design in Hyderabad",
     location: "Smart Workspaces Designed for Business",
     description:
-      "Transform your Commercial space with thoughtfully planned interiors by Arelia Space. From efficient space planning and custom workstations to lighting, finishes, meeting areas, and collaborative zones, we create professional and functional environments designed to support productivity, comfort, and your brand identity.",
+      "Transform your Commercial space with thoughtfully planned interiors by Arelia. From efficient space planning and custom workstations to lighting, finishes, meeting areas, and collaborative zones, we create professional and functional environments designed to support productivity, comfort, and your brand identity.",
     image: velourExecutiveSuitesImage,
     features: ["Efficient Space Planning", "Custom Workstations", "Professional Lighting", "Collaborative Spaces"],
   },
@@ -97,7 +97,7 @@ const designCards: DesignCard[] = [
     title: "Hospitality Interior Design in Hyderabad",
     location: "Inviting Spaces Designed for Memorable Guest Experiences",
     description:
-      "Transform your Hospitality space with thoughtfully planned interiors by Arelia Space. From welcoming lobbies and elegant guest rooms to ambient lighting, premium finishes, and functional layouts, we create warm, stylish, and experience-driven environments that reflect comfort, luxury, and your brand identity.",
+      "Transform your Hospitality space with thoughtfully planned interiors by Arelia. From welcoming lobbies and elegant guest rooms to ambient lighting, premium finishes, and functional layouts, we create warm, stylish, and experience-driven environments that reflect comfort, luxury, and your brand identity.",
     image: maisonAreliaSuiteImage,
     features: ["Guest-Centric Space Planning", "Ambient Lighting", "Premium Finishes", "Comfort-Driven Design"],
   },
@@ -412,7 +412,7 @@ export function AboutPage({ onOpenConsultation }: AboutPageProps) {
                   width="1200"
                   height="900"
                 />
-                <span className="about-work__image-label">{selectedDesign.tag} / Arelia Space</span>
+                <span className="about-work__image-label">{selectedDesign.tag} / Arelia</span>
               </div>
               <div className="about-work__details">
                 <p className="about-page__eyebrow">SELECTED WORK / 0{activeDesign + 1}</p>

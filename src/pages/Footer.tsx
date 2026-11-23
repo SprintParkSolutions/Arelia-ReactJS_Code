@@ -1,12 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import './Footer.css'
 
-const services = [
-  'Commercial Interiors',
-  'Residential Interiors',
-  'Hospitality Interiors',
-]
-
 export function Footer() {
   return (
     <footer className="site-footer">
@@ -41,7 +35,7 @@ export function Footer() {
               className="site-footer__logo"
             />
             <p className="site-footer__copy">
-              Arelia Space creates refined interior experiences with clarity, detail,
+              Arelia creates refined interior experiences with clarity, detail,
               and execution built into every stage.
             </p>
           </div>
@@ -60,9 +54,9 @@ export function Footer() {
           <div className="site-footer__column">
             <h3 className="site-footer__title">Services</h3>
             <div className="site-footer__links">
-              {services.map((service) => (
-                <span key={service} className="site-footer__link">{service}</span>
-              ))}
+              <NavLink to="/services/commercial" className="site-footer__link">Commercial Interiors</NavLink>
+              <NavLink to="/services/residential" className="site-footer__link">Residential Interiors</NavLink>
+              <NavLink to="/services/hospitality" className="site-footer__link">Hospitality Interiors</NavLink>
             </div>
           </div>
 

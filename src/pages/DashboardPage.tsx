@@ -1,3 +1,32 @@
+import { ProjectCompletionConfetti } from "../components/ProjectCompletionConfetti";
+import { claimProjectCompletion, projectCompletionMessage, normalizeProjectCompletionNotification } from "../utils/projectCompletion";
+import { getPaymentReminder, paymentReminderDate } from "../utils/paymentReminders";
+import { PaymentTermsPanel } from "../components/payment/PaymentTermsPanel";
+import { PendingApprovals } from "../components/approvals/PendingApprovals";
+import { buildPendingApprovals, type PendingItem } from "../components/approvals/pendingApprovalItems";
+import { ProjectStagePath } from "../components/ProjectStagePath";
+import { ProjectJourney } from "../components/ProjectJourney";
+import { buildProjectJourneys } from "../components/projectJourneyData";
+import { ProjectTrackingNavigation } from "../components/ProjectTrackingNavigation";
+import { useAgreementNotifications } from "../components/approvals/useAgreementNotifications";
+import { ProjectPaymentTermsApprovals } from "../components/approvals/ProjectPaymentTermsApprovals";
+import { usePaymentReview } from "../components/approvals/usePaymentReview";
+import { PAYMENT_APPROVAL_CONFIRMATION_PREFIX, usePaymentNotifications } from "../components/approvals/usePaymentNotifications";
+import { ProjectBudgetReviewApprovals } from "../components/approvals/ProjectBudgetReviewApprovals";
+import { useBudgetReview } from "../components/approvals/useBudgetReview";
+import { useBudgetNotifications } from "../components/approvals/useBudgetNotifications";
+import { ProjectProformaApprovals } from "../components/approvals/ProjectProformaApprovals";
+import { useProformaApprovals } from "../components/approvals/useProformaApprovals";
+import { useProformaNotifications } from "../components/approvals/useProformaNotifications";
+import { ProjectDesignApprovals } from "../components/approvals/ProjectDesignApprovals";
+import { useDesignApprovals } from "../components/approvals/useDesignApprovals";
+import { useDesignNotifications } from "../components/approvals/useDesignNotifications";
+import { ApprovalNavigation } from "../components/approvals/ApprovalNavigation";
+import type { ApprovalCategory } from "../components/approvals/approvalCategories";
+import { ReviewApprovals } from "../components/approvals/ReviewApprovals";
+import { ProjectSiteVisitCarousel } from "../components/siteVisit/ProjectSiteVisitCarousel";
+import { useProjectSiteVisits } from "../components/siteVisit/useProjectSiteVisits";
+import { useProjectSiteVisitNotifications } from "../components/siteVisit/useSiteVisitNotifications";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   useDeferredValue,
@@ -39,7 +68,14 @@ import {
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { LogoutModal } from "../components/auth/LogoutModal";
-import { dashboardTabs } from "../constants/dashboardTabs";
+import { ProjectDetailsPanel } from "../components/projectDetails/ProjectDetailsPanel";
+import { useSupervisorNotifications } from "../components/projectDetails/useSupervisorNotifications";
+import { useSupervisor } from "../components/projectDetails/useSupervisor";
+import { ProjectSupervisorsPanel } from "../components/projectDetails/ProjectSupervisorsPanel";
+import { useApprovalProjects } from "../components/projectDetails/useApprovalStatus";
+import { useProjectReminder, useProjectApprovalNotifications, useProjectConversionNotifications } from "../components/projectDetails/useProjectReminder";
+import { useProjectDetails } from "../components/projectDetails/useProjectDetails";
+import { dashboardTabs, isProjectTrackingTab } from "../constants/dashboardTabs";
 import { useAuth } from "../context/AuthContext";
 import {
   createSupportCase,
@@ -78,55 +114,83 @@ const fadeUpItem = {
 };
 
 // Centered placeholder shown when a tab has no data to display yet.
+function projectStatusUpdateMessage(status: string) {
+  if (status.trim().toLowerCase() === "in progress") {
+    return "Your project is now in progress. Follow updates in Project Status.";
+  }
+  return `Your project status is now “${status}”.`;
+}
+
+function vendorAssignmentUpdateMessage(category: string, status: string) {
+  if (status.trim().toLowerCase().replace(/[-\s]+/g, " ") === "in progress") {
+    return `${category} work is underway. Follow updates in Vendor Tasks.`;
+  }
+  return `There's an update to your ${category} work. The status is now “${status}”.`;
+}
+
+function vendorTaskUpdateMessage(category: string, task: string, status: string) {
+  const normalized = status.trim().toLowerCase().replace(/[-\s]+/g, " ");
+  if (normalized === "in progress") {
+    return `The ${category} team has started work on “${task}”. Follow updates in Vendor Tasks.`;
+  }
+  if (normalized === "completed") {
+    return `The ${category} team has completed “${task}”.`;
+  }
+  return `The status of “${task}” under ${category} is now “${status}”.`;
+}
+
+function vendorProgressUpdateMessage(category: string, completion: number, taskUpdates: string[]) {
+  const progress = completion >= 100
+    ? `${category} work is complete.`
+    : `${category} work is now ${completion}% complete.`;
+  return [...taskUpdates, progress].join(" ");
+}
+
+function renderNotificationMessage(notification: PortalNotification) {
+  if (notification.type === "vendor") {
+    const previousProgress = /^(\[[^\r\n]*?\]\s+)?(.+?) status changed from (?:Not started|In progress|Completed) to (?:Not started|In progress|Completed) \(\d+% to (\d+)%\)\.(?: Updated tasks?: (.+)\.)?$/.exec(notification.message);
+    if (previousProgress) {
+      const [, prefix, category, completion, details] = previousProgress;
+      const updates = details
+        ? [...details.matchAll(/"(.*?)" \(([^()]*)\)(?:; |$)/g)].map(([, task, status]) => vendorTaskUpdateMessage(category, task, status))
+        : [];
+      if (!details || updates.length > 0) {
+        return (prefix || "") + vendorProgressUpdateMessage(category, Number(completion), updates);
+      }
+    }
+    const previousTaskWording = /^(\[[^\r\n]*?\]\s+)?(.+?) task "(.*)" changed from ".*" to "(.*)"\.$/.exec(notification.message);
+    if (previousTaskWording) {
+      const [, prefix, category, task, status] = previousTaskWording;
+      return (prefix || "") + vendorTaskUpdateMessage(category, task, status);
+    }
+    const previousWording = /^(\[[^\r\n]*?\]\s+)?(.+?) assignment status changed from ".*" to "(.*)"\.$/.exec(notification.message);
+    if (previousWording) {
+      return (previousWording[1] || "") + vendorAssignmentUpdateMessage(previousWording[2], previousWording[3]);
+    }
+  }
+  if (!notification.id.startsWith(PAYMENT_APPROVAL_CONFIRMATION_PREFIX)) {
+    const previousWording = notification.type === "status"
+      ? /^(\[[^\r\n]*?\]\s+)?Project status changed from ".*" to "(.*)"\.$/.exec(notification.message)
+      : null;
+    return previousWording
+      ? (previousWording[1] || "") + projectStatusUpdateMessage(previousWording[2])
+      : notification.message;
+  }
+  const [before, after] = notification.message.split("Client Agreement");
+  return <>{before}<strong>Client Agreement</strong>{after}</>;
+}
+
 function GlassEmptyState({ message }: { message: string }) {
   return <div className="dashboardEmptyState">{message}</div>;
 }
 
 // Derives up to two uppercase initials from a client's full name for avatar badges.
 function getInitials(fullName?: string | null) {
-  if (!fullName) return "CL";
-  const initials = fullName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-  return initials || "CL";
+  const parts = fullName?.trim().split(/\s+/).filter(Boolean) || [];
+  if (!parts.length) return "?";
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
 }
 
-const projectPhases = [
-  { id: "design", label: "Design & Planning", threshold: 0 },
-  { id: "procurement", label: "Procurement", threshold: 20 },
-  { id: "execution", label: "Execution", threshold: 45 },
-  { id: "audit", label: "Quality Audit", threshold: 85 },
-  { id: "handover", label: "Handover", threshold: 98 },
-] as const;
-
-// Maps a completion percentage to the current step in the project phase timeline.
-function getActivePhaseIndex(completion: number) {
-  let activeIndex = 0;
-  projectPhases.forEach((phase, index) => {
-    if (completion >= phase.threshold) activeIndex = index;
-  });
-  return activeIndex;
-}
-
-// Formats a 1-based position as an ordinal string (1st, 2nd, 3rd, 4th, ...).
-function getOrdinal(position: number) {
-  const remainder = position % 100;
-  if (remainder >= 11 && remainder <= 13) return `${position}th`;
-  switch (position % 10) {
-    case 1:
-      return `${position}st`;
-    case 2:
-      return `${position}nd`;
-    case 3:
-      return `${position}rd`;
-    default:
-      return `${position}th`;
-  }
-}
 
 // Picks an icon representing a vendor's trade from its free-text category label.
 function VendorCategoryIcon({ category }: { category?: string }) {
@@ -147,12 +211,6 @@ function VendorCategoryIcon({ category }: { category?: string }) {
 // Normalizes a vendor task status into a CSS-safe modifier key (e.g. "In Progress" -> "in-progress").
 function formatTaskStatusKey(status?: string) {
   return (status || "pending").toLowerCase().replace(/\s+/g, "-");
-}
-
-function getVendorProgressStatus(completion: number) {
-  if (completion >= 100) return "Completed";
-  if (completion > 0) return "In progress";
-  return "Not started";
 }
 
 // Determines whether a file's type should render in the image gallery vs the document list.
@@ -200,7 +258,10 @@ function formatFileMeta(file: ProjectFile) {
   return parts.join(" • ") || "Secure project file";
 }
 
-type PortalNotificationType =
+type PortalNotificationType = | "siteVisit"
+  | "supervisor"
+  | "approvals"
+  | "projectDetails"
   | "status"
   | "vendor"
   | "payment"
@@ -214,7 +275,12 @@ type PortalNotification = {
   message: string;
   timestamp: number;
   read: boolean;
+  siteVisitLeadId?: string;
   documentUrl?: string;
+  designId?: string;
+  invoiceId?: string;
+  budgetOpportunityId?: string;
+  paymentOpportunityId?: string;
   caseId?: string;
   projectId?: string;
   projectName?: string;
@@ -316,7 +382,7 @@ function writeNotificationSnapshot(
 function readStoredNotifications(key: string): PortalNotification[] {
   try {
     const raw = window.localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as PortalNotification[]) : [];
+    return raw ? (JSON.parse(raw) as PortalNotification[]).map(normalizeProjectCompletionNotification) : [];
   } catch {
     return [];
   }
@@ -458,7 +524,7 @@ function diffNotificationSnapshots(
   ) {
     entries.push({
       type: "status",
-      message: `Project status changed from "${previous.projectStatus}" to "${next.projectStatus}".`,
+      message: projectStatusUpdateMessage(next.projectStatus),
     });
   }
 
@@ -467,16 +533,20 @@ function diffNotificationSnapshots(
     if (prevCompletion == null || prevCompletion === completion) return;
     const displayLabel =
       (next.vendorCategories ?? {})[vendorName] || vendorName;
-    const previousStatus = getVendorProgressStatus(prevCompletion);
-    const nextStatus = getVendorProgressStatus(completion);
+    const changedTasks = Object.entries(next.vendorTasks)
+      .filter(([taskKey, task]) => {
+        const previousTask = previous.vendorTasks[taskKey];
+        return (
+          task.vendorName === vendorName &&
+          previousTask &&
+          task.status &&
+          previousTask.status !== task.status
+        );
+      })
+      .map(([, task]) => vendorTaskUpdateMessage(displayLabel, task.taskName, task.status!));
     entries.push({
       type: "vendor",
-      message:
-        completion >= 100
-          ? `${displayLabel} finished all assigned tasks. Status: ${nextStatus}.`
-          : previousStatus !== nextStatus
-            ? `${displayLabel} status changed from ${previousStatus} to ${nextStatus} (${prevCompletion}% to ${completion}%).`
-            : `${displayLabel} progress updated from ${prevCompletion}% to ${completion}%. Status: ${nextStatus}.`,
+      message: vendorProgressUpdateMessage(displayLabel, completion, changedTasks),
     });
   });
 
@@ -487,7 +557,7 @@ function diffNotificationSnapshots(
       (next.vendorCategories ?? {})[vendorName] || vendorName;
     entries.push({
       type: "vendor",
-      message: `${displayLabel} assignment status changed from "${previousStatus}" to "${status}".`,
+      message: vendorAssignmentUpdateMessage(displayLabel, status),
     });
   });
 
@@ -499,7 +569,7 @@ function diffNotificationSnapshots(
       (next.vendorCategories ?? {})[taskInfo.vendorName] || taskInfo.vendorName;
     entries.push({
       type: "vendor",
-      message: `${displayLabel} task "${taskInfo.taskName}" changed from "${previousTask.status || "Unknown"}" to "${taskInfo.status}".`,
+      message: vendorTaskUpdateMessage(displayLabel, taskInfo.taskName, taskInfo.status),
     });
   });
 
@@ -760,7 +830,7 @@ function NotificationBell({
                             <NotificationTypeIcon type={notification.type} />
                           </span>
                           <span className="dashboardWorkspace__notificationCopy">
-                            <span>{notification.message}</span>
+                            <span>{renderNotificationMessage(notification)}</span>
                             <small>
                               {formatRelativeTime(notification.timestamp)}
                               {" \u00B7 "}
@@ -793,6 +863,8 @@ function NotificationBell({
 
 // Picks the icon shown next to a notification based on its type.
 function NotificationTypeIcon({ type }: { type: PortalNotificationType }) {
+  if (type === "supervisor") return <FiUserCheck />;
+  if (type === "approvals") return <FiCheckCircle />;
   if (type === "vendor") return <FiBriefcase />;
   if (type === "payment") return <FiCreditCard />;
   if (type === "paymentDue") return <FiClock />;
@@ -808,6 +880,7 @@ function AccountMenu({
   onClose,
   clientName,
   clientEmail,
+  clientPhone,
   onLogoutRequest,
   wrapperClassName = "dashboardWorkspace__account",
 }: {
@@ -816,6 +889,7 @@ function AccountMenu({
   onClose: () => void;
   clientName?: string | null;
   clientEmail?: string | null;
+  clientPhone?: string | null;
   onLogoutRequest: () => void;
   wrapperClassName?: string;
 }) {
@@ -859,8 +933,9 @@ function AccountMenu({
                   {initials}
                 </span>
                 <div className="dashboardWorkspace__accountCopy">
-                  <strong>{clientName || "Client"}</strong>
-                  <span>{clientEmail || "Not available"}</span>
+                  <strong>{clientName || "Name unavailable"}</strong>
+                  <span>{clientEmail || "Email unavailable"}</span>
+                    <span>{clientPhone || "Phone unavailable"}</span>
                 </div>
               </div>
               <button
@@ -1063,7 +1138,6 @@ function ProjectStatusTab({
     return <GlassEmptyState message="No active project status found." />;
 
   const completion = Math.round(statusData.completionPercentage || 0);
-  const activePhaseIndex = getActivePhaseIndex(completion);
   const totalProjectDays = getTotalProjectDays(
     statusData.startDate,
     statusData.endDate,
@@ -1090,30 +1164,7 @@ function ProjectStatusTab({
         </span>
       </div>
 
-      <div className="dashboardPhaseTimeline">
-        {projectPhases.map((phase, index) => {
-          const state =
-            index < activePhaseIndex
-              ? "done"
-              : index === activePhaseIndex
-                ? "active"
-                : "upcoming";
-          return (
-            <div
-              key={phase.id}
-              className={`dashboardPhaseTimeline__step is-${state}`}
-            >
-              <span
-                className="dashboardPhaseTimeline__dot"
-                aria-hidden="true"
-              />
-              <span className="dashboardPhaseTimeline__label">
-                {phase.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      <ProjectStagePath status={statusData.projectStatus} />
 
       <div className="dashboardStatusLayout dashboardStatusLayout--metrics">
         <motion.article
@@ -1578,39 +1629,33 @@ function PaymentTermsTab({
 }) {
   const [terms, setTerms] = useState<PaymentTerm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const navigate = useNavigate();
+  const { client } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
     async function loadTerms() {
       if (!projectName) {
+        setTerms([]);
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
-
-      const res = await getPaymentTerms(projectName);
-      if (Array.isArray(res) && res.length > 0) {
-        setTerms(res);
-        setIsLoading(false);
-        return;
-      }
-
-      // Salesforce's dashboard summary and project status endpoints can
-      // format the same project's name slightly differently. Retry with
-      // that alternate name before concluding there's really no schedule.
-      if (fallbackProjectName && fallbackProjectName !== projectName) {
-        const fallbackRes = await getPaymentTerms(fallbackProjectName);
-        if (Array.isArray(fallbackRes) && fallbackRes.length > 0) {
-          setTerms(fallbackRes);
-          setIsLoading(false);
-          return;
+      setTerms([]);
+      try {
+        let result = await getPaymentTerms(projectName);
+        if (cancelled) return;
+        // Retry the dashboard's alternate spelling of the same project.
+        if ((!Array.isArray(result) || result.length === 0) &&
+            fallbackProjectName && fallbackProjectName !== projectName) {
+          result = await getPaymentTerms(fallbackProjectName);
         }
+        if (!cancelled) setTerms(Array.isArray(result) ? result : []);
+      } finally {
+        if (!cancelled) setIsLoading(false);
       }
-
-      setTerms(Array.isArray(res) ? res : []);
-      setIsLoading(false);
     }
     void loadTerms();
+    return () => { cancelled = true; };
   }, [projectName, fallbackProjectName]);
 
   if (isLoading)
@@ -1628,174 +1673,15 @@ function PaymentTermsTab({
     );
   }
 
-  const paidPercentage = terms
-    .filter((term) => term.paymentReceived)
-    .reduce((sum, term) => sum + (term.percentage ?? 0), 0);
-  const paidCount = terms.filter((term) => term.paymentReceived).length;
-
   return (
-    <motion.section
-      className="dashboardSection"
-      initial="hidden"
-      animate="visible"
-      variants={{ visible: staggerTransition }}
-    >
-      <div className="dashboardSection__heading">
-        <div>
-          <p className="dashboardSection__eyebrow">Financial Schedule</p>
-          <h2 className="dashboardSection__title">
-            Payment schedule and milestone release
-          </h2>
-          <p className="dashboardSection__lead">
-            Your bespoke payment structure with transparent milestone release
-            across execution phases.
-          </p>
-        </div>
-        {projectName ? (
-          <span className="dashboardSection__chip">{projectName}</span>
-        ) : null}
-      </div>
-
-      <motion.article className="dashboardSpotlightCard" variants={fadeUpItem}>
-        <div className="dashboardSpotlightCard__head">
-          <span>Contract Paid to Date</span>
-          <strong>{Math.round(paidPercentage)}%</strong>
-        </div>
-
-        <div className="dashboardPaymentSummaryBar__labels">
-          {terms.map((term, index) => {
-            const width = term.percentage ?? 0;
-            return (
-              <span
-                key={`label-${term.label || term.name || index}`}
-                className="dashboardPaymentSummaryBar__label"
-                style={{ width: `${width}%` }}
-              >
-                {getOrdinal(index + 1)} · {width}%
-              </span>
-            );
-          })}
-        </div>
-
-        <div className="dashboardPaymentSummaryBar">
-          {terms.map((term, index) => {
-            const width = term.percentage ?? 0;
-            return (
-              <motion.div
-                key={`segment-${term.label || term.name || index}`}
-                className={`dashboardPaymentSummaryBar__segment ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                initial={{ width: 0 }}
-                animate={{ width: `${width}%` }}
-                transition={{
-                  duration: 0.9,
-                  delay: index * 0.1,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                title={`${getOrdinal(index + 1)} installment — ${width}% ${term.paymentReceived ? "received" : "pending"}`}
-              />
-            );
-          })}
-        </div>
-
-        <div className="dashboardSpotlightCard__meta">
-          <span>
-            {paidCount} of {terms.length} milestones received
-          </span>
-          <span>{Math.round(100 - paidPercentage)}% remaining</span>
-        </div>
-      </motion.article>
-
-      <h3 className="dashboardPaymentTimeline__heading">Milestone Details</h3>
-
-      <div className="dashboardPaymentTimeline">
-        {terms.map((term, index) => {
-          const ordinal = getOrdinal(index + 1);
-          const amount =
-            contractBudget != null && term.percentage != null
-              ? `₹ ${Math.round((contractBudget * term.percentage) / 100).toLocaleString("en-IN")}`
-              : "—";
-
-          return (
-            <motion.div
-              key={`${term.label || term.name || "term"}-${index}`}
-              className="dashboardPaymentTimeline__row"
-              variants={fadeUpItem}
-            >
-              <div
-                className={`dashboardPaymentTimeline__node ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-              >
-                <span className="dashboardPaymentTimeline__ordinal">
-                  {ordinal}
-                </span>
-              </div>
-              <motion.article
-                className={`dashboardPaymentCard ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                whileHover={{ y: -3, transition: { duration: 0.2 } }}
-              >
-                <div className="dashboardPaymentCard__main">
-                  <span
-                    className={`dashboardPaymentCard__phase ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                  >
-                    {term.paymentReceived ? "Completed" : "Pending"}
-                  </span>
-                  <h3>{term.label || term.name}</h3>
-                </div>
-
-                <div className="dashboardPaymentCard__columns">
-                  <div className="dashboardPaymentCard__col">
-                    <span>Percentage</span>
-                    <strong>{term.percentage ?? 0}%</strong>
-                  </div>
-                  <div className="dashboardPaymentCard__col">
-                    <span>Due Date</span>
-                    <strong>
-                      <FiCalendar aria-hidden="true" />
-                      {formatDate(term.dueDate) || "Not set"}
-                    </strong>
-                  </div>
-                  <div className="dashboardPaymentCard__col">
-                    <span>Amount</span>
-                    <strong>{amount}</strong>
-                  </div>
-                  <div className="dashboardPaymentCard__col">
-                    <span>Status</span>
-                    <span
-                      className={`dashboardPaymentCard__status ${term.paymentReceived ? "is-paid" : "is-pending"}`}
-                    >
-                      {term.paymentReceived ? "Received" : "Upcoming"}
-                    </span>
-                  </div>
-                  {term.id ? (
-                    <div className="dashboardPaymentCard__col">
-                      <span>&nbsp;</span>
-                      {term.paymentReceived ? (
-                        <button
-                          type="button"
-                          className="dashboardPaymentCard__payButton dashboardPaymentCard__payButton--ghost"
-                          onClick={() => navigate(`/payment/receipt/${term.id}`)}
-                        >
-                          View Receipt
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="dashboardPaymentCard__payButton"
-                          onClick={() => navigate(`/payment/${term.id}`)}
-                        >
-                          Pay Now
-                        </button>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </motion.article>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      <QuickLinks exclude="payment" onNavigate={onNavigate} />
-    </motion.section>
+    <PaymentTermsPanel
+      terms={terms}
+      projectName={projectName}
+      contractBudget={contractBudget}
+      customerName={client?.name}
+      contactId={client?.contactId || client?.leadId}
+      onSupport={() => onNavigate("cases")}
+    />
   );
 }
 
@@ -2450,12 +2336,10 @@ function NotificationsTab({
                       <NotificationTypeIcon type={notification.type} />
                     </span>
                     <span className="dashboardWorkspace__notificationCopy">
-                      <span>{notification.message}</span>
+                      <span>{renderNotificationMessage(notification)}</span>
                       <small>{formatRelativeTime(notification.timestamp)} · {formatTimestamp(notification.timestamp)}</small>
                     </span>
-                    <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true">
-                      <FiArrowRight />
-                    </span>
+                    {(notification.type !== "approvals" || notification.designId || notification.invoiceId || notification.budgetOpportunityId || notification.paymentOpportunityId) && <span className="dashboardNotificationsTab__notificationAction" aria-hidden="true"><FiArrowRight /></span>}
                   </button>
                   {onDeleteNotification ? (
                     <button
@@ -2780,6 +2664,42 @@ export function DashboardPage() {
     logout,
     setActiveDashboardTab,
   } = useAuth();
+  const [trackingExpanded, setTrackingExpanded] = useState(isProjectTrackingTab(activeDashboardTab));
+  const [approvalsExpanded, setApprovalsExpanded] = useState(activeDashboardTab === "approvals");
+  const [selectedApproval, setSelectedApproval] = useState<ApprovalCategory>("3D Design Approvals");
+  const [journeyDesignProjectId, setJourneyDesignProjectId] = useState<string>();
+  const [highlightDesignId, setHighlightDesignId] = useState<string | null>(null);
+  const designApprovals = useDesignApprovals(authClient?.contactId || "");
+  const designHistory = useDesignNotifications(authClient?.contactId || "", designApprovals.result);
+  const [journeyInvoiceProjectId, setJourneyInvoiceProjectId] = useState<string>();
+  const [highlightInvoiceId, setHighlightInvoiceId] = useState<string | null>(null);
+  const [journeyPaymentProjectId, setJourneyPaymentProjectId] = useState<string>();
+  const [highlightPaymentId, setHighlightPaymentId] = useState<string | null>(null);
+  const [journeyBudgetProjectId, setJourneyBudgetProjectId] = useState<string>();
+  const [highlightBudgetId, setHighlightBudgetId] = useState<string | null>(null);
+  const leadId = authClient?.leadId;
+  const projectDetails = useProjectDetails(leadId);
+  const [addingProject, setAddingProject] = useState(false);
+  const [selectedSupervisorLeadId, setSelectedSupervisorLeadId] = useState<string>();
+  const [selectedProjectDetailsLeadId, setSelectedProjectDetailsLeadId] = useState<string>();
+  const needsProjectDetails = Boolean(leadId && !projectDetails.loading && projectDetails.result?.success && projectDetails.result.projectSubmitted === false);
+  const [selectedSiteVisitLeadId, setSelectedSiteVisitLeadId] = useState<string>();
+  const supervisor = useSupervisor(leadId);
+  const approvedProjects = useApprovalProjects(leadId);
+  const proformaProjectIds = (approvedProjects || projectDetails.result)?.projects?.flatMap(project => project.leadId ? [project.leadId] : []);
+  const agreementHistory = useAgreementNotifications(leadId || "", proformaProjectIds);
+  const proformaApprovals = useProformaApprovals(leadId || "", proformaProjectIds);
+  const budgetReview = useBudgetReview(leadId || "", proformaProjectIds);
+  const paymentReview = usePaymentReview(leadId || "", proformaProjectIds);
+  const paymentHistory = usePaymentNotifications(leadId || "", paymentReview.result);
+  const budgetHistory = useBudgetNotifications(leadId || "", budgetReview.result);
+  const proformaHistory = useProformaNotifications(leadId || "", proformaApprovals.result);
+  const projectSiteVisits = useProjectSiteVisits(leadId, approvedProjects || projectDetails.result);
+  const siteVisitHistory = useProjectSiteVisitNotifications(projectSiteVisits);
+  const supervisorHistory = useSupervisorNotifications(leadId, approvedProjects || projectDetails.result, supervisor.result);
+  const conversionHistory = useProjectConversionNotifications(leadId, approvedProjects);
+  const approvalHistory = useProjectApprovalNotifications(leadId, approvedProjects);
+  const projectReminderHistory = useProjectReminder(leadId, needsProjectDetails);
   const deferredDashboardTab = useDeferredValue(activeDashboardTab);
   const [isTabPending, startTabTransition] = useTransition();
   const [portalData, setPortalData] = useState<ClientPortalResponse | null>(
@@ -2802,6 +2722,7 @@ export function DashboardPage() {
     string | null
   >(null);
   const [highlightCaseId, setHighlightCaseId] = useState<string | null>(null);
+  const [completionCelebration, setCompletionCelebration] = useState(0);
   const [notifications, setNotifications] = useState<PortalNotification[]>(
     () => {
       const initialContactId =
@@ -2832,7 +2753,15 @@ export function DashboardPage() {
     }
   };
 
+  const [selectedLeadJourneyId, setSelectedLeadJourneyId] = useState<string | null>(null);
+  const [journeyTracking, setJourneyTracking] = useState<{
+    contactId: string;
+    projects: ProjectStatusRecord[];
+    firstInstallmentPaid: Set<string>;
+  }>();
+
   function selectProject(projectId: string) {
+    setSelectedLeadJourneyId(null);
     setSelectedProjectId(projectId);
   }
 
@@ -2892,7 +2821,12 @@ export function DashboardPage() {
     void loadDashboard();
   }, [authClient?.contactId, authClient?.email, authClient?.leadId]);
 
-  const client = portalData?.client;
+  const client = {
+    ...portalData?.client,
+    name: authClient?.name || portalData?.client?.name,
+    email: portalData?.client?.email || authClient?.email,
+    phone: portalData?.client?.phone || authClient?.phone,
+  };
   const projects =
     contactProjects.length > 0
       ? contactProjects.map((project) => ({
@@ -2902,11 +2836,20 @@ export function DashboardPage() {
           startDate: project.startDate,
           endDate: project.endDate,
           completionPercentage: project.completionPercentage,
+          leadId: project.leadId,
+          opportunityId: project.opportunityId,
         }))
-      : (portalData?.projects || []).map((project) => ({
-          ...project,
-          completionPercentage: undefined as number | undefined,
-        }));
+      : portalData?.projects || [];
+  const pendingOverview = buildPendingApprovals({
+    projectDetails: approvedProjects || projectDetails.result,
+    leadIds: proformaProjectIds?.length ? proformaProjectIds : leadId ? [leadId] : [],
+    projects,
+    visits: projectSiteVisits,
+    designs: designApprovals.result,
+    invoices: proformaApprovals.result,
+    budgets: budgetReview.result,
+    payments: paymentReview.result,
+  });
   const activeProject =
     projects.find((project) => project.id === selectedProjectId) || projects[0];
   const activeProjectId = activeProject?.id || resolvedProject?.id;
@@ -2915,12 +2858,46 @@ export function DashboardPage() {
   // same project's name slightly differently in Salesforce. Payment terms
   // are matched by exact name, so keep the dashboard summary's version
   // around as a fallback candidate if the primary name finds nothing.
-  const dashboardProjectName = portalData?.projects?.[0]?.name;
+  const dashboardProjectName = portalData?.projects?.find(project => project.id === activeProjectId)?.name
+    || (projects.length === 1 ? portalData?.projects?.[0]?.name : undefined);
   const activeProjectBudget = contactProjects.find(
     (project) => (project.id || project.projectName) === activeProjectId,
   )?.budget;
   const contactId =
     authClient?.contactId || localStorage.getItem("contactId") || "";
+
+  // Announce each available project once, retaining dismissal across reloads.
+  const availableProjectsKey = JSON.stringify(
+    (projects.length > 0 ? projects : resolvedProject ? [resolvedProject] : [])
+      .filter((project) => project.id && project.name?.trim())
+      .map((project) => ({ id: project.id, name: project.name })),
+  );
+  useEffect(() => {
+    if (isLoading || !contactId) return;
+    const availableProjects = JSON.parse(availableProjectsKey) as { id: string; name: string }[];
+    const storageKey = getCustomerNotificationStorageKeys(contactId).list;
+    const newEntries: PortalNotification[] = [];
+    for (const project of availableProjects) {
+      const seenKey = `portalProjectAvailableSeen:${contactId}:${project.id}`;
+      if (localStorage.getItem(seenKey)) continue;
+      newEntries.push({
+        id: `project-available:${project.id}`,
+        type: "status",
+        message: "Your project is scheduled to begin shortly. Stay tuned for further updates as we prepare to get started.",
+        projectId: project.id,
+        projectName: project.name,
+        timestamp: Date.now(),
+        read: false,
+      });
+      localStorage.setItem(seenKey, "true");
+    }
+    if (!newEntries.length) return;
+    setNotifications((previous) => {
+      const merged = [...newEntries, ...previous].slice(0, MAX_STORED_NOTIFICATIONS);
+      writeStoredNotifications(storageKey, merged);
+      return merged;
+    });
+  }, [isLoading, contactId, availableProjectsKey]);
 
   // Polls the same data the individual tabs already fetch on their own, so a
   // status/vendor/payment/document change is surfaced as a notification even
@@ -2933,15 +2910,40 @@ export function DashboardPage() {
   useEffect(() => {
     if (!contactId || contactProjects.length === 0) return undefined;
 
+    let active = true;
+    let polling = false;
     async function checkForUpdates() {
+      if (polling) return;
+      polling = true;
+      try {
+        await poll();
+      } finally {
+        polling = false;
+      }
+    }
+
+    async function poll() {
       const [statusRes, supportCases] = await Promise.all([
         getProjectStatus(contactId),
         getSupportCases(contactId),
       ]);
 
+      if (!active) return;
       const projectsList = statusRes?.success ? statusRes.projects : [];
+      const firstInstallmentPaid = new Set<string>();
+      const completedProjects = projectsList.filter((project) =>
+        claimProjectCompletion(contactId, project),
+      );
+      if (completedProjects.length > 0) {
+        setCompletionCelebration((previous) => previous + 1);
+      }
       const casesList = Array.isArray(supportCases) ? supportCases : [];
-      const allEntries: NotificationEntry[] = [];
+      const allEntries: NotificationEntry[] = completedProjects.map((project) => ({
+        type: "status",
+        message: projectCompletionMessage(project.projectName),
+        projectId: project.id,
+        projectName: project.projectName,
+      }));
 
       await Promise.all(
         contactProjects.map(async (project) => {
@@ -2960,6 +2962,12 @@ export function DashboardPage() {
           );
 
           const termsList = Array.isArray(terms) ? terms : [];
+          if (!active) return;
+          const firstInstallment = /^(?:(?:first|1st)\s+instal{1,2}ment|instal{1,2}ment\s+1)$/i;
+          if (termsList.some(term => term.paymentReceived === true &&
+            [term.label, term.name].some(label => label && firstInstallment.test(label.trim())))) {
+            firstInstallmentPaid.add(projectId);
+          }
           const filesList = Array.isArray(files) ? files : [];
           const vendorTasksByVendor: Record<string, ProjectVendorTask[]> = {};
 
@@ -2984,6 +2992,7 @@ export function DashboardPage() {
             });
           }
 
+          if (!active) return;
           const previousSnapshot = readNotificationSnapshot(keys.snapshot);
           const freshSnapshot = buildNotificationSnapshot(
             matchingProject,
@@ -3049,8 +3058,8 @@ export function DashboardPage() {
               }))
             : [];
 
-          const PAYMENT_DUE_DAYS = 30;
-          const today = new Date().toISOString().slice(0, 10);
+          const now = new Date();
+          const today = paymentReminderDate(now);
           const paymentDueSeenKey = `portalPaymentDueSeen:${contactId}:${projectId}`;
           let seenData: { date: string; seen: string[] } = { date: "", seen: [] };
           try {
@@ -3063,22 +3072,11 @@ export function DashboardPage() {
           const paymentDueEntries: NotificationEntry[] = [];
 
           termsList.forEach((term) => {
-            if (!term.dueDate || term.paymentReceived) return;
-            const daysUntilDue = Math.ceil(
-              (new Date(term.dueDate).getTime() - Date.now()) /
-                (24 * 60 * 60 * 1000),
-            );
-            if (daysUntilDue < 0 || daysUntilDue > PAYMENT_DUE_DAYS) return;
-            const alertKey = `${term.label || term.name}:${term.dueDate}`;
+            const message = getPaymentReminder(term, now);
+            if (!message) return;
+            const alertKey = `${term.id || term.label || term.name}:${term.dueDate}`;
             if (seenToday.includes(alertKey)) return;
             seenToday.push(alertKey);
-            const label = term.label || term.name || "Payment";
-            const message =
-              daysUntilDue === 0
-                ? `"${label}" payment is due today.`
-                : daysUntilDue === 1
-                  ? `"${label}" payment is due tomorrow.`
-                  : `"${label}" payment is due in ${daysUntilDue} days.`;
             paymentDueEntries.push(
               {
                 ...annotateNotificationWithProject(
@@ -3102,6 +3100,12 @@ export function DashboardPage() {
         }),
       );
 
+      if (!active) return;
+      setJourneyTracking(previous => ({
+        contactId,
+        projects: statusRes?.success ? projectsList : previous?.contactId === contactId ? previous.projects : [],
+        firstInstallmentPaid: new Set([...(previous?.contactId === contactId ? previous.firstInstallmentPaid : []), ...firstInstallmentPaid]),
+      }));
       if (allEntries.length === 0) return;
 
       setNotifications((prev) => {
@@ -3134,18 +3138,26 @@ export function DashboardPage() {
     const interval = window.setInterval(() => {
       void checkForUpdates();
     }, NOTIFICATION_POLL_INTERVAL_MS);
-    return () => window.clearInterval(interval);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
   }, [contactId, contactProjects, notificationProjectKey]);
 
-  const desktopNavItems = [
-    { id: "profile", label: "Profile & Overview", icon: FiUserCheck },
-    { id: "notifications", label: "Notifications", icon: FiBell },
-    { id: "status", label: "Project Status", icon: FiCalendar },
-    { id: "vendor", label: "Vendor Tasks", icon: FiBriefcase },
-    { id: "payment", label: "Payment Terms", icon: FiCreditCard },
-    { id: "documents", label: "Documents & Reports", icon: FiFileText },
-    { id: "cases", label: "Support Cases", icon: FiHeadphones },
-  ] as const;
+  const tabIcons = {
+    profile: FiUserCheck,
+    siteVisit: FiCalendar,
+    projectDetails: FiHome,
+    supervisor: FiUserCheck,
+    approvals: FiCheckCircle,
+    notifications: FiBell,
+    status: FiCalendar,
+    vendor: FiBriefcase,
+    payment: FiCreditCard,
+    documents: FiFileText,
+    cases: FiHeadphones,
+  };
+  const desktopNavItems = dashboardTabs.map(tab => ({ ...tab, icon: tabIcons[tab.id] }));
 
   const handleLogout = () => {
     setShowLogoutConfirm(false);
@@ -3153,7 +3165,19 @@ export function DashboardPage() {
     navigate("/login", { replace: true });
   };
 
-  const unreadNotificationCount = notifications.filter(
+  const projectReminder: PortalNotification = {
+    id: "project-details-reminder",
+    type: "projectDetails",
+    message: "Please fill in your project details form.",
+    timestamp: projectReminderHistory.reminder?.timestamp || 0,
+    read: projectReminderHistory.reminder?.read || false,
+  };
+  const reminderNotifications = projectReminderHistory.reminder && !projectReminderHistory.reminder.dismissed
+    ? [projectReminder, ...notifications] : notifications;
+  const approvalNotifications: PortalNotification[] = [...conversionHistory.notifications, ...approvalHistory.notifications, ...reminderNotifications];
+  const supervisorNotifications: PortalNotification[] = [...supervisorHistory.notifications, ...approvalNotifications];
+  const visibleNotifications: PortalNotification[] = [...agreementHistory.notifications, ...paymentHistory.notifications, ...budgetHistory.notifications, ...proformaHistory.notifications, ...designHistory.notifications, ...siteVisitHistory.notifications, ...supervisorNotifications].sort((a, b) => b.timestamp - a.timestamp);
+  const unreadNotificationCount = visibleNotifications.filter(
     (notification) => !notification.read,
   ).length;
   const unreadNotificationLabel = formatNotificationCount(
@@ -3161,6 +3185,7 @@ export function DashboardPage() {
   );
 
   const handleTabChange = (tabId: (typeof desktopNavItems)[number]["id"]) => {
+    if (isProjectTrackingTab(tabId)) setTrackingExpanded(true);
     startTabTransition(() => {
       setActiveDashboardTab(tabId);
     });
@@ -3168,6 +3193,74 @@ export function DashboardPage() {
   };
 
   const handleNotificationClick = (notification: PortalNotification) => {
+    if (notification.id.startsWith("client-agreement:") || notification.id.startsWith("client-agreement-signed:")) { agreementHistory.markRead(notification.id); setIsNotificationPanelOpen(false); return; }
+    if (notification.paymentOpportunityId) {
+      setHighlightPaymentId(notification.paymentOpportunityId);
+      paymentHistory.markRead(notification.id);
+      setSelectedApproval("Payment Terms Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
+    if (notification.budgetOpportunityId) {
+      setHighlightBudgetId(notification.budgetOpportunityId);
+      budgetHistory.markRead(notification.id);
+      setSelectedApproval("Budget Review Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
+    if (notification.invoiceId) {
+      proformaHistory.markRead(notification.id);
+      setHighlightInvoiceId(notification.invoiceId);
+      setSelectedApproval("Proforma Invoice Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
+    if (notification.designId) {
+      designHistory.markRead(notification.id);
+      setHighlightDesignId(notification.designId);
+      setSelectedApproval("3D Design Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
+    if (notification.type === "siteVisit") { setSelectedSiteVisitLeadId(notification.siteVisitLeadId); siteVisitHistory.markRead(notification.id); setIsNotificationPanelOpen(false); handleTabChange("siteVisit"); return; }
+    if (notification.id.startsWith("supervisor-assigned:")) {
+      setSelectedSupervisorLeadId(notification.id.slice("supervisor-assigned:".length));
+      supervisorHistory.markRead(notification.id);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("supervisor");
+      return;
+    }
+    if (notification.id.startsWith("project-converted:")) {
+      conversionHistory.markRead(notification.id);
+      setSelectedApproval("3D Design Approvals");
+      setApprovalsExpanded(true);
+      setIsNotificationPanelOpen(false);
+      handleTabChange("approvals");
+      return;
+    }
+    if (notification.id.startsWith("project-details-approved:")) {
+      setAddingProject(false);
+      setSelectedProjectDetailsLeadId(notification.id.slice("project-details-approved:".length));
+      handleTabChange("projectDetails");
+      approvalHistory.markRead(notification.id);
+      setIsNotificationPanelOpen(false);
+      return;
+    }
+    if (notification.type === "projectDetails") {
+      setAddingProject(false);
+      projectReminderHistory.markRead();
+      setIsNotificationPanelOpen(false);
+      handleTabChange("projectDetails");
+      return;
+    }
     setNotifications((prev) => {
       const updated = prev.map((item) =>
         item.id === notification.id ? { ...item, read: true } : item,
@@ -3200,6 +3293,16 @@ export function DashboardPage() {
   };
 
   const handleDeleteNotification = (notificationId: string) => {
+    if (notificationId.startsWith("client-agreement:") || notificationId.startsWith("client-agreement-signed:")) { agreementHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("payment-approval:")) { paymentHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("budget-approval:")) { budgetHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("proforma-approval:")) { proformaHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("design-approval:")) { designHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("site-visit:")) { siteVisitHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("supervisor-assigned:")) { supervisorHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("project-converted:")) { conversionHistory.dismiss(notificationId); return; }
+    if (notificationId.startsWith("project-details-approved:")) { approvalHistory.dismiss(notificationId); return; }
+    if (notificationId === "project-details-reminder") { projectReminderHistory.dismiss(); return; }
     setNotifications((prev) => {
       const updated = prev.filter((n) => n.id !== notificationId);
       if (contactId) {
@@ -3213,6 +3316,16 @@ export function DashboardPage() {
   };
 
   const handleMarkAllNotificationsRead = () => {
+    agreementHistory.markAllRead();
+    paymentHistory.markAllRead();
+    budgetHistory.markAllRead();
+    proformaHistory.markAllRead();
+    designHistory.markAllRead();
+    siteVisitHistory.markAllRead();
+    supervisorHistory.markAllRead();
+    conversionHistory.markAllRead();
+    approvalHistory.markAllRead();
+    projectReminderHistory.markRead();
     setNotifications((prev) => {
       const updated = prev.map((item) => ({ ...item, read: true }));
       if (contactId) {
@@ -3225,8 +3338,66 @@ export function DashboardPage() {
     });
   };
 
+  const reviewPendingItem = (item: PendingItem) => {
+    if (item.kind === "siteVisit") {
+      setSelectedSiteVisitLeadId(item.targetId);
+      handleTabChange("siteVisit");
+      return;
+    }
+    const categories: Record<Exclude<PendingItem['kind'], 'siteVisit'>, ApprovalCategory> = {
+      design: "3D Design Approvals",
+      invoice: "Proforma Invoice Approvals",
+      budget: "Budget Review Approvals",
+      payment: "Payment Terms Approvals",
+    };
+    setHighlightDesignId(item.kind === "design" ? item.targetId : null);
+    setHighlightInvoiceId(item.kind === "invoice" ? item.targetId : null);
+    setHighlightBudgetId(item.kind === "budget" ? item.targetId : null);
+    setHighlightPaymentId(item.kind === "payment" ? item.targetId : null);
+    setSelectedApproval(categories[item.kind]);
+    setApprovalsExpanded(true);
+    handleTabChange("approvals");
+  };
+  const pendingApprovalsPanel = <PendingApprovals overview={pendingOverview} onReview={reviewPendingItem} />;
+  const tracking = journeyTracking?.contactId === contactId ? journeyTracking : undefined;
+  const journeyProjects = buildProjectJourneys({
+    projects: projects.map(project => {
+      const latest = tracking?.projects.find(item => (item.id || item.projectName) === project.id);
+      return {
+        ...project,
+        leadId: latest?.leadId || ("leadId" in project ? project.leadId : undefined),
+        opportunityId: latest?.opportunityId || ("opportunityId" in project ? project.opportunityId : undefined),
+        status: latest?.projectStatus ?? project.status,
+        completionPercentage: latest?.completionPercentage ?? project.completionPercentage,
+      };
+    }),
+    details: approvedProjects || projectDetails.result,
+    leadId,
+    visits: projectSiteVisits,
+    designs: designApprovals.result?.success ? designApprovals.result.designs : undefined,
+    invoices: proformaApprovals.result?.success ? proformaApprovals.result.invoices : undefined,
+    budgets: budgetReview.result,
+    payments: paymentReview.result,
+    agreements: agreementHistory.milestones,
+    assignedSupervisorLeadIds: supervisorHistory.assignedLeadIds,
+    firstInstallmentPaid: tracking?.firstInstallmentPaid,
+    pending: pendingOverview,
+  });
+
+  const selectedLeadJourney = selectedLeadJourneyId
+    ? journeyProjects.find(project => project.id === selectedLeadJourneyId || project.siteVisitLeadId === selectedLeadJourneyId)
+    : undefined;
+
+  function selectJourneyProject(id: string) {
+    if (projects.some(project => project.id === id)) {
+      selectProject(id);
+    } else {
+      setSelectedLeadJourneyId(id);
+    }
+  }
   return (
     <main className="dashboardPage">
+      <ProjectCompletionConfetti celebration={completionCelebration} />
       <LogoutModal
         isOpen={showLogoutConfirm}
         onCancel={() => setShowLogoutConfirm(false)}
@@ -3285,7 +3456,7 @@ export function DashboardPage() {
           <div className="dashboardMobileBar__actions">
               <NotificationBell
                 wrapperClassName="dashboardMobileBar__notifications"
-                notifications={notifications}
+                notifications={visibleNotifications}
                 isOpen={isNotificationPanelOpen}
                 onToggle={() => setIsNotificationPanelOpen((value) => !value)}
                 onClose={() => setIsNotificationPanelOpen(false)}
@@ -3301,6 +3472,7 @@ export function DashboardPage() {
               onClose={() => setIsProfileMenuOpen(false)}
               clientName={client?.name}
               clientEmail={client?.email}
+                clientPhone={client?.phone}
               onLogoutRequest={() => {
                 setIsProfileMenuOpen(false);
                 setShowLogoutConfirm(true);
@@ -3328,6 +3500,14 @@ export function DashboardPage() {
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
               >
                 {desktopNavItems.map((item) => {
+                  if (item.id === "status") return <ProjectTrackingNavigation key="projectTracking" mobile
+                    activeTab={activeDashboardTab} expanded={trackingExpanded}
+                    onToggle={() => setTrackingExpanded(value => !value)} onSelect={handleTabChange} />;
+                  if (isProjectTrackingTab(item.id)) return null;
+                  if (item.id === "approvals") return <ApprovalNavigation key={item.id} mobile
+                    active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
+                    onToggle={() => setApprovalsExpanded(value => !value)}
+                    onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
                   const Icon = item.icon;
                   const isActive = activeDashboardTab === item.id;
                   const notificationBadge =
@@ -3404,6 +3584,14 @@ export function DashboardPage() {
             aria-label="Client portal sections"
           >
             {desktopNavItems.map((item) => {
+              if (item.id === "status") return <ProjectTrackingNavigation key="projectTracking"
+                activeTab={activeDashboardTab} expanded={trackingExpanded}
+                onToggle={() => setTrackingExpanded(value => !value)} onSelect={handleTabChange} />;
+              if (isProjectTrackingTab(item.id)) return null;
+              if (item.id === "approvals") return <ApprovalNavigation key={item.id}
+                active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
+                onToggle={() => setApprovalsExpanded(value => !value)}
+                onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
               const Icon = item.icon;
               const isActive = activeDashboardTab === item.id;
               const notificationBadge =
@@ -3452,7 +3640,7 @@ export function DashboardPage() {
 
             <div className="dashboardWorkspace__topbarActions">
               <NotificationBell
-                notifications={notifications}
+                notifications={visibleNotifications}
                 isOpen={isNotificationPanelOpen}
                 onToggle={() => setIsNotificationPanelOpen((value) => !value)}
                 onClose={() => setIsNotificationPanelOpen(false)}
@@ -3467,6 +3655,7 @@ export function DashboardPage() {
                 onClose={() => setIsProfileMenuOpen(false)}
                 clientName={client?.name}
                 clientEmail={client?.email}
+                clientPhone={client?.phone}
                 onLogoutRequest={() => {
                   setIsProfileMenuOpen(false);
                   setShowLogoutConfirm(true);
@@ -3475,17 +3664,22 @@ export function DashboardPage() {
             </div>
           </header>
 
-          {isLoading ? (
+          {needsProjectDetails && activeDashboardTab !== "projectDetails" && activeDashboardTab !== "profile" ? (
+            <button type="button" className="projectDetailsReminder" onClick={() => handleNotificationClick(projectReminder)}>
+              Please fill in your project details form. <span aria-hidden="true">→</span>
+            </button>
+          ) : null}
+          {isLoading && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications" && deferredDashboardTab !== "approvals") ? (
             <div className="dashboardState">Loading your portal...</div>
           ) : null}
-          {!isLoading && error ? (
+          {!isLoading && error && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications" && deferredDashboardTab !== "approvals") ? (
             <div className="dashboardError">{error}</div>
           ) : null}
           {!isLoading && !error && isTabPending ? (
             <div className="dashboardState">Loading section...</div>
           ) : null}
 
-          {!isLoading && !error ? (
+          {((!isLoading && !error) || deferredDashboardTab === "projectDetails" || deferredDashboardTab === "supervisor" || deferredDashboardTab === "siteVisit" || deferredDashboardTab === "notifications" || deferredDashboardTab === "approvals") ? (
             <AnimatePresence mode="wait">
               <motion.div
                 key={deferredDashboardTab}
@@ -3553,6 +3747,15 @@ export function DashboardPage() {
                       {client ? (
                         <div className="dashboardHero__contactRow">
                           <div className="dashboardHero__contactItem">
+                            <FiBriefcase aria-hidden="true" />
+                            <div>
+                              <span>Full Name</span>
+                              <strong>
+                                {client.name || "Not available"}
+                              </strong>
+                            </div>
+                          </div>
+                          <div className="dashboardHero__contactItem">
                             <FiMail aria-hidden="true" />
                             <div>
                               <span>Email</span>
@@ -3566,18 +3769,57 @@ export function DashboardPage() {
                               <strong>{client.phone || "Not available"}</strong>
                             </div>
                           </div>
-                          <div className="dashboardHero__contactItem">
-                            <FiBriefcase aria-hidden="true" />
-                            <div>
-                              <span>Company</span>
-                              <strong>
-                                {client.company || "Not available"}
-                              </strong>
-                            </div>
-                          </div>
                         </div>
                       ) : null}
                     </motion.header>
+
+                    <ProjectJourney projects={journeyProjects} selectedId={selectedLeadJourney?.id || activeProjectId}
+                      onSelect={selectJourneyProject}
+                      onOpenProjectDetails={() => handleTabChange("projectDetails")}
+                      onOpenSupervisor={projectLeadId => {
+                        setSelectedSupervisorLeadId(projectLeadId);
+                        handleTabChange("supervisor");
+                      }}
+                      onOpenSiteVisit={projectLeadId => {
+                        setSelectedSiteVisitLeadId(projectLeadId);
+                        handleTabChange("siteVisit");
+                      }}
+                      onOpenDesignApprovals={projectId => {
+                        setJourneyDesignProjectId(projectId);
+                        setHighlightDesignId(null);
+                        setSelectedApproval("3D Design Approvals");
+                        setApprovalsExpanded(true);
+                        handleTabChange("approvals");
+                      }}
+                      onOpenProformaApprovals={projectId => {
+                        setJourneyInvoiceProjectId(projectId);
+                        setHighlightInvoiceId(null);
+                        setSelectedApproval("Proforma Invoice Approvals");
+                        setApprovalsExpanded(true);
+                        handleTabChange("approvals");
+                      }}
+                      onOpenBudgetApprovals={projectId => {
+                        setJourneyBudgetProjectId(projectId);
+                        setHighlightBudgetId(null);
+                        setSelectedApproval("Budget Review Approvals");
+                        setApprovalsExpanded(true);
+                        handleTabChange("approvals");
+                      }}
+                      onOpenPaymentApprovals={projectId => {
+                        setJourneyPaymentProjectId(projectId);
+                        setHighlightPaymentId(null);
+                        setSelectedApproval("Payment Terms Approvals");
+                        setApprovalsExpanded(true);
+                        handleTabChange("approvals");
+                      }}
+                      onOpenPaymentSchedule={projectId => {
+                        selectJourneyProject(projectId);
+                        handleTabChange("payment");
+                      }}
+                      onOpenProjectStatus={projectId => {
+                        selectJourneyProject(projectId);
+                        handleTabChange("status");
+                      }} />
 
                     <motion.section
                       className="dashboardSection dashboardSection--profile"
@@ -3585,6 +3827,7 @@ export function DashboardPage() {
                       animate="visible"
                       variants={{ visible: staggerTransition }}
                     >
+                      {projects.length > 0 ? (<>
                       <div className="dashboardSection__heading dashboardSection__heading--profile">
                         <div>
                           <p className="dashboardSection__eyebrow">
@@ -3596,6 +3839,13 @@ export function DashboardPage() {
                               : "Your current project"}
                           </h2>
                         </div>
+                        {leadId && <button type="button" className="projectDetails__submit"
+                          disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
+                          onClick={() => {
+                            setAddingProject(projectDetails.result?.projectSubmitted === true);
+                            if (needsProjectDetails) projectReminderHistory.markRead();
+                            handleTabChange("projectDetails");
+                          }}>{projectDetails.result?.projectSubmitted === true ? "Add Additional Project" : "Complete Project Details"}</button>}
                         {projects.length > 1 ? (
                           <span className="dashboardSection__chip">
                             {projects.length} active projects
@@ -3787,14 +4037,77 @@ export function DashboardPage() {
                           </div>
                         </motion.div>
                       </div>
+                      {pendingOverview.count > 0 && <div className="dashboardSnapshotApprovals">{pendingApprovalsPanel}</div>}
+                      </>) : (
+                        <div className={pendingOverview.count > 0 ? "dashboardOverviewGrid" : undefined}>
+                        <div className="dashboardProjectWelcome">
+                          <span className="dashboardProjectSpotlight__icon" aria-hidden="true"><FiHome /></span>
+                          <h2 className="dashboardSection__title">{projectDetails.result?.projectSubmitted === true ? "Ready to plan another project?" : "Ready to start your project?"}</h2>
+                          <p className="dashboardSection__lead">{projectDetails.result?.projectSubmitted === true ? "Your project details have been submitted. Share your ideas for another space by adding an additional project." : "Share your project details so we can help create your perfect space."}</p>
+                          <div className="dashboardProjectWelcome__action">
+                            {leadId && <button type="button" className="projectDetails__submit"
+                          disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
+                          onClick={() => {
+                            setAddingProject(projectDetails.result?.projectSubmitted === true);
+                            if (needsProjectDetails) projectReminderHistory.markRead();
+                            handleTabChange("projectDetails");
+                          }}>{projectDetails.result?.projectSubmitted === true ? "Add Additional Project" : "Complete Project Details"}</button>}
+                          </div>
+                        </div>
+                        {pendingApprovalsPanel}
+                        </div>
+                      )}
                     </motion.section>
                   </>
                 ) : null}
 
-                {deferredDashboardTab === "status" ? (
-                  <ProjectStatusTab
+                {deferredDashboardTab === "supervisor" ? (
+                  <ProjectSupervisorsPanel leadId={leadId} projects={projectDetails.result}
+                    selectedLeadId={selectedSupervisorLeadId} onSelectProject={setSelectedSupervisorLeadId}
+                    loading={projectDetails.loading} reload={projectDetails.reload}
+                    supervisor={supervisor} />
+                ) : null}
+                {deferredDashboardTab === "projectDetails" ? (
+                  !leadId ? <section className="dashboardSection">
+                      <h2 className="dashboardSection__title">Project Details</h2>
+                      {projects.length ? projects.map(project => (
+                        <article key={project.id} className="dashboardInfoCard">
+                          <h3>{project.name}</h3>
+                          {"description" in project && project.description && <p>{project.description}</p>}
+                          {project.status && <p>Status: {project.status}</p>}
+                          {project.startDate && <p>Start date: {project.startDate}</p>}
+                          {project.endDate && <p>End date: {project.endDate}</p>}
+                        </article>
+                      )) : <div className="dashboardEmptyState">Project details are not available yet.</div>}
+                    </section>
+                    : projectDetails.loading ? <p role="status">Loading project details…</p>
+                    : !projectDetails.result?.success ? <div className="dashboardEmptyState">
+                      <p role="alert">{projectDetails.result?.message || "Unable to load project details."}</p>
+                      <button type="button" onClick={projectDetails.reload}>Retry</button>
+                    </div>
+                    : <ProjectDetailsPanel key={leadId} leadId={leadId} result={projectDetails.result}
+                        selectedLeadId={selectedProjectDetailsLeadId} onSelectProject={setSelectedProjectDetailsLeadId}
+                        addingProject={addingProject} onCancel={() => setAddingProject(false)}
+                        onSaved={() => { setAddingProject(false); projectDetails.reload(); }} reload={projectDetails.reload} />
+                ) : null}
+                {deferredDashboardTab === "siteVisit" ? <ProjectSiteVisitCarousel visits={projectSiteVisits} selectedLeadId={selectedSiteVisitLeadId}
+                    onSelect={setSelectedSiteVisitLeadId} loading={Boolean(leadId && projectDetails.loading && !approvedProjects)}
+                    error={leadId && !approvedProjects && !projectDetails.loading && !projectDetails.result?.success ? projectDetails.result?.message || "Unable to load projects." : undefined}
+                    retry={projectDetails.reload} /> : null}
+                  {deferredDashboardTab === "approvals" ? (
+                    <ReviewApprovals selected={selectedApproval}>
+                      {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} projectLeadIds={proformaProjectIds} accountProjects={(approvedProjects || projectDetails.result)?.projects} state={designApprovals} requestedProjectId={journeyDesignProjectId} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
+                      {selectedApproval === "Payment Terms Approvals" && <ProjectPaymentTermsApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} requestedProjectId={journeyPaymentProjectId} highlightId={highlightPaymentId} onProjectChange={() => setHighlightPaymentId(null)} />}
+                      {selectedApproval === "Budget Review Approvals" && <ProjectBudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} requestedProjectId={journeyBudgetProjectId} highlightId={highlightBudgetId} onProjectChange={() => setHighlightBudgetId(null)} />}
+                      {selectedApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} requestedProjectId={journeyInvoiceProjectId} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}
+                    </ReviewApprovals>
+                  ) : null}
+                  {deferredDashboardTab === "status" ? (
+                  selectedLeadJourney && !projects.some(project => project.id === selectedLeadJourney.id)
+                    ? <GlassEmptyState message="Project status will appear here when tracking is available." />
+                    : <ProjectStatusTab
                     contactId={contactId}
-                    projectId={activeProjectId}
+                    projectId={selectedLeadJourney?.id || activeProjectId}
                     projects={contactProjects}
                     onNavigate={handleTabChange}
                   />
@@ -3810,9 +4123,10 @@ export function DashboardPage() {
                 ) : null}
                 {deferredDashboardTab === "payment" ? (
                   <PaymentTermsTab
-                    projectName={activeProjectName}
-                    fallbackProjectName={dashboardProjectName}
-                    contractBudget={activeProjectBudget}
+                    key={selectedLeadJourney?.id || activeProjectId || activeProjectName}
+                    projectName={selectedLeadJourney ? selectedLeadJourney.name : activeProjectName}
+                    fallbackProjectName={selectedLeadJourney ? undefined : dashboardProjectName}
+                    contractBudget={selectedLeadJourney ? undefined : activeProjectBudget}
                     onNavigate={handleTabChange}
                   />
                 ) : null}
@@ -3827,7 +4141,7 @@ export function DashboardPage() {
                 ) : null}
                 {deferredDashboardTab === "notifications" ? (
                   <NotificationsTab
-                    notifications={notifications}
+                    notifications={visibleNotifications}
                     onNotificationClick={handleNotificationClick}
                     onMarkAllRead={handleMarkAllNotificationsRead}
                     onDeleteNotification={handleDeleteNotification}

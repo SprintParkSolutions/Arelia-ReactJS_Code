@@ -1,0 +1,21 @@
+.siteVisit { display: grid; gap: 28px; min-width: 0; }
+.siteVisit__response { border-top: 1px solid #b7985a33; margin-top: 28px; padding-top: 28px; }
+.siteVisit__actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; }
+.siteVisit button { cursor: pointer; border-radius: 999px; padding: 13px 24px; border: 1px solid #b7985a66; background: transparent; color: #e2c797; font: inherit; }
+.siteVisit button.projectDetails__submit { background: #d8b880; color: #19140d; }
+.siteVisit button:disabled { opacity: .55; cursor: wait; }
+.siteVisit fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.siteVisit legend { margin-bottom: 20px; font-weight: 600; }
+.siteVisit__fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.siteVisit label { display: grid; gap: 10px; color: #d8bd8d; }
+.siteVisit input, .siteVisit select { color-scheme: dark; width: 100%; min-width: 0; box-sizing: border-box; padding: 15px; border-radius: 12px; border: 1px solid #b7985a66; background: #111; color: #f4eee4; font: inherit; }
+.siteVisit__error { color: #ff9c9c; }
+.siteVisit__report { margin-top: 28px; }
+.siteVisit dd { overflow-wrap: anywhere; white-space: pre-wrap; }
+.siteVisit__documents { list-style: none; padding: 0; display: grid; gap: 12px; }
+.siteVisit__documents button { width: 100%; text-align: left; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; color: #e2c797; padding: 16px; border: 1px solid #b7985a33; border-radius: 12px; overflow-wrap: anywhere; }
+.siteVisit__fileHint { margin-left: auto; font-size: .85em; }
+.siteVisit :focus-visible { outline: 2px solid #e2c797; outline-offset: 4px; }
+@media (max-width: 640px) { .siteVisit__fields { grid-template-columns: 1fr; } .siteVisit__actions button { width: 100%; } }
+
+.siteVisit .siteVisit__documentsHeading { margin-top: 32px; }

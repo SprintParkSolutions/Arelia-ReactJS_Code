@@ -1,0 +1,28 @@
+.projectCompletionConfetti {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  overflow: hidden;
+  pointer-events: none;
+}
+.projectCompletionConfetti i {
+  position: absolute;
+  top: -24px;
+  left: var(--x);
+  width: 7px;
+  height: 12px;
+  background: var(--color);
+  border-radius: 1px;
+  opacity: 0;
+  animation: projectCompletionFall var(--duration) var(--delay) ease-in forwards;
+}
+.projectCompletionConfetti i:nth-child(3n) { width: 5px; height: 5px; border-radius: 50%; }
+@keyframes projectCompletionFall {
+  0% { opacity: 0; transform: translate3d(0, -20px, 0) rotate(0); }
+  10% { opacity: 0.95; }
+  75% { opacity: 0.85; }
+  100% { opacity: 0; transform: translate3d(var(--drift), calc(100vh + 40px), 0) rotate(var(--turn)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .projectCompletionConfetti { display: none; }
+}

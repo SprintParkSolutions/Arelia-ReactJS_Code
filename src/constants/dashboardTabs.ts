@@ -1,5 +1,9 @@
 export type DashboardTabId =
   | 'profile'
+  | 'siteVisit'
+  | 'projectDetails'
+  | 'supervisor'
+  | 'approvals'
   | 'status'
   | 'vendor'
   | 'payment'
@@ -9,10 +13,17 @@ export type DashboardTabId =
 
 export const dashboardTabs: { id: DashboardTabId; label: string }[] = [
   { id: 'profile', label: 'Profile & Overview' },
+  { id: 'projectDetails', label: 'Customer Requirements' },
+  { id: 'supervisor', label: 'Supervisor Information' },
+  { id: 'siteVisit', label: 'Site Visit Appointment & Report' },
+  { id: 'approvals', label: 'Review & Approvals' },
+  { id: 'notifications', label: 'Notifications' },
   { id: 'status', label: 'Project Status' },
   { id: 'vendor', label: 'Vendor Tasks' },
   { id: 'payment', label: 'Payment Terms' },
   { id: 'documents', label: 'Documents & Reports' },
   { id: 'cases', label: 'Support Cases' },
-  { id: 'notifications', label: 'Notifications' },
 ]
+export function isProjectTrackingTab(tab: DashboardTabId) {
+  return ['status', 'vendor', 'payment', 'documents'].includes(tab)
+}
