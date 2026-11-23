@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FiLogOut, FiMenu, FiPhone, FiX } from 'react-icons/fi'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { dashboardTabs } from '../../constants/dashboardTabs'
 import { useAuth } from '../../context/AuthContext'
 import { LogoutModal } from '../auth/LogoutModal'
@@ -40,6 +40,7 @@ export default function NavigationMenu({
     () => typeof window !== 'undefined' && window.innerWidth < 1024,
   )
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const menuToggleRef = useRef<HTMLButtonElement>(null)
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
   const { activeDashboardTab, client, isAuthenticated, logout, setActiveDashboardTab } = useAuth()
 
@@ -54,10 +55,29 @@ export default function NavigationMenu({
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
+  useEffect(() => {
+    if (!isMobileMenuOpen) return
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false)
+        menuToggleRef.current?.focus()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isMobileMenuOpen])
+
   const displayName = client?.name || 'Client'
   const initials = getInitials(displayName) || 'CL'
 
   const handleBrandClick = () => {
+    setIsMobileMenuOpen(false)
     if (isAuthenticated) {
       setActiveDashboardTab('profile')
       navigate('/dashboard')
@@ -89,11 +109,11 @@ export default function NavigationMenu({
         const isActive = pathname === item.path
         return (
           <li key={item.path} className="navigationMenu__item">
-            <button
-              type="button"
+            <Link
+              to={item.path}
+              aria-current={isActive ? 'page' : undefined}
               className={`navigationMenu__link${isActive ? ' is-active' : ''}${isMobileDrawer ? ' navigationMenu__link--drawer' : ''}`}
               onClick={() => {
-                navigate(item.path)
                 setIsMobileMenuOpen(false)
               }}
             >
@@ -105,7 +125,7 @@ export default function NavigationMenu({
                 />
               ) : null}
               <span className="navigationMenu__linkLabel">{item.label}</span>
-            </button>
+            </Link>
           </li>
         )
       })}
@@ -250,11 +270,13 @@ export default function NavigationMenu({
                 </div>
               ) : null}
               <button
+                ref={menuToggleRef}
                 type="button"
                 className="navigationMenu__menuToggle"
                 onClick={() => setIsMobileMenuOpen((value) => !value)}
                 aria-expanded={isMobileMenuOpen}
-                aria-label="Toggle navigation menu"
+                aria-controls="mobile-navigation"
+                aria-label={isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
               >
                 {isMobileMenuOpen ? <FiX aria-hidden="true" /> : <FiMenu aria-hidden="true" />}
               </button>
@@ -275,6 +297,9 @@ export default function NavigationMenu({
                 onClick={() => setIsMobileMenuOpen(false)}
               />
               <motion.div
+                id="mobile-navigation"
+                role="navigation"
+                aria-label="Mobile navigation"
                 className="navigationMenu__drawer"
                 initial={{ opacity: 0, y: -12 }}
                 animate={{ opacity: 1, y: 0 }}

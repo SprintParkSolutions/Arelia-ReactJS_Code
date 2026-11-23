@@ -45,7 +45,7 @@ const socialLinks = [
   },
   {
     name: "Facebook",
-    href: "https://www.facebook.com/profile.php?id=61584344340267",
+    href: "https://www.facebook.com/profile.php?id=61592172754020",
     bgColor: "#0077B5",
     iconColor: "#ffffff",
     icon: (
