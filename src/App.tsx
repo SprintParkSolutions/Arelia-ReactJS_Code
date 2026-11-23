@@ -173,7 +173,7 @@ export default function App() {
 
                 <Route
                   path="/contact-us"
-                  element={<ContactUsPage />}
+                  element={<ContactUsPage onOpenConsultation={openConsultation} />}
                 />
 
                 {(Object.keys(serviceCategories) as ServiceCategory[]).map(category => (

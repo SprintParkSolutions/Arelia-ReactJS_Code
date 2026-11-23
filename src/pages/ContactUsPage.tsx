@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useLocation } from 'react-router-dom'
-import { ConsultationForm } from '../components/consultation/ConsultationForm'
 import './ContactUsPage.css'
 
 const heroImagePath = '/images/ReachUs%20Page/ContactUs.png'
@@ -26,7 +25,7 @@ function MapPinIcon() {
   )
 }
 
-export function ContactUsPage() {
+export function ContactUsPage({ onOpenConsultation }: { onOpenConsultation: () => void }) {
   const { hash, key } = useLocation()
   const locationRef = useRef<HTMLDivElement>(null)
   const detailsRef = useRef<HTMLDivElement>(null)
@@ -54,30 +53,16 @@ export function ContactUsPage() {
           <div className="contact-page__hero-ambient contact-page__hero-ambient--two" />
 
           <div className="contact-page__hero-content contact-page__section-inner">
-            <div className="contact-page__hero-grid">
-              <div className="contact-page__hero-copy px-4 text-center md:px-0 md:text-left">
-                <p className="contact-page__tag">YOUR JOURNEY STARTS HERE</p>
-                <h1 className="contact-page__hero-title">
-                 Get In Touch
-                
-                
-                </h1>
-
-                <p className="contact-page__hero-text">
-
-                  Reach out today and let Arelia's design experts guide you through a seamless
-                  , transparent, and inspiring interior design journey  from first enquiry to final handover.
-                </p>
-              </div>
-
-              <div className="contact-page__hero-form-shell">
-                <ConsultationForm
-                  mode="page"
-                  title=""
-                  description=""
-                  submitLabel="CONNECT WITH US"
-                />
-              </div>
+            <div className="contact-page__hero-copy px-4 md:px-0">
+              <p className="contact-page__tag">YOUR JOURNEY STARTS HERE</p>
+              <h1 className="contact-page__hero-title">Get In Touch</h1>
+              <p className="contact-page__hero-text">
+                Reach out today and let Arelia's design experts guide you through a seamless,
+                transparent, and inspiring interior design journey from first enquiry to final handover.
+              </p>
+              <button type="button" className="contact-page__connect-button" onClick={onOpenConsultation}>
+                Connect With Us
+              </button>
             </div>
           </div>
         </div>

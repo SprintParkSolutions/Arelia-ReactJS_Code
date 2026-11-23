@@ -110,15 +110,10 @@
   z-index: 2;
 }
 
-.contact-page__hero-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(22rem, 0.88fr);
-  gap: 2rem;
-  align-items: center;
-}
-
 .contact-page__hero-copy {
   max-width: 42rem;
+  margin-inline: auto;
+  text-align: center;
   animation: fadeUp 1.2s ease-out 0.3s both;
 }
 
@@ -156,7 +151,7 @@
 }
 
 .contact-page__hero-text {
-  margin: 0;
+  margin: 0 auto;
   max-width: 40rem;
   color: rgba(255, 250, 242, 0.9);
   font-size: clamp(1rem, 1.3vw, 1.25rem);
@@ -164,81 +159,28 @@
   text-shadow: 0 6px 25px rgba(0, 0, 0, 0.5);
 }
 
-.contact-page__hero-form-shell {
-  position: relative;
-  min-width: 0;
-}
-
-.contact-page__hero-form-shell .consultation-form--page {
-  padding: 1.8rem;
-  border-radius: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
-    rgba(12, 12, 16, 0.5);
-  box-shadow:
-    0 30px 80px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-
-.contact-page__hero-form-shell .consultation-form__intro {
-  max-width: 30rem;
-  margin-bottom: 1.25rem;
-}
-
-.contact-page__hero-form-shell .consultation-form__title {
-  font-size: clamp(1.7rem, 2.5vw, 2.4rem);
-}
-
-.contact-page__hero-form-shell .consultation-form__description {
-  max-width: 34rem;
-  margin-top: 0.7rem;
-  font-size: 1rem;
-  line-height: 1.65;
-  margin-bottom: 1.35rem;
-}
-
-.contact-page__hero-form-shell .consultation-form__eyebrow {
-  margin-bottom: 0.45rem;
+.contact-page__connect-button {
+  margin-top: 1.75rem;
+  border: 1px solid rgba(223, 180, 119, 0.22);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #efcda1, #dcad6b);
+  color: #24180b;
+  padding: 0.92rem 2rem;
   font-size: 0.82rem;
-  letter-spacing: 0.22em;
-}
-
-.contact-page__hero-form-shell .consultation-form__label {
-  margin-bottom: 0.4rem;
-  font-size: 0.82rem;
-  letter-spacing: 0.14em;
-}
-
-.contact-page__hero-form-shell .consultation-form__field input:not(.PhoneInputInput) {
-  min-height: 3.35rem;
-  border-radius: 1.2rem;
-  background: rgba(255, 255, 255, 0.07);
-  font-size: 1rem;
-}
-
-.contact-page__hero-form-shell .consultation-form__phone {
-  min-height: 3.35rem;
-  border-radius: 1.2rem;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.contact-page__hero-form-shell .consultation-form__phone .PhoneInputInput {
-  font-size: 1rem;
-}
-
-.contact-page__hero-form-shell .consultation-form__footer {
-  align-items: flex-start;
-  margin-top: 1.35rem;
-}
-
-.contact-page__hero-form-shell .consultation-form__submit {
-  min-width: 100%;
-  padding: 0.92rem 1.35rem;
-  font-size: 0.82rem;
+  font-weight: 800;
   letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(161, 115, 54, 0.22);
+}
+
+.contact-page__connect-button:hover {
+  filter: brightness(1.08);
+}
+
+.contact-page__connect-button:focus-visible {
+  outline: 2px solid #efcda1;
+  outline-offset: 4px;
 }
 
 .contact-page__studio-section {
@@ -736,7 +678,6 @@
 }
 
 @media (max-width: 1080px) {
-  .contact-page__hero-grid,
   .contact-page__studio-grid {
     grid-template-columns: 1fr;
   }
@@ -768,8 +709,7 @@
     padding: calc(6.2rem + env(safe-area-inset-top)) 0 max(2rem, env(safe-area-inset-bottom));
   }
 
-  .contact-page__hero-copy,
-  .contact-page__hero-form-shell {
+  .contact-page__hero-copy {
     max-width: none;
   }
 
@@ -783,19 +723,10 @@
     line-height: 1.68;
   }
 
-  .contact-page__hero-form-shell .consultation-form--page,
   .contact-page__details,
   .contact-page__map-shell {
     padding: 1.25rem;
     border-radius: 1.5rem;
-  }
-
-  .contact-page__hero-form-shell .consultation-form__intro {
-    margin-bottom: 0.9rem;
-  }
-
-  .contact-page__hero-form-shell .consultation-form__description {
-    margin-bottom: 1rem;
   }
 
   .contact-page__studio-section {
@@ -853,16 +784,11 @@
     padding: calc(5.75rem + env(safe-area-inset-top)) 0 max(1.5rem, env(safe-area-inset-bottom));
   }
 
-  .contact-page__hero-grid {
-    gap: 1rem;
-  }
-
   .contact-page__hero-title {
     font-size: clamp(1.8rem, 11vw, 2.8rem);
     line-height: 1.02;
   }
 
-  .contact-page__hero-form-shell .consultation-form--page,
   .contact-page__details,
   .contact-page__map-shell {
     padding: 1rem;
