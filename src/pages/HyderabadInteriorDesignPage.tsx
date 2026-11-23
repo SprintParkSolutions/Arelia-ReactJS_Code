@@ -26,12 +26,12 @@ const planningQuestions = [
   {
     category: 'WHY ARELIA',
     question: 'Why should I choose Arelia for interior design in Hyderabad?',
-    answer: <>Arelia Space brings together personalised interior design, clear project processes, and online client communication. From your first site visit through 3D design approvals, budget reviews, payment terms, digital agreements, and execution, we keep you informed and involved in the decisions that shape your space.</>,
+    answer: <>Arelia brings together personalised interior design, clear project processes, and online client communication. From your first site visit through 3D design approvals, budget reviews, payment terms, digital agreements, and execution, we keep you informed and involved in the decisions that shape your space.</>,
   },
   {
     category: 'THE ARELIA DIFFERENCE',
     question: 'What makes Arelia different from other interior design companies in Hyderabad?',
-    answer: <>We combine premium and luxury interior design with a clear, organised project experience. You take part in key design approvals, budget reviews, payment terms, and project decisions through a structured digital process. Alongside project supervision and regular communication, this helps you stay informed from design to execution. <strong>Arelia Space — Premium &amp; Luxury Interior Designs.</strong></>,
+    answer: <>We combine premium and luxury interior design with a clear, organised project experience. You take part in key design approvals, budget reviews, payment terms, and project decisions through a structured digital process. Alongside project supervision and regular communication, this helps you stay informed from design to execution. <strong>Arelia — Premium &amp; Luxury Interior Designs.</strong></>,
   },
   {
     category: '3D DESIGN APPROVALS',
@@ -80,10 +80,10 @@ export function HyderabadInteriorDesignPage({
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.75, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="hyderabad-page__eyebrow">ARELIA SPACE • KONDAPUR, HYDERABAD</p>
+          <p className="hyderabad-page__eyebrow">ARELIA • KONDAPUR, HYDERABAD</p>
           <h1>Premium Interior Designers in Hyderabad</h1>
           <p className="hyderabad-page__lead">
-            Arelia Space creates Residential, Commercial, and Hospitality interiors with
+            Arelia creates Residential, Commercial, and Hospitality interiors with
             transparency in Budgeting, Digital Project Tracking, and End-to-End execution.
           </p>
           <button type="button" className="hyderabad-page__button" onClick={onOpenConsultation}>
@@ -186,7 +186,7 @@ export function HyderabadInteriorDesignPage({
             you shape a clear direction for your Residential, Commercial, or Hospitality space.
           </p>
         <div className="hyderabad-page__studio-card">
-          <p className="hyderabad-page__studio-card-label">Arelia Space Hyderabad</p>
+          <p className="hyderabad-page__studio-card-label">Arelia Hyderabad</p>
           <address>
             Unit No. 1204, Asian Sun City, Block B<br />
             Kondapur, Hyderabad 500084

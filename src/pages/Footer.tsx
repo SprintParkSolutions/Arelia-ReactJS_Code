@@ -35,7 +35,7 @@ export function Footer() {
               className="site-footer__logo"
             />
             <p className="site-footer__copy">
-              Arelia Space creates refined interior experiences with clarity, detail,
+              Arelia creates refined interior experiences with clarity, detail,
               and execution built into every stage.
             </p>
           </div>

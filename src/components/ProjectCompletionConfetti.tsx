@@ -3,17 +3,24 @@ import { createPortal } from "react-dom";
 import "./ProjectCompletionConfetti.css";
 
 export function ProjectCompletionConfetti({ celebration }: { celebration: number }) {
-  const [visible, setVisible] = useState(false);
+  if (!celebration || typeof window === "undefined") return null;
+  return <ConfettiBurst key={celebration} />;
+}
+
+function ConfettiBurst() {
+  const [visible, setVisible] = useState(
+    () => !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches,
+  );
+
   useEffect(() => {
-    if (!celebration || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    setVisible(true);
+    if (!visible) return;
     const timeout = window.setTimeout(() => setVisible(false), 5500);
     return () => window.clearTimeout(timeout);
-  }, [celebration]);
+  }, [visible]);
 
   if (!visible) return null;
   return createPortal(
-    <div key={celebration} className="projectCompletionConfetti" aria-hidden="true">
+    <div className="projectCompletionConfetti" aria-hidden="true">
       {Array.from({ length: 72 }, (_, index) => (
         <i key={index} style={{
           "--x": `${(index * 37) % 101}vw`,
