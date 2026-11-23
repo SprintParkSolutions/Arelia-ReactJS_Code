@@ -71,7 +71,7 @@ export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewP
         <header className="projectSummary__header">
           <div>
             <p className="projectSummary__eyebrow">YOUR PROJECT BRIEF</p>
-            <h2 className="dashboardSection__title">Project Details</h2>
+            <h2 className="dashboardSection__title">Your Project Blueprint</h2>
             <p className="projectSummary__subtitle">Your submitted requirements, together in one place.</p>
           </div>
           <span className="projectSummary__badge" role="status"><FiCheckCircle aria-hidden="true" />Submitted</span>
@@ -100,7 +100,7 @@ export function ProjectDetailsForm({ leadId, result, onSaved, reload, createNewP
   }
   return (
     <section className="dashboardSection projectDetails">
-      <h2 className="dashboardSection__title">Project Details</h2>
+      <h2 className="dashboardSection__title">Your Project Blueprint</h2>
       <p>Tell us about your project. Once submitted, these details cannot be edited.</p>
       <form onSubmit={submit} noValidate aria-busy={busy}>
         <fieldset disabled={busy || locked} className="projectDetails__grid">

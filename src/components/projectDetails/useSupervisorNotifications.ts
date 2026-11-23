@@ -35,7 +35,7 @@ export function useSupervisorNotifications(leadId: string | undefined, projects:
       document.removeEventListener('visibilitychange', refresh)
     }
   }, [leadId, ids])
-  return useProjectNotifications(items.map((project, index) => {
+  const assignments = items.map((project, index) => {
     const result = project.leadId === leadId ? primary
       : observed && observed.account === leadId && project.leadId ? observed.results[project.leadId] : null
     const name = result?.supervisorUser?.trim()
@@ -43,5 +43,8 @@ export function useSupervisorNotifications(leadId: string | undefined, projects:
       leadId: project.leadId, needed: Boolean(result?.success && result.assigned),
       message: `${items.length > 1 ? `Project ${index + 1}: ` : ''}${name ? `${name} has been assigned as your project supervisor.` : 'A supervisor has been assigned to your project.'}`,
     }
-  }), 'supervisorAssignedNotification', 'supervisor-assigned', 'supervisor')
+  })
+  const history = useProjectNotifications(assignments, 'supervisorAssignedNotification', 'supervisor-assigned', 'supervisor')
+  const assignedLeadIds = new Set(assignments.flatMap(item => item.needed && item.leadId ? [item.leadId] : []))
+  return { ...history, assignedLeadIds }
 }

@@ -3379,6 +3379,7 @@ export function DashboardPage() {
     budgets: budgetReview.result,
     payments: paymentReview.result,
     agreements: agreementHistory.milestones,
+    assignedSupervisorLeadIds: supervisorHistory.assignedLeadIds,
     firstInstallmentPaid: tracking?.firstInstallmentPaid,
     pending: pendingOverview,
   });
@@ -3775,6 +3776,10 @@ export function DashboardPage() {
                     <ProjectJourney projects={journeyProjects} selectedId={selectedLeadJourney?.id || activeProjectId}
                       onSelect={selectJourneyProject}
                       onOpenProjectDetails={() => handleTabChange("projectDetails")}
+                      onOpenSupervisor={projectLeadId => {
+                        setSelectedSupervisorLeadId(projectLeadId);
+                        handleTabChange("supervisor");
+                      }}
                       onOpenSiteVisit={projectLeadId => {
                         setSelectedSiteVisitLeadId(projectLeadId);
                         handleTabChange("siteVisit");

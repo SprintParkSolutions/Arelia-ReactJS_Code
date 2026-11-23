@@ -22,16 +22,17 @@ type Inputs = {
   budgets?: BudgetResult | null
   payments?: PaymentResult | null
   agreements: { leadId?: string; opportunityId: string; signed: boolean }[]
+  assignedSupervisorLeadIds?: ReadonlySet<string>
   firstInstallmentPaid?: ReadonlySet<string>
   pending: PendingOverview
 }
 
-const actionSteps = { siteVisit: 1, design: 2, invoice: 3, budget: 4, payment: 5 }
-const projectCompletionStep = 9
+const actionSteps = { siteVisit: 2, design: 3, invoice: 4, budget: 5, payment: 6 }
+const projectCompletionStep = 10
 const statusSteps: ReadonlyMap<string, number> = new Map([
-  ['project details', 0], ['site visit', 1], ['3d design', 2], ['proforma invoice', 3],
-  ['budget review', 4], ['payment terms', 5], ['client agreement', 6], ['first installment', 7],
-  ['in progress', 8], ['project execution', 8], ['project completion', projectCompletionStep],
+  ['project details', 0], ['meet your supervisor', 1], ['site visit', 2], ['3d design', 3], ['proforma invoice', 4],
+  ['budget review', 5], ['payment terms', 6], ['client agreement', 7], ['first installment', 8],
+  ['in progress', 9], ['project execution', 9], ['project completion', projectCompletionStep],
 ])
 
 export function buildProjectJourneys(input: Inputs): JourneyProject[] {
@@ -101,44 +102,46 @@ export function buildProjectJourneys(input: Inputs): JourneyProject[] {
     const actions = input.pending.groups.filter(group => ids.has(group.id)).flatMap(group => group.items)
     const status = project.status?.trim().replace(/\s+/g, ' ').toLowerCase() || ''
     const visits = input.visits.filter(visit => ids.has(visit.leadId))
+    const supervisorAssigned = [...ids].some(id => id != null && input.assignedSupervisorLeadIds?.has(id))
     const visitComplete = visits.some(visit => approvedSiteVisitReportId(visit.leadId, visit.report))
     const designs = (input.designs || []).filter(belongs)
     const designComplete = designs.some(design => design.managerApproval === true)
-    const designStep = designComplete ? 3 : designs.length ? 2 : 0
+    const designStep = designComplete ? 4 : designs.length ? 3 : 0
     const invoices = (input.invoices || []).filter(belongs)
     const invoiceComplete = invoices.some(invoice => invoice.managerApproval === true)
-    const invoiceStep = invoiceComplete ? 4 : invoices.length ? 3 : 0
+    const invoiceStep = invoiceComplete ? 5 : invoices.length ? 4 : 0
     const projectBudgets = budgets.filter(belongs)
     const budgetComplete = projectBudgets.some(budget => budget.status === 'Manager Approved')
-    const budgetStep = budgetComplete ? 5 : projectBudgets.length ? 4 : 0
+    const budgetStep = budgetComplete ? 6 : projectBudgets.length ? 5 : 0
     const projectPayments = payments.filter(belongs)
     const paymentComplete = projectPayments.some(payment => payment.status === 'Client Approved')
-    const paymentStep = paymentComplete ? 6 : projectPayments.length ? 5 : 0
+    const paymentStep = paymentComplete ? 7 : projectPayments.length ? 6 : 0
     const agreements = input.agreements.filter(belongs)
     const agreementSigned = agreements.some(agreement => agreement.signed)
-    const agreementStep = agreementSigned ? 7 : agreements.length ? 6 : 0
+    const agreementStep = agreementSigned ? 8 : agreements.length ? 7 : 0
     const statusStep = statusSteps.get(status) ?? 0
     const approval = project.details?.approvalStatus
     const installmentPaid = input.firstInstallmentPaid?.has(project.id) === true
     const furthestStep = Math.max(statusStep, approval === 'Approved' ? 1 : 0,
-      visitComplete ? 2 : 0, installmentPaid ? 8 : 0,
+      supervisorAssigned ? 2 : 0, visitComplete ? 3 : 0, installmentPaid ? 9 : 0,
       designStep, invoiceStep, budgetStep, paymentStep, agreementStep,
       ...actions.map(action => actionSteps[action.kind]))
     const canVerifySiteVisit = Boolean(project.leadId || visits.length)
-    const siteVisitVerifiedStep = canVerifySiteVisit && !visitComplete ? Math.min(furthestStep, 1) : furthestStep
+    const supervisorVerifiedStep = canVerifySiteVisit && !supervisorAssigned ? Math.min(furthestStep, 1) : furthestStep
+    const siteVisitVerifiedStep = canVerifySiteVisit && !visitComplete ? Math.min(supervisorVerifiedStep, 2) : supervisorVerifiedStep
     const canVerifyDesign = Boolean(project.leadId || designs.length)
-    const designVerifiedStep = canVerifyDesign && !designComplete ? Math.min(siteVisitVerifiedStep, 2) : siteVisitVerifiedStep
+    const designVerifiedStep = canVerifyDesign && !designComplete ? Math.min(siteVisitVerifiedStep, 3) : siteVisitVerifiedStep
     const canVerifyInvoice = Boolean(project.leadId || invoices.length)
-    const invoiceVerifiedStep = canVerifyInvoice && !invoiceComplete ? Math.min(designVerifiedStep, 3) : designVerifiedStep
+    const invoiceVerifiedStep = canVerifyInvoice && !invoiceComplete ? Math.min(designVerifiedStep, 4) : designVerifiedStep
     const canVerifyBudget = Boolean(project.leadId || projectBudgets.length)
-    const budgetVerifiedStep = canVerifyBudget && !budgetComplete ? Math.min(invoiceVerifiedStep, 4) : invoiceVerifiedStep
+    const budgetVerifiedStep = canVerifyBudget && !budgetComplete ? Math.min(invoiceVerifiedStep, 5) : invoiceVerifiedStep
     const canVerifyPayment = Boolean(project.leadId || projectPayments.length)
-    const paymentVerifiedStep = canVerifyPayment && !paymentComplete ? Math.min(budgetVerifiedStep, 5) : budgetVerifiedStep
+    const paymentVerifiedStep = canVerifyPayment && !paymentComplete ? Math.min(budgetVerifiedStep, 6) : budgetVerifiedStep
     const canVerifyAgreement = Boolean(project.leadId || agreements.length)
-    const agreementVerifiedStep = canVerifyAgreement && !agreementSigned ? Math.min(paymentVerifiedStep, 6) : paymentVerifiedStep
-    const verifiedStep = project.leadId && !installmentPaid ? Math.min(agreementVerifiedStep, 7) : agreementVerifiedStep
+    const agreementVerifiedStep = canVerifyAgreement && !agreementSigned ? Math.min(paymentVerifiedStep, 7) : paymentVerifiedStep
+    const verifiedStep = project.leadId && !installmentPaid ? Math.min(agreementVerifiedStep, 8) : agreementVerifiedStep
     const awaitingApproval = approval === 'Pending' || approval === 'Rejected' ||
-      (verifiedStep === 1 && project.details != null && approval !== 'Approved')
+      (verifiedStep > 0 && verifiedStep <= 2 && project.details != null && approval !== 'Approved')
     const completion = project.completionPercentage
     const completionPercentage = completion != null && Number.isFinite(completion) ? Math.min(100, Math.max(0, completion)) : undefined
     const currentStep = status === 'completed'

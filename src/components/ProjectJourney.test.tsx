@@ -6,25 +6,25 @@ import { ProjectJourney, type JourneyProject } from './ProjectJourney'
 import { buildProjectJourneys } from './projectJourneyData'
 
 const projects: JourneyProject[] = [
-  { id: 'kitchen', name: 'Kitchen', currentStep: 6, completionPercentage: 35 },
-  { id: 'loft', name: 'Loft', currentStep: 8, completionPercentage: 0 },
+  { id: 'kitchen', name: 'Kitchen', currentStep: 7, completionPercentage: 35 },
+  { id: 'loft', name: 'Loft', currentStep: 9, completionPercentage: 0 },
 ]
 
 test('only renders carousel controls for multiple projects', () => {
-  const { rerender } = render(<ProjectJourney projects={projects.slice(0, 1)} onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+  const { rerender } = render(<ProjectJourney projects={projects.slice(0, 1)} onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   expect(screen.queryByRole('button', { name: 'Next project' })).toBeNull()
-  expect(screen.getByText('Step 7 of 10')).toBeInTheDocument()
+  expect(screen.getByText('Step 8 of 11')).toBeInTheDocument()
   expect(screen.getByText('35%')).toBeInTheDocument()
   expect(screen.getByRole('progressbar', { name: 'Project completion' })).toHaveAttribute('value', '35')
   expect(within(screen.getByRole('listitem', { current: 'step' })).getByText('Client Agreement')).toBeInTheDocument()
-  rerender(<ProjectJourney projects={[]} onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+  rerender(<ProjectJourney projects={[]} onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   expect(screen.queryByRole('region', { name: 'Your Project Journey' })).toBeNull()
 })
 
 test('arrows switch the selected project and its progress and wrap at the ends', () => {
   function Carousel() {
     const [id, setId] = useState('kitchen')
-    return <ProjectJourney projects={projects} selectedId={id} onSelect={setId} onOpenProjectDetails={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />
+    return <ProjectJourney projects={projects} selectedId={id} onSelect={setId} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />
   }
   render(<Carousel />)
 
@@ -75,6 +75,7 @@ test('joins a converted project by ID and scopes milestone records to that proje
         } },
       ],
     },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     designs: [{ ...design, managerApproval: true }],
     invoices: [approvedInvoice],
@@ -85,33 +86,33 @@ test('joins a converted project by ID and scopes milestone records to that proje
   })
 
   expect(journeys).toEqual([
-    expect.objectContaining({ id: 'opp1', name: 'Kitchen', currentStep: 7, completionPercentage: 35 }),
+    expect.objectContaining({ id: 'opp1', name: 'Kitchen', currentStep: 8, completionPercentage: 35 }),
     expect.objectContaining({ id: 'lead2', name: undefined, currentStep: 0, completionPercentage: undefined }),
   ])
 })
 
 
-test('shows Project Details guidance on hover and opens Project Details on click', async () => {
+test('shows Customer Requirements guidance on hover and opens Customer Requirements on click', async () => {
   const user = userEvent.setup()
   const openProjectDetails = vi.fn()
-  render(<ProjectJourney projects={projects} onSelect={vi.fn()} onOpenProjectDetails={openProjectDetails} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
-  const trigger = screen.getByRole('button', { name: 'Project Details' })
+  render(<ProjectJourney projects={projects} onSelect={vi.fn()} onOpenProjectDetails={openProjectDetails} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+  const trigger = screen.getByRole('button', { name: 'Customer Requirements' })
   expect(screen.queryByRole('tooltip')).toBeNull()
   await user.hover(trigger)
-  expect(screen.getByRole('tooltip')).toHaveTextContent('Open Project Details in the menu')
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Open Customer Requirements in the menu')
   fireEvent.keyDown(trigger, { key: 'Escape' })
   expect(screen.queryByRole('tooltip')).toBeNull()
   await user.click(trigger)
   expect(openProjectDetails).toHaveBeenCalledOnce()
 })
 
-test('the touch help button toggles guidance without opening Project Details', () => {
+test('the touch help button toggles guidance without opening Customer Requirements', () => {
   const openProjectDetails = vi.fn()
-  render(<ProjectJourney projects={projects} onSelect={vi.fn()} onOpenProjectDetails={openProjectDetails} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
-  const help = screen.getByLabelText('Help with Project Details')
+  render(<ProjectJourney projects={projects} onSelect={vi.fn()} onOpenProjectDetails={openProjectDetails} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+  const help = screen.getByLabelText('Help with Customer Requirements')
   fireEvent.click(help)
   expect(help).toHaveAttribute('aria-expanded', 'true')
-  expect(screen.getByText(/Open Project Details in the menu/)).toBeVisible()
+  expect(screen.getByText(/Open Customer Requirements in the menu/)).toBeVisible()
   fireEvent.click(help)
   expect(help).toHaveAttribute('aria-expanded', 'false')
   expect(openProjectDetails).not.toHaveBeenCalled()
@@ -122,7 +123,7 @@ test.each([
   ['Rejected', 0],
   [undefined, 0],
   ['Approved', 1],
-] as const)('keeps Project Details current until approval (%s)', (approvalStatus, currentStep) => {
+] as const)('keeps Customer Requirements current until approval (%s)', (approvalStatus, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [],
@@ -138,20 +139,21 @@ test.each([
     },
   })
   expect(journeys[0].currentStep).toBe(currentStep)
-  expect(journeys[0].action?.kind).toBe(approvalStatus === 'Approved' ? 'siteVisit' : undefined)
+  expect(journeys[0].action).toBeUndefined()
 })
 
 test.each([
-  ['missing', null, 1],
-  ['pending', { ...approvedVisit, report: { ...approvedVisit.report, managementApproval: false } }, 1],
-  ['draft', { ...approvedVisit, report: { ...approvedVisit.report, finalSubmitted: false } }, 1],
-  ['unrelated', { ...approvedVisit, report: { ...approvedVisit.report, leadId: 'another-lead' } }, 1],
-  ['approved', approvedVisit, 2],
+  ['missing', null, 2],
+  ['pending', { ...approvedVisit, report: { ...approvedVisit.report, managementApproval: false } }, 2],
+  ['draft', { ...approvedVisit, report: { ...approvedVisit.report, finalSubmitted: false } }, 2],
+  ['unrelated', { ...approvedVisit, report: { ...approvedVisit.report, leadId: 'another-lead' } }, 2],
+  ['approved', approvedVisit, 3],
 ] as const)('completes Site Visit only with a final approved report (%s)', (_, report, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [{ id: 'opp1', name: 'Kitchen', status: '3D Design' }],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report }],
     agreements: [],
     pending: { count: 0, multipleProjects: false, groups: [] },
@@ -162,8 +164,8 @@ test.each([
 test('Site Visit help and navigation use the selected project', async () => {
   const user = userEvent.setup()
   const openSiteVisit = vi.fn()
-  render(<ProjectJourney projects={[{ ...projects[0], currentStep: 1, siteVisitLeadId: 'lead-kitchen' }]}
-    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSiteVisit={openSiteVisit} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+  render(<ProjectJourney projects={[{ ...projects[0], currentStep: 2, siteVisitLeadId: 'lead-kitchen' }]}
+    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={openSiteVisit} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   const stage = screen.getByRole('button', { name: 'Site Visit' })
   await user.hover(stage)
   expect(screen.getByRole('tooltip')).toHaveTextContent('confirm your visit, request a new time, or view your approved report.')
@@ -177,14 +179,15 @@ test('Site Visit help and navigation use the selected project', async () => {
 })
 
 test.each([
-  ['manager approved', { ...design, managerApproval: true }, 3],
-  ['client approved only', { ...design, status: 'Approved', managerApproval: false }, 2],
-  ['unrelated manager approval', { ...design, opportunityId: 'opp2', managerApproval: true }, 2],
+  ['manager approved', { ...design, managerApproval: true }, 4],
+  ['client approved only', { ...design, status: 'Approved', managerApproval: false }, 3],
+  ['unrelated manager approval', { ...design, opportunityId: 'opp2', managerApproval: true }, 3],
 ] as const)('completes 3D Design on manager approval (%s)', (_, record, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [{ id: 'opp1', name: 'Kitchen', status: 'Proforma Invoice' }],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     designs: [record],
     agreements: [],
@@ -197,7 +200,7 @@ test('3D Design exposes help and opens approvals for the selected project', asyn
   const user = userEvent.setup()
   const openDesignApprovals = vi.fn()
   render(<ProjectJourney projects={projects} selectedId="loft" onSelect={vi.fn()}
-    onOpenProjectDetails={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={openDesignApprovals} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+    onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={openDesignApprovals} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   const stage = screen.getByRole('button', { name: '3D Design' })
   await user.hover(stage)
   expect(screen.getByRole('tooltip')).toHaveTextContent('3D Design Approvals to view your designs, approve them, or request changes.')
@@ -214,7 +217,7 @@ test('Proforma Invoice exposes help and opens approvals for the selected project
   const user = userEvent.setup()
   const openProformaApprovals = vi.fn()
   render(<ProjectJourney projects={[{ ...projects[0], siteVisitLeadId: 'lead-kitchen' }]}
-    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSiteVisit={vi.fn()}
+    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()}
     onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={openProformaApprovals} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   const stage = screen.getByRole('button', { name: 'Proforma Invoice' })
   await user.hover(stage)
@@ -232,7 +235,7 @@ test('Budget Review exposes help and opens approvals for the selected project', 
   const user = userEvent.setup()
   const openBudgetApprovals = vi.fn()
   render(<ProjectJourney projects={[{ ...projects[0], siteVisitLeadId: 'lead-kitchen' }]}
-    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSiteVisit={vi.fn()}
+    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()}
     onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={openBudgetApprovals} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   const stage = screen.getByRole('button', { name: 'Budget Review' })
   await user.hover(stage)
@@ -247,14 +250,15 @@ test('Budget Review exposes help and opens approvals for the selected project', 
 })
 
 test.each([
-  ['Manager Approved', 5],
-  ['Client Approved', 4],
-  ['Sent for Client Approval', 4],
+  ['Manager Approved', 6],
+  ['Client Approved', 5],
+  ['Sent for Client Approval', 5],
 ] as const)('completes Budget Review on manager approval (%s)', (status, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [{ id: 'opp1', name: 'Kitchen', status: 'Budget Review' }],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     designs: [{ ...design, managerApproval: true }],
     invoices: [approvedInvoice],
@@ -268,14 +272,15 @@ test.each([
 })
 
 test.each([
-  ['manager approved', approvedInvoice, 4],
-  ['client approved only', { ...approvedInvoice, managerApproval: false }, 3],
-  ['unrelated manager approval', { ...approvedInvoice, leadId: 'lead2', opportunityId: 'opp2' }, 3],
+  ['manager approved', approvedInvoice, 5],
+  ['client approved only', { ...approvedInvoice, managerApproval: false }, 4],
+  ['unrelated manager approval', { ...approvedInvoice, leadId: 'lead2', opportunityId: 'opp2' }, 4],
 ] as const)('completes Proforma Invoice on manager approval (%s)', (_, record, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [{ id: 'opp1', name: 'Kitchen', status: 'Proforma Invoice' }],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     designs: [{ ...design, managerApproval: true }],
     invoices: [record],
@@ -289,7 +294,7 @@ test('Payment Terms exposes help and opens approvals for the selected project', 
   const user = userEvent.setup()
   const openPaymentApprovals = vi.fn()
   render(<ProjectJourney projects={[{ ...projects[0], siteVisitLeadId: 'lead-kitchen' }]}
-    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSiteVisit={vi.fn()}
+    onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()}
     onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()}
     onOpenPaymentApprovals={openPaymentApprovals} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   const stage = screen.getByRole('button', { name: 'Payment Terms' })
@@ -305,14 +310,15 @@ test('Payment Terms exposes help and opens approvals for the selected project', 
 })
 
 test.each([
-  ['Client Approved', 6],
-  ['Client Requested Changes', 5],
-  ['Sent for Client Approval', 5],
+  ['Client Approved', 7],
+  ['Client Requested Changes', 6],
+  ['Sent for Client Approval', 6],
 ] as const)('completes Payment Terms on client approval (%s)', (status, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [{ id: 'opp1', name: 'Kitchen', status: 'Payment Terms' }],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     designs: [{ ...design, managerApproval: true }],
     invoices: [approvedInvoice],
@@ -331,7 +337,7 @@ test.each([
 test('Client Agreement explains how to sign on desktop and touch devices', async () => {
   const user = userEvent.setup()
   render(<ProjectJourney projects={projects} onSelect={vi.fn()} onOpenProjectDetails={vi.fn()}
-    onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
+    onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
     onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   expect(screen.queryByRole('button', { name: 'Client Agreement' })).not.toBeInTheDocument()
   const stage = screen.getByText('Client Agreement')
@@ -344,14 +350,15 @@ test('Client Agreement explains how to sign on desktop and touch devices', async
 })
 
 test.each([
-  ['signed', [{ leadId: 'lead1', opportunityId: 'opp1', signed: true }], 7],
-  ['sent only', [{ leadId: 'lead1', opportunityId: 'opp1', signed: false }], 6],
-  ['signed on another project', [{ leadId: 'lead2', opportunityId: 'opp2', signed: true }], 6],
+  ['signed', [{ leadId: 'lead1', opportunityId: 'opp1', signed: true }], 8],
+  ['sent only', [{ leadId: 'lead1', opportunityId: 'opp1', signed: false }], 7],
+  ['signed on another project', [{ leadId: 'lead2', opportunityId: 'opp2', signed: true }], 7],
 ] as const)('completes Client Agreement on signature confirmation (%s)', (_, agreements, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [{ id: 'opp1', name: 'Kitchen', status: 'Client Agreement' }],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     designs: [{ ...design, managerApproval: true }],
     invoices: [approvedInvoice],
@@ -371,7 +378,7 @@ test('First Installment exposes help and opens the selected payment schedule', a
   const user = userEvent.setup()
   const openPaymentSchedule = vi.fn()
   render(<ProjectJourney projects={projects} selectedId="loft" onSelect={vi.fn()} onOpenProjectDetails={vi.fn()}
-    onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
+    onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
     onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={openPaymentSchedule} onOpenProjectStatus={vi.fn()} />)
   const stage = screen.getByRole('button', { name: 'First Installment' })
   await user.hover(stage)
@@ -386,14 +393,15 @@ test('First Installment exposes help and opens the selected payment schedule', a
 })
 
 test.each([
-  ['this project paid', ['opp1'], 8],
-  ['payment pending', [], 7],
-  ['another project paid', ['opp2'], 7],
+  ['this project paid', ['opp1'], 9],
+  ['payment pending', [], 8],
+  ['another project paid', ['opp2'], 8],
 ] as const)('completes First Installment on confirmed payment (%s)', (_, paidIds, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
     projects: [{ id: 'opp1', name: 'Kitchen', status: 'Project Execution' }],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     designs: [{ ...design, managerApproval: true }],
     invoices: [approvedInvoice],
@@ -422,6 +430,7 @@ test.each([
       { success: true, message: '', leadId: 'lead1', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
       { success: true, message: '', leadId: 'lead2', projectSubmitted: true },
     ] },
+    assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
     agreements: [],
     pending: { count: 0, multipleProjects: false, groups: [] },
@@ -429,7 +438,7 @@ test.each([
 
   expect(journeys).toHaveLength(2)
   expect(journeys).toEqual([
-    expect.objectContaining({ id: 'project-record1', siteVisitLeadId: 'lead1', completionPercentage: 25, currentStep: 2 }),
+    expect.objectContaining({ id: 'project-record1', siteVisitLeadId: 'lead1', completionPercentage: 25, currentStep: 3 }),
     expect.objectContaining({ id: 'lead2', siteVisitLeadId: 'lead2', currentStep: 0 }),
   ])
 })
@@ -451,7 +460,7 @@ test('keeps a separately linked project record as its own journey', () => {
 
 test.each([
   ['Completed', 99, 'Journey complete', 'is-done'],
-  ['Project Execution', 100, 'Step 10 of 10', 'is-current'],
+  ['Project Execution', 100, 'Step 11 of 11', 'is-current'],
 ] as const)('shows the final milestone for %s at %i percent', (status, completionPercentage, label, milestoneClass) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
@@ -462,7 +471,7 @@ test.each([
     pending: { count: 0, multipleProjects: false, groups: [] },
   })
   render(<ProjectJourney projects={journeys} onSelect={vi.fn()} onOpenProjectDetails={vi.fn()}
-    onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
+    onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
     onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   expect(screen.getByText(label)).toBeInTheDocument()
   expect(screen.getByText('Project Completion').closest('li')).toHaveClass(milestoneClass)
@@ -473,7 +482,7 @@ test('Project Execution opens Project Status for the selected project', async ()
   const user = userEvent.setup()
   const openProjectStatus = vi.fn()
   render(<ProjectJourney projects={projects} selectedId="loft" onSelect={vi.fn()} onOpenProjectDetails={vi.fn()}
-    onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
+    onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
     onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()}
     onOpenProjectStatus={openProjectStatus} />)
   await user.click(screen.getByRole('button', { name: 'Project Execution' }))
@@ -487,5 +496,71 @@ test('keeps Project Execution current while progress is below 100%', () => {
     agreements: [],
     pending: { count: 0, multipleProjects: false, groups: [] },
   })
-  expect(journeys[0].currentStep).toBe(8)
+  expect(journeys[0].currentStep).toBe(9)
+})
+
+test('advances only the project that receives a supervisor assignment', () => {
+  const input: Parameters<typeof buildProjectJourneys>[0] = {
+    projects: [],
+    details: { success: true, message: '', projects: [
+      { leadId: 'lead1', success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved' },
+      { leadId: 'lead2', success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved' },
+    ] },
+    visits: [],
+    agreements: [],
+    pending: { groups: [], multipleProjects: true, count: 0 },
+  }
+  const view = (assignedSupervisorLeadIds: ReadonlySet<string>) => (
+    <ProjectJourney projects={buildProjectJourneys({ ...input, assignedSupervisorLeadIds })}
+      selectedId="lead2" onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()}
+      onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()}
+      onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />
+  )
+  const { rerender } = render(view(new Set(['lead1'])))
+  expect(screen.getByText('Step 2 of 11')).toBeInTheDocument()
+  expect(screen.getByText('Meet Your Supervisor').closest('li')).toHaveAttribute('aria-current', 'step')
+  rerender(view(new Set(['lead1', 'lead2'])))
+  expect(screen.getByText('Step 3 of 11')).toBeInTheDocument()
+  expect(screen.getByText('Meet Your Supervisor').closest('li')).toHaveClass('is-done')
+  expect(screen.getByText('Site Visit').closest('li')).toHaveAttribute('aria-current', 'step')
+})
+
+test('Meet Your Supervisor shows help and opens the selected project supervisor', async () => {
+  const user = userEvent.setup()
+  const openSupervisor = vi.fn()
+  render(<ProjectJourney projects={[projects[0], { ...projects[1], siteVisitLeadId: 'lead-loft' }]}
+    selectedId="loft" onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={openSupervisor}
+    onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
+    onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+  const stage = screen.getByRole('button', { name: 'Meet Your Supervisor' })
+  await user.hover(stage)
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Open Supervisor Information to meet your supervisor and find their contact details.')
+  await user.unhover(stage)
+  const info = screen.getByLabelText('Help with Meet Your Supervisor')
+  fireEvent.click(info)
+  expect(info).toHaveAttribute('aria-expanded', 'true')
+  expect(openSupervisor).not.toHaveBeenCalled()
+  await user.click(stage)
+  expect(openSupervisor).toHaveBeenCalledWith('lead-loft')
+})
+
+test('only current and completed milestones can navigate', async () => {
+  const user = userEvent.setup()
+  const openDetails = vi.fn()
+  const openSupervisor = vi.fn()
+  const openSiteVisit = vi.fn()
+  render(<ProjectJourney projects={[{ ...projects[0], currentStep: 1, siteVisitLeadId: 'lead-kitchen' }]}
+    onSelect={vi.fn()} onOpenProjectDetails={openDetails} onOpenSupervisor={openSupervisor}
+    onOpenSiteVisit={openSiteVisit} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()}
+    onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
+  expect(screen.queryByRole('button', { name: 'Site Visit' })).not.toBeInTheDocument()
+  await user.hover(screen.getByText('Site Visit'))
+  expect(screen.getByRole('tooltip')).toHaveTextContent('Open Site Visit Appointment & Report')
+  await user.click(screen.getByText('Site Visit'))
+  expect(openSiteVisit).not.toHaveBeenCalled()
+
+  await user.click(screen.getByRole('button', { name: 'Customer Requirements' }))
+  await user.click(screen.getByRole('button', { name: 'Meet Your Supervisor' }))
+  expect(openDetails).toHaveBeenCalledOnce()
+  expect(openSupervisor).toHaveBeenCalledWith('lead-kitchen')
 })

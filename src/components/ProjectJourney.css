@@ -86,7 +86,7 @@
   --marker-size: 28px;
   --marker-radius: calc(var(--marker-size) / 2);
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-columns: repeat(11, minmax(0, 1fr));
   list-style: none;
   padding: 0;
   margin: 15px 0 0;
@@ -157,6 +157,11 @@
   text-wrap: balance;
 }
 
+.projectJourney__step:first-child .projectJourney__label {
+  padding-inline: 0;
+  overflow-wrap: normal;
+}
+
 .projectJourney__step.is-current .projectJourney__label { color: var(--journey-accent); font-weight: 700; }
 .projectJourney__srOnly {
   position: absolute;
@@ -172,8 +177,8 @@
   .projectJourney__header { grid-template-columns: minmax(0, 1fr); }
   .projectJourney__headerSide { justify-content: space-between; flex-wrap: wrap; }
   .projectJourney__metrics { justify-content: flex-start; }
-  .projectJourney__steps { grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: 16px; }
-  .projectJourney__step:nth-child(6)::before { display: none; }
+  .projectJourney__steps { grid-template-columns: repeat(6, minmax(0, 1fr)); row-gap: 16px; }
+  .projectJourney__step:nth-child(7)::before { display: none; }
 }
 
 @container project-journey (width < 500px) {
@@ -188,7 +193,7 @@
   }
 
   .projectJourney__step + .projectJourney__step::before,
-  .projectJourney__step:nth-child(6)::before {
+  .projectJourney__step:nth-child(7)::before {
     display: block;
     top: calc((var(--marker-size) - var(--step-height)) / 2);
     inset-inline-start: calc(var(--marker-radius) - 1px);

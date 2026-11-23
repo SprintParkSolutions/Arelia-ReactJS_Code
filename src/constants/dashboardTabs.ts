@@ -13,7 +13,7 @@ export type DashboardTabId =
 
 export const dashboardTabs: { id: DashboardTabId; label: string }[] = [
   { id: 'profile', label: 'Profile & Overview' },
-  { id: 'projectDetails', label: 'Project Details' },
+  { id: 'projectDetails', label: 'Customer Requirements' },
   { id: 'supervisor', label: 'Supervisor Information' },
   { id: 'siteVisit', label: 'Site Visit Appointment & Report' },
   { id: 'approvals', label: 'Review & Approvals' },

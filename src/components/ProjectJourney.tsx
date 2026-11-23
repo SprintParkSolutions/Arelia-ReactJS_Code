@@ -5,12 +5,13 @@ import type { PendingItem } from './approvals/pendingApprovalItems'
 import './ProjectJourney.css'
 
 const milestones = [
-  'Project Details', 'Site Visit', '3D Design', 'Proforma Invoice', 'Budget Review',
+  'Customer Requirements', 'Meet Your Supervisor', 'Site Visit', '3D Design', 'Proforma Invoice', 'Budget Review',
   'Payment Terms', 'Client Agreement', 'First Installment', 'Project Execution', 'Project Completion',
 ]
 
 const milestoneHelp: Record<string, string> = {
-  'Project Details': 'Open Project Details in the menu to tell us about your space and what you have in mind for your project.',
+  'Customer Requirements': 'Open Customer Requirements in the menu to tell us about your space and what you have in mind for your project.',
+  'Meet Your Supervisor': 'Open Supervisor Information to meet your supervisor and find their contact details.',
   'Site Visit': 'Open Site Visit Appointment & Report to confirm your visit, request a new time, or view your approved report.',
   '3D Design': 'Open Review & Approvals → 3D Design Approvals to view your designs, approve them, or request changes.',
   'Proforma Invoice': 'Open Review & Approvals → Proforma Invoice Approvals to review your invoice, approve it, or request changes.',
@@ -30,11 +31,12 @@ export type JourneyProject = {
   siteVisitLeadId?: string
 }
 
-export function ProjectJourney({ projects, selectedId, onSelect, onOpenProjectDetails, onOpenSiteVisit, onOpenDesignApprovals, onOpenProformaApprovals, onOpenBudgetApprovals, onOpenPaymentApprovals, onOpenPaymentSchedule, onOpenProjectStatus }: {
+export function ProjectJourney({ projects, selectedId, onSelect, onOpenProjectDetails, onOpenSupervisor, onOpenSiteVisit, onOpenDesignApprovals, onOpenProformaApprovals, onOpenBudgetApprovals, onOpenPaymentApprovals, onOpenPaymentSchedule, onOpenProjectStatus }: {
   projects: JourneyProject[]
   selectedId?: string | null
   onSelect: (id: string) => void
   onOpenProjectDetails: () => void
+  onOpenSupervisor: (leadId?: string) => void
   onOpenSiteVisit: (leadId?: string) => void
   onOpenDesignApprovals: (projectId: string) => void
   onOpenProformaApprovals: (projectId: string) => void
@@ -54,7 +56,8 @@ export function ProjectJourney({ projects, selectedId, onSelect, onOpenProjectDe
   const journeyComplete = project.currentStep === milestones.length
   const next = milestones[project.currentStep + 1]
   const openMilestone: Partial<Record<string, () => void>> = {
-    'Project Details': onOpenProjectDetails,
+    'Customer Requirements': onOpenProjectDetails,
+    'Meet Your Supervisor': () => onOpenSupervisor(project.siteVisitLeadId),
     'Site Visit': () => onOpenSiteVisit(project.siteVisitLeadId),
     '3D Design': () => onOpenDesignApprovals(project.id),
     'Proforma Invoice': () => onOpenProformaApprovals(project.siteVisitLeadId || project.id),
@@ -99,7 +102,7 @@ export function ProjectJourney({ projects, selectedId, onSelect, onOpenProjectDe
         {milestones.map((label, step) => {
           const state = step < project.currentStep ? 'done' : step === project.currentStep ? 'current' : 'upcoming'
           const helpMessage = milestoneHelp[label]
-          const open = openMilestone[label]
+          const open = state === 'upcoming' ? undefined : openMilestone[label]
           const HelpTrigger = open ? 'button' : 'span'
           const stepHelpId = helpId + '-' + step
           const showHelp = helpStep === step
