@@ -45,6 +45,8 @@ import {
   FiCalendar,
   FiCheckCircle,
   FiChevronDown,
+  FiChevronLeft,
+  FiChevronRight,
   FiClock,
   FiCreditCard,
   FiDownload,
@@ -2716,6 +2718,8 @@ export function DashboardPage() {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [supportCasesRefreshKey, setSupportCasesRefreshKey] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const sidebarToggleLabel = isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar";
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
   const [highlightDocumentUrl, setHighlightDocumentUrl] = useState<
@@ -3425,7 +3429,7 @@ export function DashboardPage() {
         <span className="dashboardPage__grid" />
       </div>
 
-      <section className="dashboardShell">
+      <section className={`dashboardShell${isSidebarCollapsed ? " dashboardShell--sidebarCollapsed" : ""}`}>
         <header className="dashboardMobileBar">
           <button
             type="button"
@@ -3558,11 +3562,13 @@ export function DashboardPage() {
           ) : null}
         </AnimatePresence>
 
-        <aside className="dashboardRail">
+        <aside id="dashboard-sidebar" className="dashboardRail">
           <div className="dashboardRail__brandWrap">
             <button
               type="button"
               className="dashboardRail__brand"
+              aria-label="Arelia Client Portal"
+              title="Arelia Client Portal"
               onClick={() => handleTabChange("profile")}
             >
               <img
@@ -3578,6 +3584,18 @@ export function DashboardPage() {
               </span>
             </button>
           </div>
+
+          <button
+            type="button"
+            className="dashboardRail__toggle"
+            aria-label={sidebarToggleLabel}
+            aria-expanded={!isSidebarCollapsed}
+            aria-controls="dashboard-sidebar"
+            title={sidebarToggleLabel}
+            onClick={() => setIsSidebarCollapsed(value => !value)}
+          >
+            {isSidebarCollapsed ? <FiChevronRight aria-hidden="true" /> : <FiChevronLeft aria-hidden="true" />}
+          </button>
 
           <nav
             className="dashboardRail__nav"
@@ -3601,6 +3619,8 @@ export function DashboardPage() {
                   key={item.id}
                   type="button"
                   className={`dashboardRail__link${isActive ? " is-active" : ""}`}
+                  title={item.label}
+                  aria-current={isActive ? "page" : undefined}
                   onClick={() => handleTabChange(item.id)}
                 >
                   <Icon />
@@ -3618,6 +3638,8 @@ export function DashboardPage() {
           <button
             type="button"
             className="dashboardRail__support"
+            title="Contact Support"
+            aria-label="Contact Support"
             onClick={() => setIsSupportModalOpen(true)}
           >
             <span className="dashboardRail__supportIcon" aria-hidden="true">

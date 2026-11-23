@@ -21,9 +21,9 @@ function BudgetCard({ budget, state }: { budget: BudgetReview; state: State }) {
     <header className="designReview__header"><div><p className="designReview__eyebrow">{budget.opportunityName}</p><h3>Budget Review</h3></div><span className="designReview__status">{budget.status === BUDGET_SENT ? 'Awaiting your review' : budget.status}</span></header>
     <div className="designReview__body">
       <dl className="budgetReview__details">
-        <div><dt>Customer Budget</dt><dd>{money(budget.customerBudget)}</dd></div>
-        <div><dt>Supervisor Budget</dt><dd>{money(budget.supervisorBudget)}</dd></div>
-        <div><dt>Estimated Duration</dt><dd>{budget.estimatedDuration ? (/^[0-9.]+$/.test(budget.estimatedDuration.trim()) ? budget.estimatedDuration + (Number(budget.estimatedDuration) === 1 ? ' month' : ' months') : budget.estimatedDuration) : 'Not available'}</dd></div>
+        <div><dt>Client Initial Budget</dt><dd className="budgetReview__tagline">Preliminary budget expectations shared during project onboarding.</dd><dd>{money(budget.customerBudget)}</dd></div>
+        <div><dt>Client-Approved Project Budget</dt><dd className="budgetReview__tagline">Budget estimate following client approval of the 3D Design and Proforma Invoice.</dd><dd>{money(budget.supervisorBudget)}</dd></div>
+        <div><dt>Estimated Duration</dt><dd className="budgetReview__tagline">Projected timeline from material procurement to final handover.</dd><dd>{budget.estimatedDuration ? (/^[0-9.]+$/.test(budget.estimatedDuration.trim()) ? budget.estimatedDuration + (Number(budget.estimatedDuration) === 1 ? ' month' : ' months') : budget.estimatedDuration) : 'Not available'}</dd></div>
       </dl>
       {budget.status !== BUDGET_SENT && <div className="designReview__decision"><div><strong>{budget.status}</strong>{budget.clientRemarks && <p>{budget.clientRemarks}</p>}</div></div>}
       {budget.canRespond && !mode && <div className="designReview__actions"><button type="button" className="designReview__primary" disabled={state.busy} onClick={() => setMode('Client Approved')}>Approve budget</button><button type="button" disabled={state.busy} onClick={() => setMode('Client Requested Changes')}>Request changes</button></div>}

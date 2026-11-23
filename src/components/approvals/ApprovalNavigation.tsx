@@ -12,7 +12,7 @@ export function ApprovalNavigation({ mobile = false, active, expanded, selected,
   const linkClass = mobile ? 'dashboardMobileDrawer__link' : 'dashboardRail__link'
   return <div className="approvalNavigation">
     <button type="button" className={linkClass + (active ? ' is-active' : '')}
-      aria-expanded={expanded} aria-controls={listId} onClick={onToggle}>
+      title="Review & Approvals" aria-expanded={expanded} aria-controls={listId} onClick={onToggle}>
       <FiCheckCircle aria-hidden="true" />
       <span className={mobile ? 'dashboardMobileDrawer__linkLabel' : 'dashboardRail__linkLabel'}>Review &amp; Approvals</span>
       <FiChevronDown aria-hidden="true" className={'approvalNavigation__chevron' + (expanded ? ' is-expanded' : '')} />
@@ -21,7 +21,7 @@ export function ApprovalNavigation({ mobile = false, active, expanded, selected,
       {approvalCategories.map((category, index) => {
         const Icon = categoryIcons[index]
         return <li key={category}>
-        <button type="button" className="approvalNavigation__child"
+        <button type="button" className="approvalNavigation__child" title={category}
           aria-current={active && selected === category ? 'page' : undefined}
           onClick={() => onSelect(category)}>
           <Icon className="approvalNavigation__childIcon" aria-hidden="true" />
