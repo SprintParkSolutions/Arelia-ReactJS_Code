@@ -51,6 +51,7 @@
 }
 
 .dashboardShell {
+  --dashboard-sidebar-width: 17rem;
   position: relative;
   z-index: 1;
   width: 100%;
@@ -79,8 +80,12 @@
   display: none;
 }
 
+.dashboardShell--sidebarCollapsed {
+  --dashboard-sidebar-width: 4rem;
+}
+
 .dashboardRail {
-  width: 17rem;
+  width: var(--dashboard-sidebar-width);
   flex-shrink: 0;
   position: fixed;
   left: 0;
@@ -122,7 +127,7 @@
 
 .dashboardRail__brandWrap {
   padding: 0 1rem;
-  margin-bottom: 2.8rem;
+  margin-bottom: 0.85rem;
 }
 
 .dashboardRail__brand {
@@ -564,9 +569,9 @@
 }
 
 .dashboardWorkspace {
-  margin-left: 17rem;
+  margin-left: var(--dashboard-sidebar-width);
   padding: 4rem 4.5rem 7rem;
-  width: calc(100% - 17rem);
+  width: calc(100% - var(--dashboard-sidebar-width));
   height: 100vh;
   min-height: 100vh;
   min-width: 0;
@@ -581,6 +586,103 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+}
+
+.dashboardRail__toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.85rem;
+  border: 1px solid rgba(233, 193, 118, 0.52);
+  border-radius: 0.7rem;
+  background: rgba(194, 177, 143, 0.1);
+  color: #ead5af;
+  cursor: pointer;
+}
+
+.dashboardRail__toggle svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.dashboardRail__toggle:hover {
+  background: rgba(194, 177, 143, 0.2);
+}
+
+.dashboardRail__toggle:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail {
+  padding: 1rem 0.6rem;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail__brandWrap {
+  padding: 0;
+  margin-bottom: 0.65rem;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail__brand,
+.dashboardShell--sidebarCollapsed .dashboardRail__link,
+.dashboardShell--sidebarCollapsed .dashboardRail .approvalNavigation__child {
+  justify-content: center;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail__toggle {
+  align-self: center;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail__nav {
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(194, 177, 143, 0.2);
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail :is(
+  .dashboardRail__brandText,
+  .approvalNavigation__chevron,
+  .dashboardRail__support > :not(.dashboardRail__supportIcon)
+) {
+  display: none;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail :is(.dashboardRail__linkLabel, .approvalNavigation__child > span) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail :is(.dashboardRail__link, .approvalNavigation__child) {
+  min-height: 2.5rem;
+  padding: 0.5rem;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail .approvalNavigation__children {
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0 0;
+  border: 0;
+  border-top: 1px solid rgba(194, 177, 143, 0.2);
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail .dashboardNavBadge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.15rem;
+  font-size: 0.52rem;
+}
+
+.dashboardShell--sidebarCollapsed .dashboardRail__support {
+  align-items: center;
+  padding: 0.35rem 0;
 }
 
 .dashboardWorkspace__eyebrow {
@@ -3813,7 +3915,7 @@
 @media (max-width: 1080px) {
   .dashboardWorkspace {
     width: auto;
-    margin-left: 17rem;
+    margin-left: var(--dashboard-sidebar-width);
     padding: 2.25rem 1.5rem 6rem;
   }
 

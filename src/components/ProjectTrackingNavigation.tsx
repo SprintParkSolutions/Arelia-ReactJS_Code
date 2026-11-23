@@ -20,19 +20,22 @@ export function ProjectTrackingNavigation({ mobile = false, activeTab, expanded,
   const linkClass = mobile ? 'dashboardMobileDrawer__link' : 'dashboardRail__link'
   return <div className="approvalNavigation">
     <button type="button" className={linkClass + (isProjectTrackingTab(activeTab) ? ' is-active' : '')}
-      aria-expanded={expanded} aria-controls={listId} onClick={onToggle}>
+      title="Project Tracking" aria-expanded={expanded} aria-controls={listId} onClick={onToggle}>
       <FiCalendar aria-hidden="true" />
       <span className={mobile ? 'dashboardMobileDrawer__linkLabel' : 'dashboardRail__linkLabel'}>Project Tracking</span>
       <FiChevronDown aria-hidden="true" className={'approvalNavigation__chevron' + (expanded ? ' is-expanded' : '')} />
     </button>
     {expanded && <ul id={listId} className="approvalNavigation__children">
-      {children.map(({ id, icon: Icon }) => <li key={id}>
-        <button type="button" className="approvalNavigation__child"
-          aria-current={activeTab === id ? 'page' : undefined} onClick={() => onSelect(id)}>
-          <Icon className="approvalNavigation__childIcon" aria-hidden="true" />
-          <span>{dashboardTabs.find(tab => tab.id === id)?.label}</span>
-        </button>
-      </li>)}
+      {children.map(({ id, icon: Icon }) => {
+        const label = dashboardTabs.find(tab => tab.id === id)?.label
+        return <li key={id}>
+          <button type="button" className="approvalNavigation__child" title={label}
+            aria-current={activeTab === id ? 'page' : undefined} onClick={() => onSelect(id)}>
+            <Icon className="approvalNavigation__childIcon" aria-hidden="true" />
+            <span>{label}</span>
+          </button>
+        </li>
+      })}
     </ul>}
   </div>
 }
