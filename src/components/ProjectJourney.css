@@ -4,7 +4,7 @@
   --journey-surface: #191816;
   container: project-journey / inline-size;
   min-width: 0;
-  padding: 14px clamp(16px, 2vw, 30px) 18px;
+  padding: 33px clamp(16px, 2vw, 30px) 37px;
   border: 1px solid #796240;
   border-radius: 14px;
   color: #f5efe5;
@@ -86,7 +86,7 @@
   --marker-size: 28px;
   --marker-radius: calc(var(--marker-size) / 2);
   display: grid;
-  grid-template-columns: repeat(11, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   list-style: none;
   padding: 0;
   margin: 15px 0 0;
@@ -131,6 +131,8 @@
   font-weight: 650;
 }
 
+.projectJourney__marker svg { width: 15px; height: 15px; }
+
 .projectJourney__step.is-done .projectJourney__marker,
 .projectJourney__step.is-current .projectJourney__marker {
   border-color: var(--journey-accent);
@@ -173,7 +175,13 @@
   white-space: nowrap;
 }
 
-@container project-journey (width < 820px) {
+@container project-journey (900px <= width < 1084px) {
+  .projectJourney__label {
+    font-size: clamp(11px, 1.2cqw, 13px);
+  }
+}
+
+@container project-journey (width < 900px) {
   .projectJourney__header { grid-template-columns: minmax(0, 1fr); }
   .projectJourney__headerSide { justify-content: space-between; flex-wrap: wrap; }
   .projectJourney__metrics { justify-content: flex-start; }
@@ -230,11 +238,15 @@
 }
 
 .projectJourney__help {
+  inset-inline-start: 0;
+  width: min(254px, 100cqw);
+}
+
+.projectJourney__help,
+.dashboardHero__projectActionHelp {
   position: absolute;
   z-index: 4;
   top: 100%;
-  inset-inline-start: 0;
-  width: min(254px, 100cqw);
   box-sizing: border-box;
   padding: 10px 12px;
   border: 1px solid #796240;

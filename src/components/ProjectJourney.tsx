@@ -1,12 +1,25 @@
 import { useId, useState } from 'react'
-import { FiCheck, FiChevronLeft, FiChevronRight } from 'react-icons/fi'
+import {
+  FiBox, FiCheck, FiCheckCircle, FiChevronLeft, FiChevronRight, FiClipboard,
+  FiCreditCard, FiEdit3, FiFileText, FiFlag, FiList, FiMapPin, FiPieChart, FiTool, FiUserCheck,
+} from 'react-icons/fi'
 import { FaInfoCircle } from 'react-icons/fa'
 import type { PendingItem } from './approvals/pendingApprovalItems'
 import './ProjectJourney.css'
 
 const milestones = [
-  'Customer Requirements', 'Meet Your Supervisor', 'Site Visit', '3D Design', 'Proforma Invoice', 'Budget Review',
-  'Payment Terms', 'Client Agreement', 'First Installment', 'Project Execution', 'Project Completion',
+  { label: 'Customer Requirements', icon: FiClipboard },
+  { label: 'Meet Your Supervisor', icon: FiUserCheck },
+  { label: 'Site Visit', icon: FiMapPin },
+  { label: '3D Design', icon: FiBox },
+  { label: 'Proforma Invoice', icon: FiFileText },
+  { label: 'Budget Review', icon: FiPieChart },
+  { label: 'Payment Terms', icon: FiList },
+  { label: 'Client Agreement', icon: FiEdit3 },
+  { label: 'Project Initiated', icon: FiFlag },
+  { label: 'First Installment', icon: FiCreditCard },
+  { label: 'Project Execution', icon: FiTool },
+  { label: 'Project Completion', icon: FiCheckCircle },
 ]
 
 const milestoneHelp: Record<string, string> = {
@@ -18,6 +31,7 @@ const milestoneHelp: Record<string, string> = {
   'Budget Review': 'Open Review & Approvals → Budget Review Approvals to review your proposed budget, approve it, or request changes.',
   'Payment Terms': 'Open Review & Approvals → Payment Terms Approvals to review your payment schedule, approve the terms, or request changes.',
   'Client Agreement': 'Once your Client Agreement is ready, check your registered email for a link to review and sign it.',
+  'Project Initiated': 'Once you sign your agreement, we’ll set up your project so you can view your payment schedule.',
   'First Installment': 'Open Project Tracking → Payment Terms to view your payment schedule and check the amount and due date of your first installment.',
   'Project Execution': 'Open Project Tracking → Project Status to see how your project is progressing and track key milestones.',
 }
@@ -54,7 +68,7 @@ export function ProjectJourney({ projects, selectedId, onSelect, onOpenProjectDe
   const project = projects[index]
   const multiple = projects.length > 1
   const journeyComplete = project.currentStep === milestones.length
-  const next = milestones[project.currentStep + 1]
+  const next = milestones[project.currentStep + 1]?.label
   const openMilestone: Partial<Record<string, () => void>> = {
     'Customer Requirements': onOpenProjectDetails,
     'Meet Your Supervisor': () => onOpenSupervisor(project.siteVisitLeadId),
@@ -99,7 +113,7 @@ export function ProjectJourney({ projects, selectedId, onSelect, onOpenProjectDe
         </div>
       </header>
       <ol className="projectJourney__steps" aria-label="Project milestones">
-        {milestones.map((label, step) => {
+        {milestones.map(({ label, icon: Icon }, step) => {
           const state = step < project.currentStep ? 'done' : step === project.currentStep ? 'current' : 'upcoming'
           const helpMessage = milestoneHelp[label]
           const open = state === 'upcoming' ? undefined : openMilestone[label]
@@ -108,7 +122,7 @@ export function ProjectJourney({ projects, selectedId, onSelect, onOpenProjectDe
           const showHelp = helpStep === step
           const hideHelp = () => setHelpStep(current => current === step ? null : current)
           const milestone = <>
-            <span className="projectJourney__marker" aria-hidden="true">{state === 'done' ? <FiCheck /> : step + 1}</span>
+            <span className="projectJourney__marker" aria-hidden="true">{state === 'done' ? <FiCheck /> : <Icon />}</span>
             <span className="projectJourney__label">{label}</span>
           </>
           return <li key={label} className={`projectJourney__step is-${state}`} aria-current={state === 'current' ? 'step' : undefined}
