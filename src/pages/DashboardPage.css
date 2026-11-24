@@ -383,6 +383,10 @@
   animation-delay: -9s;
 }
 
+.dashboardHero--profile {
+  container: dashboard-profile / inline-size;
+}
+
 .dashboardHero__identity {
   position: relative;
   z-index: 1;
@@ -444,6 +448,10 @@
   font-size: 1rem;
 }
 
+.dashboardHero__contactItem svg {
+  flex-shrink: 0;
+}
+
 .dashboardHero__contactItem div {
   min-width: 0;
 }
@@ -474,7 +482,9 @@
 }
 
 .dashboardHero__copy--minimal {
+  min-width: 0;
   max-width: 40rem;
+  overflow-wrap: anywhere;
 }
 
 .dashboardHero__eyebrow,
@@ -581,8 +591,7 @@
   color: #fecaca;
 }
 
-.dashboardContent,
-.dashboardWorkspace__topbar--profile {
+.dashboardContent:not(.dashboardContent--profile) {
   max-width: 74rem;
 }
 
@@ -593,7 +602,7 @@
 
 .dashboardWorkspace {
   margin-left: var(--dashboard-sidebar-width);
-  padding: 4rem 4.5rem 7rem;
+  padding: 4rem clamp(1.5rem, 3.5vw, 4.5rem) 7rem;
   width: calc(100% - var(--dashboard-sidebar-width));
   height: 100vh;
   min-height: 100vh;
@@ -604,9 +613,30 @@
   scrollbar-gutter: stable;
 }
 
-@media (width > 1080px) {
-  .dashboardContent > .projectJourney {
-    margin-inline: -2.25rem;
+@container dashboard-profile (width < 56rem) {
+  .dashboardHero__contactRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.1rem 1.5rem;
+  }
+
+  .dashboardHero__projectAction {
+    justify-self: start;
+    margin-inline-start: 0;
+  }
+}
+
+@container dashboard-profile (width < 34rem) {
+  .dashboardHero__contactRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .dashboardHero__projectAction {
+    justify-self: stretch;
+  }
+
+  .dashboardHero__projectAction .projectDetails__submit {
+    width: 100%;
   }
 }
 
@@ -3954,7 +3984,7 @@
   .dashboardWorkspace {
     width: auto;
     margin-left: var(--dashboard-sidebar-width);
-    padding: 2.25rem 1.5rem 6rem;
+    padding-block: 2.25rem 6rem;
   }
 
   .dashboardImageGrid,
@@ -3975,16 +4005,6 @@
 
   .dashboardStatusLayout {
     display: grid;
-  }
-
-  .dashboardHero__contactRow {
-    flex-direction: column;
-    gap: 1.1rem;
-  }
-
-  .dashboardHero__projectAction {
-    align-self: flex-start;
-    margin-inline-start: 0;
   }
 
   .dashboardStatusLayout--metrics,
@@ -4309,7 +4329,7 @@
 
   .dashboardHero__title {
     font-size: 1.9rem;
-    max-width: 12ch;
+    max-width: 100%;
   }
 
   .dashboardHero__subtitle {
