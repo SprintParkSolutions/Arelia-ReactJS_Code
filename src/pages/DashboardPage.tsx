@@ -3716,7 +3716,7 @@ export function DashboardPage() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={deferredDashboardTab}
-                className="dashboardContent"
+                className={`dashboardContent${deferredDashboardTab === "profile" ? " dashboardContent--profile" : ""}`}
                 initial={{ opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -14 }}
