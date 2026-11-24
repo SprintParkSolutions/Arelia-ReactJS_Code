@@ -3200,11 +3200,11 @@ export function DashboardPage() {
 
   const [showProjectDetailsHelp, setShowProjectDetailsHelp] = useState(false);
   const hasSubmittedProject = projectDetails.result?.projectSubmitted === true;
-  const renderProjectDetailsAction = (descriptionId?: string) => leadId ? (
+  const projectDetailsAction = leadId ? (
     <button
       type="button"
       className="projectDetails__submit"
-      aria-describedby={descriptionId}
+      aria-describedby="project-details-action-help"
       disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
       onClick={() => {
         setAddingProject(projectDetails.result?.projectSubmitted === true);
@@ -3819,7 +3819,7 @@ export function DashboardPage() {
                                 if (event.key === "Escape") setShowProjectDetailsHelp(false);
                               }}
                             >
-                              {renderProjectDetailsAction("project-details-action-help")}
+                              {projectDetailsAction}
                               <p id="project-details-action-help" className="dashboardHero__projectActionHelp" role="tooltip" hidden={!showProjectDetailsHelp}>
                                 {hasSubmittedProject
                                   ? "Planning another space? Add a project to share its details."
@@ -3897,7 +3897,6 @@ export function DashboardPage() {
                               : "Your current project"}
                           </h2>
                         </div>
-                        {renderProjectDetailsAction()}
                         {projects.length > 1 ? (
                           <span className="dashboardSection__chip">
                             {projects.length} active projects

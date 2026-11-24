@@ -425,9 +425,9 @@
 
 .dashboardHero__projectAction .projectDetails__submit {
   min-height: 2.75rem;
-  padding: 0.6rem 1rem;
-  border-radius: 0.65rem;
-  font-weight: 600;
+  padding: 1rem 1.6rem;
+  border-radius: 999px;
+  font-weight: 400;
 }
 
 .dashboardHero__projectActionHelp {
