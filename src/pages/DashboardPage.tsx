@@ -2718,7 +2718,7 @@ export function DashboardPage() {
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
   const [supportCasesRefreshKey, setSupportCasesRefreshKey] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const sidebarToggleLabel = isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar";
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationPanelOpen, setIsNotificationPanelOpen] = useState(false);
@@ -2831,9 +2831,13 @@ export function DashboardPage() {
     email: portalData?.client?.email || authClient?.email,
     phone: portalData?.client?.phone || authClient?.phone,
   };
+  const contactId =
+    authClient?.contactId || localStorage.getItem("contactId") || "";
+  const tracking = journeyTracking?.contactId === contactId ? journeyTracking : undefined;
+  const latestContactProjects = tracking?.projects.length ? tracking.projects : contactProjects;
   const projects =
-    contactProjects.length > 0
-      ? contactProjects.map((project) => ({
+    latestContactProjects.length > 0
+      ? latestContactProjects.map((project) => ({
           id: project.id || project.projectName,
           name: project.projectName,
           status: project.projectStatus,
@@ -2867,8 +2871,6 @@ export function DashboardPage() {
   const activeProjectBudget = contactProjects.find(
     (project) => (project.id || project.projectName) === activeProjectId,
   )?.budget;
-  const contactId =
-    authClient?.contactId || localStorage.getItem("contactId") || "";
 
   // Announce each available project once, retaining dismissal across reloads.
   const availableProjectsKey = JSON.stringify(
@@ -2912,7 +2914,7 @@ export function DashboardPage() {
   );
 
   useEffect(() => {
-    if (!contactId || contactProjects.length === 0) return undefined;
+    if (!contactId || isLoading) return undefined;
 
     let active = true;
     let polling = false;
@@ -2950,7 +2952,7 @@ export function DashboardPage() {
       }));
 
       await Promise.all(
-        contactProjects.map(async (project) => {
+        (statusRes?.success ? projectsList : contactProjects).map(async (project) => {
           const projectId = project.id || project.projectName;
           const projectName = project.projectName;
           const keys = getNotificationStorageKeys(contactId, projectId);
@@ -3146,7 +3148,7 @@ export function DashboardPage() {
       active = false;
       window.clearInterval(interval);
     };
-  }, [contactId, contactProjects, notificationProjectKey]);
+  }, [contactId, contactProjects, isLoading, notificationProjectKey]);
 
   const tabIcons = {
     profile: FiUserCheck,
@@ -3195,6 +3197,24 @@ export function DashboardPage() {
     });
     setIsMobileMenuOpen(false);
   };
+
+  const [showProjectDetailsHelp, setShowProjectDetailsHelp] = useState(false);
+  const hasSubmittedProject = projectDetails.result?.projectSubmitted === true;
+  const renderProjectDetailsAction = (descriptionId?: string) => leadId ? (
+    <button
+      type="button"
+      className="projectDetails__submit"
+      aria-describedby={descriptionId}
+      disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
+      onClick={() => {
+        setAddingProject(projectDetails.result?.projectSubmitted === true);
+        if (needsProjectDetails) projectReminderHistory.markRead();
+        handleTabChange("projectDetails");
+      }}
+    >
+      {hasSubmittedProject ? "Add Additional Project" : "Complete Project Details"}
+    </button>
+  ) : null;
 
   const handleNotificationClick = (notification: PortalNotification) => {
     if (notification.id.startsWith("client-agreement:") || notification.id.startsWith("client-agreement-signed:")) { agreementHistory.markRead(notification.id); setIsNotificationPanelOpen(false); return; }
@@ -3363,18 +3383,9 @@ export function DashboardPage() {
     handleTabChange("approvals");
   };
   const pendingApprovalsPanel = <PendingApprovals overview={pendingOverview} onReview={reviewPendingItem} />;
-  const tracking = journeyTracking?.contactId === contactId ? journeyTracking : undefined;
+
   const journeyProjects = buildProjectJourneys({
-    projects: projects.map(project => {
-      const latest = tracking?.projects.find(item => (item.id || item.projectName) === project.id);
-      return {
-        ...project,
-        leadId: latest?.leadId || ("leadId" in project ? project.leadId : undefined),
-        opportunityId: latest?.opportunityId || ("opportunityId" in project ? project.opportunityId : undefined),
-        status: latest?.projectStatus ?? project.status,
-        completionPercentage: latest?.completionPercentage ?? project.completionPercentage,
-      };
-    }),
+    projects,
     details: approvedProjects || projectDetails.result,
     leadId,
     visits: projectSiteVisits,
@@ -3652,7 +3663,7 @@ export function DashboardPage() {
         </aside>
 
         <div className="dashboardWorkspace">
-          <header className="dashboardWorkspace__topbar">
+          <header className={deferredDashboardTab === "profile" ? "dashboardWorkspace__topbar dashboardWorkspace__topbar--profile" : "dashboardWorkspace__topbar"}>
             <div className="dashboardWorkspace__topbarCopy">
               <p className="dashboardWorkspace__eyebrow">
                 {dashboardTabs.find((tab) => tab.id === deferredDashboardTab)
@@ -3791,6 +3802,31 @@ export function DashboardPage() {
                               <strong>{client.phone || "Not available"}</strong>
                             </div>
                           </div>
+                          {leadId && (
+                            <div
+                              className="dashboardHero__projectAction"
+                              onPointerEnter={event => {
+                                if (event.pointerType === "mouse") setShowProjectDetailsHelp(true);
+                              }}
+                              onPointerLeave={event => {
+                                if (event.pointerType === "mouse") setShowProjectDetailsHelp(false);
+                              }}
+                              onFocus={event => {
+                                if (event.target.matches(":focus-visible")) setShowProjectDetailsHelp(true);
+                              }}
+                              onBlur={() => setShowProjectDetailsHelp(false)}
+                              onKeyDown={event => {
+                                if (event.key === "Escape") setShowProjectDetailsHelp(false);
+                              }}
+                            >
+                              {renderProjectDetailsAction("project-details-action-help")}
+                              <p id="project-details-action-help" className="dashboardHero__projectActionHelp" role="tooltip" hidden={!showProjectDetailsHelp}>
+                                {hasSubmittedProject
+                                  ? "Planning another space? Add a project to share its details."
+                                  : "Share your project details so we can help create your perfect space."}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       ) : null}
                     </motion.header>
@@ -3843,7 +3879,7 @@ export function DashboardPage() {
                         handleTabChange("status");
                       }} />
 
-                    <motion.section
+                    {(projects.length > 0 || pendingOverview.count > 0) && <motion.section
                       className="dashboardSection dashboardSection--profile"
                       initial="hidden"
                       animate="visible"
@@ -3861,13 +3897,7 @@ export function DashboardPage() {
                               : "Your current project"}
                           </h2>
                         </div>
-                        {leadId && <button type="button" className="projectDetails__submit"
-                          disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
-                          onClick={() => {
-                            setAddingProject(projectDetails.result?.projectSubmitted === true);
-                            if (needsProjectDetails) projectReminderHistory.markRead();
-                            handleTabChange("projectDetails");
-                          }}>{projectDetails.result?.projectSubmitted === true ? "Add Additional Project" : "Complete Project Details"}</button>}
+                        {renderProjectDetailsAction()}
                         {projects.length > 1 ? (
                           <span className="dashboardSection__chip">
                             {projects.length} active projects
@@ -4060,26 +4090,8 @@ export function DashboardPage() {
                         </motion.div>
                       </div>
                       {pendingOverview.count > 0 && <div className="dashboardSnapshotApprovals">{pendingApprovalsPanel}</div>}
-                      </>) : (
-                        <div className={pendingOverview.count > 0 ? "dashboardOverviewGrid" : undefined}>
-                        <div className="dashboardProjectWelcome">
-                          <span className="dashboardProjectSpotlight__icon" aria-hidden="true"><FiHome /></span>
-                          <h2 className="dashboardSection__title">{projectDetails.result?.projectSubmitted === true ? "Ready to plan another project?" : "Ready to start your project?"}</h2>
-                          <p className="dashboardSection__lead">{projectDetails.result?.projectSubmitted === true ? "Your project details have been submitted. Share your ideas for another space by adding an additional project." : "Share your project details so we can help create your perfect space."}</p>
-                          <div className="dashboardProjectWelcome__action">
-                            {leadId && <button type="button" className="projectDetails__submit"
-                          disabled={projectDetails.loading || !projectDetails.result?.success || typeof projectDetails.result.projectSubmitted !== "boolean"}
-                          onClick={() => {
-                            setAddingProject(projectDetails.result?.projectSubmitted === true);
-                            if (needsProjectDetails) projectReminderHistory.markRead();
-                            handleTabChange("projectDetails");
-                          }}>{projectDetails.result?.projectSubmitted === true ? "Add Additional Project" : "Complete Project Details"}</button>}
-                          </div>
-                        </div>
-                        {pendingApprovalsPanel}
-                        </div>
-                      )}
-                    </motion.section>
+                      </>) : pendingApprovalsPanel}
+                    </motion.section>}
                   </>
                 ) : null}
 
@@ -4130,7 +4142,7 @@ export function DashboardPage() {
                     : <ProjectStatusTab
                     contactId={contactId}
                     projectId={selectedLeadJourney?.id || activeProjectId}
-                    projects={contactProjects}
+                    projects={latestContactProjects}
                     onNavigate={handleTabChange}
                   />
                 ) : null}
@@ -4139,7 +4151,7 @@ export function DashboardPage() {
                     contactId={contactId}
                     projectId={activeProjectId}
                     projectName={activeProjectName}
-                    projects={contactProjects}
+                    projects={latestContactProjects}
                     onNavigate={handleTabChange}
                   />
                 ) : null}

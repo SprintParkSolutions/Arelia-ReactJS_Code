@@ -28,11 +28,11 @@ type Inputs = {
 }
 
 const actionSteps = { siteVisit: 2, design: 3, invoice: 4, budget: 5, payment: 6 }
-const projectCompletionStep = 10
+const projectCompletionStep = 11
 const statusSteps: ReadonlyMap<string, number> = new Map([
   ['project details', 0], ['meet your supervisor', 1], ['site visit', 2], ['3d design', 3], ['proforma invoice', 4],
-  ['budget review', 5], ['payment terms', 6], ['client agreement', 7], ['first installment', 8],
-  ['in progress', 9], ['project execution', 9], ['project completion', projectCompletionStep],
+  ['budget review', 5], ['payment terms', 6], ['client agreement', 7], ['project initiated', 8], ['first installment', 9],
+  ['in progress', 10], ['project execution', 10], ['project completion', projectCompletionStep],
 ])
 
 export function buildProjectJourneys(input: Inputs): JourneyProject[] {
@@ -121,9 +121,11 @@ export function buildProjectJourneys(input: Inputs): JourneyProject[] {
     const agreementStep = agreementSigned ? 8 : agreements.length ? 7 : 0
     const statusStep = statusSteps.get(status) ?? 0
     const approval = project.details?.approvalStatus
+    const projectRecordCreated = input.projects.some(record => record.id === project.id)
+    const initiationComplete = projectRecordCreated && (agreementSigned || status === 'initiated' || status === 'project initiated')
     const installmentPaid = input.firstInstallmentPaid?.has(project.id) === true
     const furthestStep = Math.max(statusStep, approval === 'Approved' ? 1 : 0,
-      supervisorAssigned ? 2 : 0, visitComplete ? 3 : 0, installmentPaid ? 9 : 0,
+      supervisorAssigned ? 2 : 0, visitComplete ? 3 : 0, initiationComplete ? 9 : 0, installmentPaid ? 10 : 0,
       designStep, invoiceStep, budgetStep, paymentStep, agreementStep,
       ...actions.map(action => actionSteps[action.kind]))
     const canVerifySiteVisit = Boolean(project.leadId || visits.length)
@@ -139,7 +141,8 @@ export function buildProjectJourneys(input: Inputs): JourneyProject[] {
     const paymentVerifiedStep = canVerifyPayment && !paymentComplete ? Math.min(budgetVerifiedStep, 6) : budgetVerifiedStep
     const canVerifyAgreement = Boolean(project.leadId || agreements.length)
     const agreementVerifiedStep = canVerifyAgreement && !agreementSigned ? Math.min(paymentVerifiedStep, 7) : paymentVerifiedStep
-    const verifiedStep = project.leadId && !installmentPaid ? Math.min(agreementVerifiedStep, 8) : agreementVerifiedStep
+    const initiationVerifiedStep = projectRecordCreated ? agreementVerifiedStep : Math.min(agreementVerifiedStep, 8)
+    const verifiedStep = project.leadId && !installmentPaid ? Math.min(initiationVerifiedStep, 9) : initiationVerifiedStep
     const awaitingApproval = approval === 'Pending' || approval === 'Rejected' ||
       (verifiedStep > 0 && verifiedStep <= 2 && project.details != null && approval !== 'Approved')
     const completion = project.completionPercentage

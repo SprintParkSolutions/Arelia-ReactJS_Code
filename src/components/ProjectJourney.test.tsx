@@ -7,13 +7,13 @@ import { buildProjectJourneys } from './projectJourneyData'
 
 const projects: JourneyProject[] = [
   { id: 'kitchen', name: 'Kitchen', currentStep: 7, completionPercentage: 35 },
-  { id: 'loft', name: 'Loft', currentStep: 9, completionPercentage: 0 },
+  { id: 'loft', name: 'Loft', currentStep: 10, completionPercentage: 0 },
 ]
 
 test('only renders carousel controls for multiple projects', () => {
   const { rerender } = render(<ProjectJourney projects={projects.slice(0, 1)} onSelect={vi.fn()} onOpenProjectDetails={vi.fn()} onOpenSupervisor={vi.fn()} onOpenSiteVisit={vi.fn()} onOpenDesignApprovals={vi.fn()} onOpenProformaApprovals={vi.fn()} onOpenBudgetApprovals={vi.fn()} onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />)
   expect(screen.queryByRole('button', { name: 'Next project' })).toBeNull()
-  expect(screen.getByText('Step 8 of 11')).toBeInTheDocument()
+  expect(screen.getByText('Step 8 of 12')).toBeInTheDocument()
   expect(screen.getByText('35%')).toBeInTheDocument()
   expect(screen.getByRole('progressbar', { name: 'Project completion' })).toHaveAttribute('value', '35')
   expect(within(screen.getByRole('listitem', { current: 'step' })).getByText('Client Agreement')).toBeInTheDocument()
@@ -86,7 +86,7 @@ test('joins a converted project by ID and scopes milestone records to that proje
   })
 
   expect(journeys).toEqual([
-    expect.objectContaining({ id: 'opp1', name: 'Kitchen', currentStep: 8, completionPercentage: 35 }),
+    expect.objectContaining({ id: 'opp1', name: 'Kitchen', currentStep: 9, completionPercentage: 35 }),
     expect.objectContaining({ id: 'lead2', name: undefined, currentStep: 0, completionPercentage: undefined }),
   ])
 })
@@ -350,13 +350,14 @@ test('Client Agreement explains how to sign on desktop and touch devices', async
 })
 
 test.each([
-  ['signed', [{ leadId: 'lead1', opportunityId: 'opp1', signed: true }], 8],
-  ['sent only', [{ leadId: 'lead1', opportunityId: 'opp1', signed: false }], 7],
-  ['signed on another project', [{ leadId: 'lead2', opportunityId: 'opp2', signed: true }], 7],
-] as const)('completes Client Agreement on signature confirmation (%s)', (_, agreements, currentStep) => {
+  ['signed, project record pending', [{ leadId: 'lead1', opportunityId: 'opp1', signed: true }], false, 8],
+  ['signed, project record created', [{ leadId: 'lead1', opportunityId: 'opp1', signed: true }], true, 9],
+  ['sent only', [{ leadId: 'lead1', opportunityId: 'opp1', signed: false }], true, 7],
+  ['signed on another project', [{ leadId: 'lead2', opportunityId: 'opp2', signed: true }], true, 7],
+] as const)('advances through Client Agreement and Project Initiated (%s)', (_, agreements, created, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
-    projects: [{ id: 'opp1', name: 'Kitchen', status: 'Client Agreement' }],
+    projects: created ? [{ id: 'project-record1', leadId: 'lead1', name: 'Kitchen', status: 'Initiated' }] : [],
     details: { success: true, message: '', projectSubmitted: true, approvalStatus: 'Approved', convertedOpportunityId: 'opp1' },
     assignedSupervisorLeadIds: new Set(['lead1']),
     visits: [{ leadId: 'lead1', report: approvedVisit }],
@@ -393,9 +394,9 @@ test('First Installment exposes help and opens the selected payment schedule', a
 })
 
 test.each([
-  ['this project paid', ['opp1'], 9],
-  ['payment pending', [], 8],
-  ['another project paid', ['opp2'], 8],
+  ['this project paid', ['opp1'], 10],
+  ['payment pending', [], 9],
+  ['another project paid', ['opp2'], 9],
 ] as const)('completes First Installment on confirmed payment (%s)', (_, paidIds, currentStep) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
@@ -460,7 +461,7 @@ test('keeps a separately linked project record as its own journey', () => {
 
 test.each([
   ['Completed', 99, 'Journey complete', 'is-done'],
-  ['Project Execution', 100, 'Step 11 of 11', 'is-current'],
+  ['Project Execution', 100, 'Step 12 of 12', 'is-current'],
 ] as const)('shows the final milestone for %s at %i percent', (status, completionPercentage, label, milestoneClass) => {
   const journeys = buildProjectJourneys({
     leadId: 'lead1',
@@ -496,7 +497,7 @@ test('keeps Project Execution current while progress is below 100%', () => {
     agreements: [],
     pending: { count: 0, multipleProjects: false, groups: [] },
   })
-  expect(journeys[0].currentStep).toBe(9)
+  expect(journeys[0].currentStep).toBe(10)
 })
 
 test('advances only the project that receives a supervisor assignment', () => {
@@ -517,10 +518,10 @@ test('advances only the project that receives a supervisor assignment', () => {
       onOpenPaymentApprovals={vi.fn()} onOpenPaymentSchedule={vi.fn()} onOpenProjectStatus={vi.fn()} />
   )
   const { rerender } = render(view(new Set(['lead1'])))
-  expect(screen.getByText('Step 2 of 11')).toBeInTheDocument()
+  expect(screen.getByText('Step 2 of 12')).toBeInTheDocument()
   expect(screen.getByText('Meet Your Supervisor').closest('li')).toHaveAttribute('aria-current', 'step')
   rerender(view(new Set(['lead1', 'lead2'])))
-  expect(screen.getByText('Step 3 of 11')).toBeInTheDocument()
+  expect(screen.getByText('Step 3 of 12')).toBeInTheDocument()
   expect(screen.getByText('Meet Your Supervisor').closest('li')).toHaveClass('is-done')
   expect(screen.getByText('Site Visit').closest('li')).toHaveAttribute('aria-current', 'step')
 })
