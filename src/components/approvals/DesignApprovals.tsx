@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FiDownload, FiFileText, FiCheckCircle, FiExternalLink, FiBox, FiFolder, FiPlayCircle, FiCalendar, FiUser, FiClock, FiCheck, FiEye } from 'react-icons/fi'
 import { safeDesignLink, designFileUrl, type Design, type DesignFile } from '../../services/designApprovalsApi'
 import type { useDesignApprovals } from './useDesignApprovals'
+import { ApprovalPdfPreview } from './ApprovalPdfPreview'
 import './DesignApprovals.css'
 import './DesignLayout.css'
 
@@ -49,48 +50,6 @@ function DesignVideo({ url, file }: { url: string; file: DesignFile }) {
   </div>
 }
 
-function DesignPdfPreview({ url, title }: { url: string; title: string }) {
-  const [source, setSource] = useState('')
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    const controller = new AbortController()
-    let previewUrl = ''
-
-    async function load() {
-      try {
-        const response = await fetch(url, {
-          cache: 'no-store',
-          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]),
-        })
-        if (!response.ok) throw new Error('PDF request failed')
-        const blob = await response.blob()
-        if (await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Invalid PDF response')
-        if (controller.signal.aborted) return
-        previewUrl = URL.createObjectURL(blob.slice(0, blob.size, 'application/pdf'))
-        setSource(previewUrl)
-      } catch {
-        if (!controller.signal.aborted) setError(true)
-      }
-    }
-
-    void load()
-    return () => {
-      controller.abort()
-      if (previewUrl) URL.revokeObjectURL(previewUrl)
-    }
-  }, [url])
-
-  return <div className="designLayout__pdfPreview">
-    {error ? <p role="alert" className="designReview__error">Unable to preview this PDF. You can still download it.</p>
-      : !source ? <p role="status">Loading PDF preview...</p>
-      : <>
-        {navigator.pdfViewerEnabled !== false && <iframe src={source} title={title + ' PDF preview'} />}
-        <a href={source} target="_blank" rel="noopener noreferrer">Open PDF in a new tab <FiExternalLink aria-hidden="true" /></a>
-      </>}
-  </div>
-}
-
 const previewImageExtensions = new Set(['jpg', 'jpeg', 'png'])
 
 function DesignImagePreview({ url, title }: { url: string; title: string }) {
@@ -106,7 +65,7 @@ function DesignImagePreview({ url, title }: { url: string; title: string }) {
 function DesignAttachment({ contactId, design, file, previewOpen, onTogglePreview }: { contactId: string; design: Design; file: DesignFile; previewOpen?: boolean; onTogglePreview?: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [imageOpen, setImageOpen] = useState(true)
+  const [imageOpen, setImageOpen] = useState(false)
   const isImage = previewImageExtensions.has(file.extension.toLowerCase())
   const isPreviewOpen = isImage ? imageOpen : previewOpen
   const togglePreview = isImage ? () => setImageOpen(open => !open) : onTogglePreview
@@ -136,7 +95,7 @@ function DesignAttachment({ contactId, design, file, previewOpen, onTogglePrevie
       <button type="button" disabled={busy} onClick={() => void download()} aria-label={'Download ' + file.title}>{busy ? 'Downloading…' : 'Download'} <FiDownload aria-hidden="true" /></button>
     </div>
     {isImage && imageOpen && <DesignImagePreview key={url} url={url} title={file.title} />}
-    {previewOpen && <DesignPdfPreview key={url} url={url} title={file.title} />}
+    {previewOpen && <ApprovalPdfPreview key={url} url={url} title={file.title} />}
     {error && <p role="alert" className="designReview__error">{error}</p>}
   </li>
 }
@@ -164,6 +123,7 @@ function DesignCard({ contactId, design, state, highlighted, clientName, onOpenT
   const externalLink = safeDesignLink(design.externalFileLink)
   const pending = design.status === 'Sent' && (design.canApprove || design.canRequestChanges)
   const approved = design.status === 'Approved'
+  const completed = approved && design.managerApproval === true
   const changesRequested = design.status === 'Changes Requested'
   const status = designStatusLabels[design.status] || design.status
   const videos = design.files.filter(file => Object.hasOwn(videoTypes, file.extension.toLowerCase()))
@@ -171,8 +131,7 @@ function DesignCard({ contactId, design, state, highlighted, clientName, onOpenT
   const [showDocuments, setShowDocuments] = useState(false)
   const documentView = documents.length > 0 && (showDocuments || !videos.length)
   const files = documentView ? documents : videos
-  const [previewId, setPreviewId] = useState<string | null | undefined>()
-  const openPdfId = previewId === undefined ? documents.find(file => file.extension.toLowerCase() === 'pdf')?.versionId : previewId
+  const [openPdfId, setOpenPdfId] = useState<string | null>(null)
 
   return <article ref={ref} tabIndex={-1} className={'designLayout' + (highlighted ? ' is-highlighted' : '')} aria-label={design.designName}>
     <header className="designLayout__summary designLayout__panel">
@@ -221,7 +180,7 @@ function DesignCard({ contactId, design, state, highlighted, clientName, onOpenT
           {files.map(file => documentView
             ? <DesignAttachment key={file.versionId} contactId={contactId} design={design} file={file}
               previewOpen={openPdfId === file.versionId}
-              onTogglePreview={file.extension.toLowerCase() === 'pdf' ? () => setPreviewId(openPdfId === file.versionId ? null : file.versionId) : undefined} />
+              onTogglePreview={file.extension.toLowerCase() === 'pdf' ? () => setOpenPdfId(id => id === file.versionId ? null : file.versionId) : undefined} />
             : <li key={file.versionId} className="designLayout__video">
               <DesignVideo url={designFileUrl(contactId, design, file)} file={file} />
               <ul className="designReview__files"><DesignAttachment contactId={contactId} design={design} file={file} /></ul>
@@ -238,7 +197,11 @@ function DesignCard({ contactId, design, state, highlighted, clientName, onOpenT
       <h4>Project progress</h4>
       <ol className="designLayout__steps">
         <li><span>Previous stage</span><i aria-hidden="true">2</i><span>Site Visit</span></li>
-        <li aria-current="step"><span>Current stage</span><i aria-hidden="true">{approved ? <FiCheck /> : '3'}</i><span>3D Design{approved && ' (Approved)'}</span></li>
+        <li aria-current={completed ? undefined : 'step'} className={completed ? 'designLayout__completedStep' : undefined}>
+          <span>{completed ? 'Completed' : 'Current stage'}</span>
+          <i aria-hidden="true">{completed ? <FiCheck /> : '3'}</i>
+          <span>3D Design</span>
+        </li>
         <li><span>Next stage</span><i aria-hidden="true">4</i><span>Proforma Invoice</span></li>
       </ol>
     </section>
@@ -253,7 +216,7 @@ function DesignCard({ contactId, design, state, highlighted, clientName, onOpenT
       </div>
     </section>}
 
-    {approved && <footer className="designLayout__next designLayout__panel">
+    {completed && <footer className="designLayout__next designLayout__panel">
       <strong>What?s next?</strong>
       <p>The next stage is Proforma Invoice Approval.</p>
       {onOpenTimeline && <button type="button" onClick={onOpenTimeline}><FiCalendar aria-hidden="true" /> View project timeline</button>}

@@ -16,7 +16,7 @@ describe('design review', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }))
     await waitFor(() => expect(data.submit).toHaveBeenCalledWith(design, 'Approved', ''))
   })
-  it('previews the first PDF inline and lets the client close it', async () => {
+  it('loads a PDF preview only after the client opens it', async () => {
     const fetchPdf = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,
       blob: async () => new NodeBlob(['%PDF-1.7']),
@@ -32,6 +32,9 @@ describe('design review', () => {
     })
     try {
       render(<DesignApprovals contactId="contact1" state={state()} highlightId={null} />)
+      expect(screen.queryByTitle('Layout PDF preview')).not.toBeInTheDocument()
+      expect(fetchPdf).not.toHaveBeenCalled()
+      fireEvent.click(screen.getByRole('button', { name: 'Preview PDF' }))
       expect(await screen.findByTitle('Layout PDF preview')).toHaveAttribute('src', 'blob:design-preview')
       expect(screen.getByRole('link', { name: /Open PDF in a new tab/ })).toHaveAttribute('href', 'blob:design-preview')
       expect(screen.getByRole('button', { name: 'Download Layout' })).toBeInTheDocument()
@@ -50,6 +53,8 @@ describe('design review', () => {
     const data = state()
     render(<DesignApprovals contactId="contact1" state={{ ...data, result: { ...data.result, designs: [imageDesign] } }} highlightId={null} />)
 
+    expect(screen.queryByRole('img', { name: file.title })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Preview image' }))
     const image = screen.getByRole('img', { name: file.title })
     expect(image).toHaveAttribute('src', designFileUrl('contact1', imageDesign, file))
     fireEvent.click(screen.getByRole('button', { name: 'Hide preview' }))
@@ -62,6 +67,24 @@ describe('design review', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Unable to preview this image')
     expect(screen.getByRole('button', { name: 'Download Living room render' })).toBeEnabled()
   })
+  it('shows the next stage after manager approval', () => {
+    const data = state()
+    const approved = { ...design, status: 'Approved', files: [] }
+    const approvals = (managerApproval: boolean) => ({
+      ...data, result: { ...data.result, designs: [{ ...approved, managerApproval }] },
+    })
+    const view = render(<DesignApprovals contactId="contact1" state={approvals(false)} highlightId={null} />)
+    expect(screen.getByText('Design approved')).toBeInTheDocument()
+    expect(screen.queryByText('The next stage is Proforma Invoice Approval.')).not.toBeInTheDocument()
+    expect(screen.getByText('Current stage').closest('li')).toHaveAttribute('aria-current', 'step')
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument()
+
+    view.rerender(<DesignApprovals contactId="contact1" state={approvals(true)} highlightId={null} />)
+    expect(screen.getByText('The next stage is Proforma Invoice Approval.')).toBeInTheDocument()
+    expect(screen.getByText('Completed').closest('li')).toHaveTextContent('3D Design')
+    expect(screen.getByText('Completed').closest('li')).not.toHaveAttribute('aria-current')
+  })
+
   it('switches between design references and opens the design selected by a notification', () => {
     const data = state()
     const approved = { ...design, designId: 'approved', designName: 'AD-0007', status: 'Approved', files: [] }

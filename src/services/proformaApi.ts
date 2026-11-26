@@ -55,3 +55,15 @@ export async function submitProformaDecision(leadId: string, invoice: Invoice, s
 export function proformaFileUrl(leadId: string, invoice: Invoice, file: InvoiceFile) {
   return root() + '?' + new URLSearchParams({ leadId: invoice.leadId || leadId, invoiceId: invoice.invoiceId, secureToken: invoice.secureToken, download: 'true', fileVersionId: file.fileVersionId })
 }
+
+const invoiceFileAliases: Record<string, string> = { word_x: 'docx', word: 'doc', excel_x: 'xlsx', excel: 'xls' }
+
+export function invoiceFileFormat(file: InvoiceFile) {
+  const extension = file.fileType.trim().toLowerCase()
+  const titleExtension = file.title.match(/\.(pdf|xlsx?|csv|jpe?g|png)$/i)?.[1].toLowerCase()
+  return titleExtension || invoiceFileAliases[extension] || extension
+}
+
+export function canPreviewInvoiceFile(file: InvoiceFile) {
+  return ['pdf', 'xls', 'xlsx', 'csv', 'jpg', 'jpeg', 'png'].includes(invoiceFileFormat(file))
+}

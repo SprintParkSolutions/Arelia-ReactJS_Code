@@ -3410,6 +3410,12 @@ export function DashboardPage() {
       setSelectedLeadJourneyId(id);
     }
   }
+  function openProjectTimeline(projectId: string) {
+    const timelineProject = journeyProjects.find(project => project.id === projectId || project.siteVisitLeadId === projectId);
+    if (timelineProject) selectJourneyProject(timelineProject.id);
+    handleTabChange("profile");
+  }
+
   return (
     <main className="dashboardPage">
       <ProjectCompletionConfetti celebration={completionCelebration} />
@@ -4129,10 +4135,10 @@ export function DashboardPage() {
                     retry={projectDetails.reload} /> : null}
                   {deferredDashboardTab === "approvals" ? (
                     <ReviewApprovals selected={selectedApproval}>
-                      {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals clientName={client?.name} onOpenTimeline={projectId => { const timelineProject = journeyProjects.find(project => project.id === projectId || project.siteVisitLeadId === projectId); if (timelineProject) selectJourneyProject(timelineProject.id); handleTabChange("profile"); }} key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} projectLeadIds={proformaProjectIds} accountProjects={(approvedProjects || projectDetails.result)?.projects} state={designApprovals} requestedProjectId={journeyDesignProjectId} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
+                      {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals clientName={client?.name} onOpenTimeline={openProjectTimeline} key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} projectLeadIds={proformaProjectIds} accountProjects={(approvedProjects || projectDetails.result)?.projects} state={designApprovals} requestedProjectId={journeyDesignProjectId} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
                       {selectedApproval === "Payment Terms Approvals" && <ProjectPaymentTermsApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} requestedProjectId={journeyPaymentProjectId} highlightId={highlightPaymentId} onProjectChange={() => setHighlightPaymentId(null)} />}
                       {selectedApproval === "Budget Review Approvals" && <ProjectBudgetReviewApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} requestedProjectId={journeyBudgetProjectId} highlightId={highlightBudgetId} onProjectChange={() => setHighlightBudgetId(null)} />}
-                      {selectedApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} requestedProjectId={journeyInvoiceProjectId} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}
+                      {selectedApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals clientName={client?.name} onOpenTimeline={openProjectTimeline} key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} requestedProjectId={journeyInvoiceProjectId} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}
                     </ReviewApprovals>
                   ) : null}
                   {deferredDashboardTab === "status" ? (

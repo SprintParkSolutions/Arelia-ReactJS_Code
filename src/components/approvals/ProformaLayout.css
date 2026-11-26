@@ -1,0 +1,67 @@
+.proformaLayout .proformaLayout__documentsHeading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  margin: 0;
+  padding: .85rem 1rem;
+  border-bottom: 2px solid var(--design-gold);
+  background: #34291b;
+  color: var(--design-gold);
+  font-size: .9rem;
+  font-weight: 600;
+  text-align: center;
+}
+.proformaLayout__media { container: invoice-documents / inline-size; }
+.proformaLayout__media .designReview__file {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.proformaLayout__media .designReview__actions { justify-content: flex-end; }
+.proformaLayout__media .designReview__actions button { min-inline-size: 8.75rem; }
+.proformaLayout__media .designReview__file > :is(.proformaLayout__preview, .designReview__error) { grid-column: 1 / -1; }
+@container invoice-documents (max-width: 30rem) {
+  .proformaLayout__media .designReview__file { grid-template-columns: minmax(0, 1fr); }
+  .proformaLayout__media .designReview__actions { justify-content: flex-start; }
+  .proformaLayout__media .designReview__actions button { min-inline-size: 0; }
+}
+.proformaLayout__media > p { padding: 1rem; }
+.proformaLayout__preview { min-width: 0; }
+.proformaLayout__preview > img {
+  display: block;
+  width: 100%;
+  max-height: min(38rem, 75vh);
+  object-fit: contain;
+  border-radius: .6rem;
+  background: #151311;
+}
+.proformaLayout__workbook {
+  display: grid;
+  gap: .75rem;
+  padding: .65rem;
+  border: 1px solid var(--design-border);
+  border-radius: .6rem;
+  background: #161310;
+  font-size: .85rem;
+}
+.proformaLayout__workbook label { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
+.proformaLayout__workbook select {
+  max-width: 100%;
+  min-height: 2.75rem;
+  padding: .4rem;
+  color: inherit;
+  background: #251e16;
+  border: 1px solid var(--design-border);
+  border-radius: .4rem;
+  font: inherit;
+}
+.proformaLayout__table { overflow: auto; max-height: min(32rem, 60vh); background: #f7f3eb; color: #201a14; }
+.proformaLayout__table table { border-collapse: collapse; min-width: 100%; font-size: .85rem; }
+.proformaLayout__table td { padding: .4rem .6rem; white-space: pre-wrap; min-width: 4rem; max-width: 22rem; border: 1px solid #ddd4c5; }
+.proformaLayout__table tr:nth-child(even) { background: #eee8dc; }
+
+@container (min-width: 53rem) {
+  .proformaLayout { grid-template-rows: auto auto 1fr auto; }
+  .proformaLayout .designLayout__media { grid-row: 2 / 4; }
+  .proformaLayout .designLayout__next { grid-row: 4; }
+}

@@ -160,6 +160,13 @@
   box-shadow: 0 0 0 3px #f0cb8126;
   font-weight: 700;
 }
+.designLayout__steps .designLayout__completedStep > span:first-child { color: #91e393; }
+.designLayout__completedStep i {
+  border-color: #91e393;
+  background: #91e393;
+  color: #122617;
+  box-shadow: 0 0 0 3px #91e39326;
+}
 @container design-progress (max-width: 14rem) {
   .designLayout__steps {
     grid-template-columns: minmax(0, 1fr);
