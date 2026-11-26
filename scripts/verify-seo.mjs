@@ -46,7 +46,12 @@ for (const url of urls) {
   const business = JSON.parse(doc.querySelector('script[type="application/ld+json"]').textContent);
   assert.equal(business['@type'], 'LocalBusiness');
   assert.equal(business.url, 'https://areliaspace.com/');
-  assert.ok(!doc.querySelector('#root [style*="opacity: 0;"]'), `Hidden entry state: ${url}`);
+  assert.ok(!doc.querySelector('#root .app-shell [style*="opacity: 0;"]'), `Hidden entry state: ${url}`);
+  if (pathname === '/') {
+    assert.ok(doc.querySelector('#root > .loader + .app-shell--booting h1'), 'Homepage loader must precede the hidden homepage');
+  } else {
+    assert.ok(!doc.querySelector('#root > .loader'), `Unexpected prerendered loader: ${url}`);
+  }
   for (const image of doc.querySelectorAll('img[src^="/"]')) {
     await readFile(`dist${decodeURIComponent(image.getAttribute('src'))}`);
   }

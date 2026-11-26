@@ -47,7 +47,7 @@ export function SiteVisitPanel({ leadId, visit }: { leadId?: string; visit: Retu
               { label: 'Supervisor', value: appointment.supervisorName, icon: FiCalendar },
             ].map(({ label, value, icon: Icon }) => <div className="projectSummary__item" key={label}><span className="projectSummary__icon"><Icon /></span><div><dt>{label}</dt><dd>{value || 'Not available'}</dd></div></div>)}
           </dl>
-          {requested && <p>Your preferred date and time have been sent to the Arelia team for coordination.</p>}
+          {requested && <p className="siteVisit__rescheduleNote">Your preferred date and time have been sent to the Arelia team for coordination.</p>}
           {canRespond && <div className="siteVisit__response">
             {!rescheduling ? <div className="siteVisit__actions"><button className="projectDetails__submit" disabled={busy || !appointment?.appointmentDate || !appointment?.appointmentTimeSlot} onClick={() => void respond('Approved')}>{busy ? 'Saving…' : 'Approve'}</button><button disabled={busy} onClick={() => setRescheduling(true)}>Reschedule</button></div>
             : <form onSubmit={event => { event.preventDefault(); void respond('Rescheduled') }}>

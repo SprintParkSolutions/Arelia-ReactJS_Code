@@ -591,7 +591,7 @@
   color: #fecaca;
 }
 
-.dashboardContent:not(.dashboardContent--profile) {
+.dashboardContent:not(.dashboardContent--wide) {
   max-width: 74rem;
 }
 

@@ -38,7 +38,8 @@ export function DocumentDownload({ leadId, reportId, document: file }: {
   }
   return <>
     <button type="button" disabled={busy} onClick={() => void download()} aria-label={'Download ' + file.title}>
-      <FiFileText aria-hidden="true" /> {file.title}{file.fileExtension ? ' (' + file.fileExtension.toUpperCase() + ')' : ''}
+      <FiFileText aria-hidden="true" />
+      <span className="siteVisit__fileTitle">{file.title}{file.fileExtension ? ' (' + file.fileExtension.toUpperCase() + ')' : ''}</span>
       <span className="siteVisit__fileHint">{busy ? 'Downloading…' : 'Download'} <FiDownload aria-hidden="true" /></span>
     </button>
     {error && <p role="alert" className="siteVisit__error">{error}</p>}

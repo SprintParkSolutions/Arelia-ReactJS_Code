@@ -16,7 +16,7 @@ try {
     if (publicPages[route] || route === '/404') {
       document.getElementById('root').innerHTML = renderPage(route);
       // Make animation entry states readable before JS mounts the live app.
-      document.querySelectorAll('#root [style]').forEach((element) => {
+      document.querySelectorAll('#root .app-shell [style]').forEach((element) => {
         if (element.style.opacity === '0') {
           element.style.opacity = '1';
           element.style.removeProperty('transform');

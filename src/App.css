@@ -22,6 +22,20 @@ body {
     transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.app-shell--booting {
+  visibility: hidden;
+}
+
+@media (scripting: none) {
+  .app-shell--booting {
+    visibility: visible;
+  }
+
+  .loader:has(~ .app-shell--booting) {
+    display: none;
+  }
+}
+
 .app-shell::before,
 .app-shell::after {
   content: "";

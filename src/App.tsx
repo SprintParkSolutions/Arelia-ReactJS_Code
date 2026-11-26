@@ -50,9 +50,9 @@ function ScrollToTop() {
   return null
 }
 
-export default function App() {
+export default function App({ prerenderStartupLoader = false }: { prerenderStartupLoader?: boolean }) {
   const [isLoading, setIsLoading] = useState(
-    () => typeof window !== 'undefined',
+    () => prerenderStartupLoader || typeof window !== 'undefined',
   )
 
   const [isConsultationOpen, setIsConsultationOpen] = useState(false)
@@ -62,6 +62,7 @@ export default function App() {
   const { isAuthenticated } = useAuth()
   const location = useLocation()
 
+  const isHomeLoading = isLoading && location.pathname === '/'
   const isLoginPage = Boolean(
     matchPath({ path: '/login', end: true }, location.pathname),
   )
@@ -75,21 +76,21 @@ export default function App() {
     trackPageView(location.pathname)
   }, [location.pathname])
 
-  const handleLoaderComplete = () => {
+  const handleLoaderComplete = useCallback(() => {
     setIsLoading(false)
-  }
+  }, [])
 
   return (
     <>
       {isLoading ? (
         <Loader
           onComplete={handleLoaderComplete}
-          title="Preparing your private client portal"
+          title={isHomeLoading ? 'Loading Arelia Space' : 'Preparing your private client portal'}
         />
       ) : null}
 
       <ToastProvider>
-      <div className={`app-shell${isLoginPage ? ' app-shell--login' : ''}`}>
+      <div className={`app-shell${isLoginPage ? ' app-shell--login' : ''}${isHomeLoading ? ' app-shell--booting' : ''}`}>
         <ScrollToTop />
         <PageMetadata />
         <InactivityMonitor />
