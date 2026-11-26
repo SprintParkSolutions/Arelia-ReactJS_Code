@@ -1,12 +1,115 @@
 import { useEffect, useRef, useState } from 'react'
-import { FiDownload, FiFileText, FiCheckCircle, FiExternalLink } from 'react-icons/fi'
+import { FiDownload, FiFileText, FiCheckCircle, FiExternalLink, FiBox, FiFolder, FiPlayCircle, FiCalendar, FiUser, FiClock, FiCheck, FiEye } from 'react-icons/fi'
 import { safeDesignLink, designFileUrl, type Design, type DesignFile } from '../../services/designApprovalsApi'
 import type { useDesignApprovals } from './useDesignApprovals'
 import './DesignApprovals.css'
+import './DesignLayout.css'
 
-function DesignAttachment({ contactId, design, file }: { contactId: string; design: Design; file: DesignFile }) {
+type DesignDisplay = {
+  clientName?: string
+  onOpenTimeline?: () => void
+}
+
+const videoTypes: Record<string, string> = { mp4: 'video/mp4', webm: 'video/webm', ogv: 'video/ogg' }
+
+function DesignVideo({ url, file }: { url: string; file: DesignFile }) {
+  const [source, setSource] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const request = useRef<AbortController | null>(null)
+  useEffect(() => () => request.current?.abort(), [])
+  useEffect(() => () => { if (source) URL.revokeObjectURL(source) }, [source])
+
+  async function watch() {
+    const controller = new AbortController()
+    request.current = controller
+    setBusy(true)
+    setError('')
+    try {
+      const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.any([controller.signal, AbortSignal.timeout(120000)]) })
+      if (!response.ok) throw new Error('video')
+      const blob = await response.blob()
+      if (!controller.signal.aborted) {
+        setSource(URL.createObjectURL(blob.slice(0, blob.size, videoTypes[file.extension.toLowerCase()])))
+      }
+    } catch {
+      if (!controller.signal.aborted) setError('Unable to load this video. You can still download the file.')
+    } finally {
+      if (!controller.signal.aborted) setBusy(false)
+    }
+  }
+
+  return <div className="designLayout__player">
+    {source ? <video src={source} controls playsInline autoPlay aria-label={file.title}
+      onError={() => setError('Unable to play this video. You can still download the file.')} />
+      : <button type="button" disabled={busy} onClick={() => void watch()}>
+        <FiPlayCircle aria-hidden="true" /> {busy ? 'Loading video?' : 'Watch video'}
+      </button>}
+    {error && <p className="designReview__error" role="alert">{error}</p>}
+  </div>
+}
+
+function DesignPdfPreview({ url, title }: { url: string; title: string }) {
+  const [source, setSource] = useState('')
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let previewUrl = ''
+
+    async function load() {
+      try {
+        const response = await fetch(url, {
+          cache: 'no-store',
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(30000)]),
+        })
+        if (!response.ok) throw new Error('PDF request failed')
+        const blob = await response.blob()
+        if (await blob.slice(0, 5).text() !== '%PDF-') throw new Error('Invalid PDF response')
+        if (controller.signal.aborted) return
+        previewUrl = URL.createObjectURL(blob.slice(0, blob.size, 'application/pdf'))
+        setSource(previewUrl)
+      } catch {
+        if (!controller.signal.aborted) setError(true)
+      }
+    }
+
+    void load()
+    return () => {
+      controller.abort()
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+    }
+  }, [url])
+
+  return <div className="designLayout__pdfPreview">
+    {error ? <p role="alert" className="designReview__error">Unable to preview this PDF. You can still download it.</p>
+      : !source ? <p role="status">Loading PDF preview...</p>
+      : <>
+        {navigator.pdfViewerEnabled !== false && <iframe src={source} title={title + ' PDF preview'} />}
+        <a href={source} target="_blank" rel="noopener noreferrer">Open PDF in a new tab <FiExternalLink aria-hidden="true" /></a>
+      </>}
+  </div>
+}
+
+const previewImageExtensions = new Set(['jpg', 'jpeg', 'png'])
+
+function DesignImagePreview({ url, title }: { url: string; title: string }) {
+  const [failed, setFailed] = useState(false)
+
+  return <div className="designLayout__imagePreview">
+    {failed
+      ? <p role="alert" className="designReview__error">Unable to preview this image. You can still download it.</p>
+      : <img src={url} alt={title} loading="lazy" decoding="async" onError={() => setFailed(true)} />}
+  </div>
+}
+
+function DesignAttachment({ contactId, design, file, previewOpen, onTogglePreview }: { contactId: string; design: Design; file: DesignFile; previewOpen?: boolean; onTogglePreview?: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [imageOpen, setImageOpen] = useState(true)
+  const isImage = previewImageExtensions.has(file.extension.toLowerCase())
+  const isPreviewOpen = isImage ? imageOpen : previewOpen
+  const togglePreview = isImage ? () => setImageOpen(open => !open) : onTogglePreview
   const url = designFileUrl(contactId, design, file)
   async function download() {
     if (busy) return
@@ -27,12 +130,23 @@ function DesignAttachment({ contactId, design, file }: { contactId: string; desi
   return <li className="designReview__file">
     <div className="designReview__fileName"><FiFileText aria-hidden="true" /><span>{file.title}<small>{file.extension.toUpperCase()}</small></span></div>
     <div className="designReview__actions">
+      {togglePreview && <button type="button" aria-expanded={isPreviewOpen} onClick={togglePreview}>
+        <FiEye aria-hidden="true" /> {isPreviewOpen ? 'Hide preview' : isImage ? 'Preview image' : 'Preview PDF'}
+      </button>}
       <button type="button" disabled={busy} onClick={() => void download()} aria-label={'Download ' + file.title}>{busy ? 'Downloading…' : 'Download'} <FiDownload aria-hidden="true" /></button>
     </div>
+    {isImage && imageOpen && <DesignImagePreview key={url} url={url} title={file.title} />}
+    {previewOpen && <DesignPdfPreview key={url} url={url} title={file.title} />}
     {error && <p role="alert" className="designReview__error">{error}</p>}
   </li>
 }
-function DesignCard({ contactId, design, state, highlighted }: { contactId: string; design: Design; state: ReturnType<typeof useDesignApprovals>; highlighted: boolean }) {
+const designStatusLabels: Record<string, string> = {
+  Sent: 'Awaiting your review',
+  Approved: 'Approved',
+  'Changes Requested': 'Changes Requested',
+}
+
+function DesignCard({ contactId, design, state, highlighted, clientName, onOpenTimeline }: DesignDisplay & { contactId: string; design: Design; state: ReturnType<typeof useDesignApprovals>; highlighted: boolean }) {
   const ref = useRef<HTMLElement>(null)
   const [mode, setMode] = useState<'Approved' | 'Changes Requested' | null>(null)
   const [comments, setComments] = useState('')
@@ -49,19 +163,38 @@ function DesignCard({ contactId, design, state, highlighted }: { contactId: stri
   }
   const externalLink = safeDesignLink(design.externalFileLink)
   const pending = design.status === 'Sent' && (design.canApprove || design.canRequestChanges)
-  return <article ref={ref} tabIndex={-1} className={'designReview__card' + (highlighted ? ' is-highlighted' : '')} aria-label={design.designName}>
-    <header className="designReview__header"><div><p className="designReview__eyebrow">{design.opportunityName}</p><h3>{design.designName}</h3></div><span className="designReview__status">{design.status === 'Sent' ? 'Awaiting your review' : design.status}</span></header>
-    <div className="designReview__body">
-      <h4>Design files</h4>
-      {design.files.length ? <ul className="designReview__files">{design.files.map(file => <DesignAttachment key={file.versionId} contactId={contactId} design={design} file={file} />)}</ul> : <>{!externalLink && <p>No files have been attached to this design.</p>}</>}
-      {externalLink && <div className="designReview__externalLink">
-        <div><h4>External design files</h4><p>View the shared design files before submitting your response.</p></div>
-        <a href={externalLink} target="_blank" rel="noopener noreferrer">
-          <span className="designReview__externalUrl">{externalLink}</span>
-          <span className="designReview__externalAction">Open design link <FiExternalLink aria-hidden="true" /><span className="designReview__externalHint">(new tab)</span></span>
-        </a>
-      </div>}
-      {!pending && <div className="designReview__decision"><FiCheckCircle aria-hidden="true" /><div><strong>Response recorded: {design.status}</strong>{design.comments && <p>{design.comments}</p>}</div></div>}
+  const approved = design.status === 'Approved'
+  const changesRequested = design.status === 'Changes Requested'
+  const status = designStatusLabels[design.status] || design.status
+  const videos = design.files.filter(file => Object.hasOwn(videoTypes, file.extension.toLowerCase()))
+  const documents = design.files.filter(file => !Object.hasOwn(videoTypes, file.extension.toLowerCase()))
+  const [showDocuments, setShowDocuments] = useState(false)
+  const documentView = documents.length > 0 && (showDocuments || !videos.length)
+  const files = documentView ? documents : videos
+  const [previewId, setPreviewId] = useState<string | null | undefined>()
+  const openPdfId = previewId === undefined ? documents.find(file => file.extension.toLowerCase() === 'pdf')?.versionId : previewId
+
+  return <article ref={ref} tabIndex={-1} className={'designLayout' + (highlighted ? ' is-highlighted' : '')} aria-label={design.designName}>
+    <header className="designLayout__summary designLayout__panel">
+      <span className="designLayout__projectIcon"><FiBox aria-hidden="true" /></span>
+      <div><p className="designReview__eyebrow">Project</p><p className="designLayout__projectName">{design.opportunityName}</p></div>
+      <div><p className="designReview__eyebrow">Design reference</p><h3 className="designLayout__reference">{design.designName}</h3></div>
+      <span className={'designReview__status' + (approved ? ' designLayout__approved' : '')}>{approved && <FiCheck aria-hidden="true" />}{status}</span>
+    </header>
+
+    <section className="designLayout__approval designLayout__panel">
+      <h4>Approval status</h4>
+      <div className="designLayout__statusMessage">
+        {approved ? <FiCheckCircle aria-hidden="true" /> : <FiClock aria-hidden="true" />}
+        <div>
+          <strong>{approved ? 'Design approved' : status}</strong>
+          <p>{approved ? 'The design has been approved by the client.' : changesRequested ? 'Your requested changes have been submitted.' : 'Review your design and submit your response.'}</p>
+        </div>
+      </div>
+      {approved && clientName?.trim() && <dl className="designLayout__details">
+        <div><dt><FiUser aria-hidden="true" /> Approved By</dt><dd>{clientName}</dd></div>
+      </dl>}
+      {!pending && design.comments && !(approved && design.comments === 'Approved By Client') && <p className="designLayout__comments">{design.comments}</p>}
       {pending && !mode && <div className="designReview__actions">
         <button type="button" className="designReview__primary" disabled={state.busy || !design.canApprove} onClick={() => setMode('Approved')}>Approve design</button>
         <button type="button" disabled={state.busy || !design.canRequestChanges} onClick={() => setMode('Changes Requested')}>Request changes</button>
@@ -76,17 +209,85 @@ function DesignCard({ contactId, design, state, highlighted }: { contactId: stri
       </form>}
       {error && <p role="alert" className="designReview__error">{error}</p>}
       {message && <p role="status">{message}</p>}
-    </div>
+    </section>
+
+    <section className="designLayout__media designLayout__panel" aria-label="Design files">
+      {files.length ? <>
+        <div className="designLayout__fileNav" role="group" aria-label="Design file categories">
+          {videos.length > 0 && <button type="button" aria-pressed={!documentView} onClick={() => setShowDocuments(false)}><FiPlayCircle aria-hidden="true" /> Design Walkthrough</button>}
+          {documents.length > 0 && <button type="button" aria-pressed={documentView} onClick={() => setShowDocuments(true)}><FiFileText aria-hidden="true" /> Documents ({documents.length})</button>}
+        </div>
+        <ul className="designReview__files designLayout__files">
+          {files.map(file => documentView
+            ? <DesignAttachment key={file.versionId} contactId={contactId} design={design} file={file}
+              previewOpen={openPdfId === file.versionId}
+              onTogglePreview={file.extension.toLowerCase() === 'pdf' ? () => setPreviewId(openPdfId === file.versionId ? null : file.versionId) : undefined} />
+            : <li key={file.versionId} className="designLayout__video">
+              <DesignVideo url={designFileUrl(contactId, design, file)} file={file} />
+              <ul className="designReview__files"><DesignAttachment contactId={contactId} design={design} file={file} /></ul>
+            </li>)}
+        </ul>
+      </> : <div className="designLayout__empty">
+        <FiFolder aria-hidden="true" />
+        <h4>No design files available</h4>
+        <p>{externalLink ? 'Open the shared design folder to review external files.' : 'There are no videos, images or documents attached to this approval.'}</p>
+      </div>}
+    </section>
+
+    <section className="designLayout__progress designLayout__panel">
+      <h4>Project progress</h4>
+      <ol className="designLayout__steps">
+        <li><span>Previous stage</span><i aria-hidden="true">2</i><span>Site Visit</span></li>
+        <li aria-current="step"><span>Current stage</span><i aria-hidden="true">{approved ? <FiCheck /> : '3'}</i><span>3D Design{approved && ' (Approved)'}</span></li>
+        <li><span>Next stage</span><i aria-hidden="true">4</i><span>Proforma Invoice</span></li>
+      </ol>
+    </section>
+
+    {externalLink && <section className="designLayout__external designLayout__panel">
+      <h4>External design files</h4>
+      <p>Access additional design files and materials.</p>
+      <div className="designLayout__externalFile">
+        <FiFolder aria-hidden="true" />
+        <div><strong>Shared design folder</strong><small title={externalLink}>{externalLink}</small></div>
+        <a href={externalLink} target="_blank" rel="noopener noreferrer" aria-label="Open design link (new tab)">Open link <FiExternalLink aria-hidden="true" /></a>
+      </div>
+    </section>}
+
+    {approved && <footer className="designLayout__next designLayout__panel">
+      <strong>What?s next?</strong>
+      <p>The next stage is Proforma Invoice Approval.</p>
+      {onOpenTimeline && <button type="button" onClick={onOpenTimeline}><FiCalendar aria-hidden="true" /> View project timeline</button>}
+    </footer>}
   </article>
 }
-export function DesignApprovals({ contactId, state, highlightId }: { contactId: string; state: ReturnType<typeof useDesignApprovals>; highlightId: string | null }) {
+export function DesignApprovals({ contactId, state, highlightId, clientName, onOpenTimeline }: DesignDisplay & { contactId: string; state: ReturnType<typeof useDesignApprovals>; highlightId: string | null }) {
+  const [selection, setSelection] = useState<{ designId: string; highlightId: string | null } | null>(null)
   if (!contactId) return <div className="dashboardEmptyState">No designs have been sent for your review yet. We will notify you when a design is ready.</div>
   if (!state.result) return <p role="status">Loading design approvals…</p>
   if (!state.result.success) return <div className="designReview"><p role="alert">{state.result.message}</p><button type="button" onClick={state.retry}>Retry</button></div>
-  if (!state.result.designs.length) return <div className="dashboardEmptyState">No designs have been sent for your review yet. We will notify you when a design is ready.</div>
+  const { designs } = state.result
+  if (!designs.length) return <div className="dashboardEmptyState">No designs have been sent for your review yet. We will notify you when a design is ready.</div>
+
+  const highlightedDesign = designs.find(design => design.designId === highlightId)
+  const selectedDesign = selection?.highlightId === highlightId
+    ? designs.find(design => design.designId === selection.designId)
+    : undefined
+  const activeDesign = selectedDesign || highlightedDesign || designs[0]
+
   return <div className="designReview">
-    <p className="designReview__intro">Review the attached designs, then approve or share the changes you need.</p>
-    {highlightId && !state.result.designs.some(d => d.designId === highlightId) && <p role="status">This design is no longer available for your account.</p>}
-    {state.result.designs.map(design => <DesignCard key={design.designId} contactId={contactId} design={design} state={state} highlighted={highlightId === design.designId} />)}
+    {highlightId && !highlightedDesign && <p role="status">This design is no longer available for your account.</p>}
+    {designs.length > 1 && <div className="designLayout__references" role="group" aria-label="Choose a design reference">
+      {designs.map(design => <button
+        key={design.designId}
+        type="button"
+        aria-pressed={design.designId === activeDesign.designId}
+        onClick={() => setSelection({ designId: design.designId, highlightId })}
+      >
+        <strong>{design.designName}</strong>{' '}
+        <span>{designStatusLabels[design.status] || design.status}</span>
+      </button>)}
+    </div>}
+    <DesignCard key={activeDesign.designId} contactId={contactId} design={activeDesign} state={state}
+      highlighted={highlightId === activeDesign.designId} clientName={clientName} onOpenTimeline={onOpenTimeline} />
   </div>
 }

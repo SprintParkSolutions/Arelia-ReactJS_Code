@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { ProjectNavigation } from '../ProjectNavigation'
 import { DesignApprovals } from './DesignApprovals'
 import type { useDesignApprovals } from './useDesignApprovals'
-export function ProjectDesignApprovals({ contactId, state, highlightId, onProjectChange, projectLeadIds, accountProjects, requestedProjectId }: {
+export function ProjectDesignApprovals({ contactId, state, highlightId, onProjectChange, projectLeadIds, accountProjects, requestedProjectId, clientName, onOpenTimeline }: {
+  clientName?: string
+  onOpenTimeline?: (projectId: string) => void
   accountProjects?: ProjectDetailsResult[]
   requestedProjectId?: string
   projectLeadIds?: string[]
@@ -28,7 +30,7 @@ export function ProjectDesignApprovals({ contactId, state, highlightId, onProjec
       projects.push(...[...new Set(projectLeadIds)].map(id => ({ id })))
     }
   }
-  if (!designResult?.success || !projects.length) return <DesignApprovals contactId={contactId} state={state} highlightId={highlightId} />
+  if (!designResult?.success || !projects.length) return <DesignApprovals contactId={contactId} state={state} highlightId={highlightId} clientName={clientName} />
   const highlightedOpportunity = designResult.designs.find(design => design.designId === highlightId)?.opportunityId
   const highlighted = highlightedOpportunity
     ? projects.find(project => project.opportunityId === highlightedOpportunity)?.id
@@ -38,6 +40,6 @@ export function ProjectDesignApprovals({ contactId, state, highlightId, onProjec
   const result = { ...designResult, designs: designResult.designs.filter(design => design.opportunityId === selected.opportunityId) }
   return <section className="siteVisitCarousel" aria-label="3D designs by project">
     <ProjectNavigation projects={projects} selectedId={selected.id} onSelect={id => { setSelection({ id, highlight: onProjectChange ? null : highlightId }); onProjectChange?.() }} eyebrow="3D DESIGNS BY PROJECT" />
-    <DesignApprovals key={selected.id} contactId={contactId} state={{ ...state, result }} highlightId={highlighted === selected.id ? highlightId : null} />
+    <DesignApprovals key={selected.id} contactId={contactId} state={{ ...state, result }} highlightId={highlighted === selected.id ? highlightId : null} clientName={clientName} onOpenTimeline={onOpenTimeline && (() => onOpenTimeline(selected.id))} />
   </section>
 }
