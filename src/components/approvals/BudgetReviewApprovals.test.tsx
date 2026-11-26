@@ -47,12 +47,36 @@ describe('Budget Review UI', () => {
   it('displays budgets and duration and submits approval', async () => {
     const data = state()
     render(<BudgetReviewApprovals leadId="lead1" state={data} />)
-    expect(screen.getByText('1,00,000')).toBeInTheDocument()
-    expect(screen.getByText('1,20,000')).toBeInTheDocument()
+    expect(screen.getByText('\u20B91,00,000')).toBeInTheDocument()
+    expect(screen.getByText('\u20B91,20,000')).toBeInTheDocument()
     expect(screen.getByText('3 months')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Approve budget' }))
     fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }))
     await waitFor(() => expect(data.submit).toHaveBeenCalledWith(budget, 'Client Approved', ''))
+  })
+  it('shows client-facing approval and completes progress after final approval', () => {
+    const data = state()
+    const approvals = (status: string) => ({
+      ...data, result: { ...result, budget: { ...budget, status, canRespond: false } },
+    })
+    const view = render(<BudgetReviewApprovals leadId="lead1" state={approvals('Client Approved')} clientName="Naresh P" />)
+    expect(screen.getByText('Naresh P')).toBeInTheDocument()
+    expect(screen.getByText('Current stage')).toBeInTheDocument()
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument()
+
+    const openTimeline = vi.fn()
+    view.rerender(<BudgetReviewApprovals leadId="lead1" state={approvals('Manager Approved')} clientName="Naresh P" onOpenTimeline={openTimeline} />)
+    expect(screen.getByText('Budget approved')).toBeInTheDocument()
+    expect(screen.getByText('Naresh P')).toBeInTheDocument()
+    expect(screen.queryByText('Manager Approved')).not.toBeInTheDocument()
+    expect(screen.getByText('Completed').closest('li')).toHaveTextContent('Budget Review')
+    expect(screen.getByText('The next stage is Payment Terms Approval.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'View project timeline' }))
+    expect(openTimeline).toHaveBeenCalledOnce()
+
+    view.rerender(<BudgetReviewApprovals leadId="lead1" state={approvals('Manager Requested Changes')} clientName="Naresh P" />)
+    expect(screen.queryByText('Manager Requested Changes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Completed')).not.toBeInTheDocument()
   })
   it('requires change comments and displays recorded responses read-only', async () => {
     const data = state()

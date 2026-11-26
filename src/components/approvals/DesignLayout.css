@@ -92,8 +92,8 @@
 .designLayout__player p { width: auto; padding: .5rem; text-align: center; }
 .designLayout__statusMessage { display: flex; gap: .7rem; align-items: flex-start; }
 .designLayout__statusMessage > svg { flex: none; font-size: 1.75rem; color: var(--design-gold); }
-.designLayout__summary:has(.designLayout__approved) ~ .designLayout__approval .designLayout__statusMessage > svg,
-.designLayout__summary:has(.designLayout__approved) ~ .designLayout__approval .designLayout__statusMessage strong { color: #91e393; }
+.designLayout:has(> .designLayout__summary .designLayout__approved) .designLayout__approval .designLayout__statusMessage > svg,
+.designLayout:has(> .designLayout__summary .designLayout__approved) .designLayout__approval .designLayout__statusMessage strong { color: #91e393; }
 .designLayout__approval form, .designLayout__approval > .designReview__actions, .designLayout__approval .designLayout__comments { margin-top: .85rem; }
 .designLayout__approval .designLayout__comments { color: #e4ddd0; white-space: pre-wrap; }
 .designLayout__details { padding-top: .7rem; margin: .75rem 0 0; border-top: 1px solid var(--design-border); font-size: .85rem; }
