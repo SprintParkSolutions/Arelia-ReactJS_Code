@@ -196,13 +196,13 @@ function DesignCard({ contactId, design, state, highlighted, clientName, onOpenT
     <section className="designLayout__progress designLayout__panel">
       <h4>Project progress</h4>
       <ol className="designLayout__steps">
-        <li><span>Previous stage</span><i aria-hidden="true">2</i><span>Site Visit</span></li>
+        <li><span>Previous stage</span><i aria-hidden="true">3</i><span>Site Visit</span></li>
         <li aria-current={completed ? undefined : 'step'} className={completed ? 'designLayout__completedStep' : undefined}>
           <span>{completed ? 'Completed' : 'Current stage'}</span>
-          <i aria-hidden="true">{completed ? <FiCheck /> : '3'}</i>
+          <i aria-hidden="true">{completed ? <FiCheck /> : '4'}</i>
           <span>3D Design</span>
         </li>
-        <li><span>Next stage</span><i aria-hidden="true">4</i><span>Proforma Invoice</span></li>
+        <li><span>Next stage</span><i aria-hidden="true">5</i><span>Proforma Invoice</span></li>
       </ol>
     </section>
 
