@@ -10,6 +10,8 @@ describe('design review', () => {
   it('offers PDF download and explicit approval confirmation', async () => {
     const data = state()
     render(<DesignApprovals contactId="contact1" state={data} highlightId={null} />)
+    expect(screen.getByRole('heading', { name: 'External design files' })).toBeInTheDocument()
+    expect(screen.getByText('No additional design files available.')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Download Layout' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Approve design' }))
     expect(data.submit).not.toHaveBeenCalled()

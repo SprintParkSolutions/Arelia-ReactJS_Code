@@ -206,15 +206,17 @@ function DesignCard({ contactId, design, state, highlighted, clientName, onOpenT
       </ol>
     </section>
 
-    {externalLink && <section className="designLayout__external designLayout__panel">
+    <section className="designLayout__external designLayout__panel">
       <h4>External design files</h4>
-      <p>Access additional design files and materials.</p>
-      <div className="designLayout__externalFile">
-        <FiFolder aria-hidden="true" />
-        <div><strong>Shared design folder</strong><small title={externalLink}>{externalLink}</small></div>
-        <a href={externalLink} target="_blank" rel="noopener noreferrer" aria-label="Open design link (new tab)">Open link <FiExternalLink aria-hidden="true" /></a>
-      </div>
-    </section>}
+      {externalLink ? <>
+        <p>Access additional design files and materials.</p>
+        <div className="designLayout__externalFile">
+          <FiFolder aria-hidden="true" />
+          <div><strong>Shared design folder</strong><small title={externalLink}>{externalLink}</small></div>
+          <a href={externalLink} target="_blank" rel="noopener noreferrer" aria-label="Open design link (new tab)">Open link <FiExternalLink aria-hidden="true" /></a>
+        </div>
+      </> : <p>No additional design files available.</p>}
+    </section>
 
     {completed && <footer className="designLayout__next designLayout__panel">
       <strong>What?s next?</strong>
