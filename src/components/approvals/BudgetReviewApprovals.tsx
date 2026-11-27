@@ -32,34 +32,36 @@ function BudgetCard({ budget, state, clientName, onOpenTimeline }: { budget: Bud
     : duration || 'Not available'
 
   return <article className="designLayout budgetLayout" aria-label="Budget Review">
-    <header className="designLayout__summary designLayout__panel">
-      <span className="designLayout__projectIcon"><FiDatabase aria-hidden="true" /></span>
-      <div><p className="designReview__eyebrow">Project</p><p className="designLayout__projectName">{budget.opportunityName}</p></div>
-      <span className={'designReview__status' + (approved ? ' designLayout__approved' : '')}>{approved && <FiCheck aria-hidden="true" />}{status}</span>
-    </header>
+    <div className="designLayout__main">
+      <header className="designLayout__summary designLayout__panel">
+        <span className="designLayout__projectIcon"><FiDatabase aria-hidden="true" /></span>
+        <div><p className="designReview__eyebrow">Project</p><p className="designLayout__projectName">{budget.opportunityName}</p></div>
+        <span className={'designReview__status' + (approved ? ' designLayout__approved' : '')}>{approved && <FiCheck aria-hidden="true" />}{status}</span>
+      </header>
 
-    <section className="designLayout__panel budgetLayout__overview">
-      <h4>Budget overview</h4>
-      <dl className="budgetLayout__metrics">
-        <div>
-          <dt><FiLayers aria-hidden="true" /> Client Initial Budget</dt>
-          <dd className="budgetLayout__description">Preliminary budget expectations shared during project onboarding.</dd>
-          <dd>{money(budget.customerBudget)}</dd>
-        </div>
-        <div className="budgetLayout__featured">
-          <dt><FiTag aria-hidden="true" /> Client-Approved Project Budget</dt>
-          <dd className="budgetLayout__description">Budget estimate following client approval of the 3D Design and Proforma Invoice.</dd>
-          <dd>{money(budget.supervisorBudget)}</dd>
-        </div>
-        <div>
-          <dt><FiCalendar aria-hidden="true" /> Estimated Duration</dt>
-          <dd className="budgetLayout__description">Projected timeline from material procurement to final handover.</dd>
-          <dd>{durationLabel}</dd>
-        </div>
-      </dl>
-    </section>
+      <section className="designLayout__panel budgetLayout__overview">
+        <h4>Budget overview</h4>
+        <dl className="budgetLayout__metrics">
+          <div>
+            <dt><FiLayers aria-hidden="true" /> Client Initial Budget</dt>
+            <dd className="budgetLayout__description">Preliminary budget expectations shared during project onboarding.</dd>
+            <dd>{money(budget.customerBudget)}</dd>
+          </div>
+          <div className="budgetLayout__featured">
+            <dt><FiTag aria-hidden="true" /> Client-Approved Project Budget</dt>
+            <dd className="budgetLayout__description">Budget estimate following client approval of the 3D Design and Proforma Invoice.</dd>
+            <dd>{money(budget.supervisorBudget)}</dd>
+          </div>
+          <div>
+            <dt><FiCalendar aria-hidden="true" /> Estimated Duration</dt>
+            <dd className="budgetLayout__description">Projected timeline from material procurement to final handover.</dd>
+            <dd>{durationLabel}</dd>
+          </div>
+        </dl>
+      </section>
+    </div>
 
-    <div className="budgetLayout__sidebar">
+    <div className="designLayout__sidebar">
       <section className="designLayout__approval designLayout__panel">
         <h4>Approval status</h4>
         <div className="designLayout__statusMessage">

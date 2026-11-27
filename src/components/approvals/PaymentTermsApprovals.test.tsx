@@ -18,6 +18,20 @@ describe('Payment Terms approval', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirm approval' }))
     await waitFor(() => expect(data.submit).toHaveBeenCalledWith(payment, 'Client Approved', ''))
   })
+  it('completes project progress and displays the client name after approval', () => {
+    const data = state()
+    const view = render(<PaymentTermsApprovals leadId="lead1" state={data} clientName="Naresh P" />)
+    expect(screen.getByText('Current stage').closest('li')).toHaveAttribute('aria-current', 'step')
+    expect(screen.queryByText('Approved by')).not.toBeInTheDocument()
+
+    const approved = { ...payment, status: 'Client Approved', canRespond: false }
+    view.rerender(<PaymentTermsApprovals leadId="lead1" state={{ ...data, result: { ...result, payment: approved } }} clientName="Naresh P" />)
+    expect(screen.getByText('Completed').closest('li')).toHaveTextContent('Payment Terms')
+    expect(screen.getByText('Approved by').parentElement).toHaveTextContent('Naresh P')
+    expect(screen.getByText("What's next?")).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: 'Payment schedule' })).toBeInTheDocument()
+  })
+
   it('requires change comments and keeps recorded decisions read-only', async () => {
     const data = state()
     const view = render(<PaymentTermsApprovals leadId="lead1" state={data} />)

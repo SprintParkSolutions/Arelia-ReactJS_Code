@@ -29,14 +29,6 @@
 
 .designReview__body .proformaReview__filesHeading { margin-bottom: 1.25rem; }
 
-.paymentReview__tableWrap { overflow-x: auto; border: 1px solid #b7985a30; border-radius: .8rem; }
-.paymentReview__table { width: 100%; border-collapse: collapse; text-align: left; }
-.paymentReview__table th, .paymentReview__table td { padding: 1rem 1.25rem; border-bottom: 1px solid #b7985a25; }
-.paymentReview__table thead { color: #d8b880; background: #b7985a0d; font-size: .8rem; }
-.paymentReview__table tbody th { font-weight: 500; min-width: 10rem; }
-.paymentReview__table td { white-space: nowrap; }
-.paymentReview__table tbody tr:last-child > * { border-bottom: 0; }
-.paymentReview__caption { text-align: left; padding: 1rem 1.25rem; font-weight: 600; }
 .designReview__externalLink { margin: 20px 0; padding: 20px; border: 1px solid #d7b58140; border-radius: 14px; background: #d7b58108; }
 .designReview__externalLink p { color: #aaa69f; line-height: 1.6; }
 .designReview__externalLink a { display: flex; flex-direction: column; gap: 14px; color: #e2c797; text-decoration: none; }

@@ -35,6 +35,12 @@
     transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Keep the backdrop opaque until the hidden homepage is revealed. */
+.loader--complete:has(+ .app-shell--booting) {
+  opacity: 1;
+  transform: none;
+}
+
 .loader__grain {
   position: absolute;
   inset: -20%;

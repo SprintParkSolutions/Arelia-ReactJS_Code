@@ -34,16 +34,9 @@
 @container budget-overview (min-width: 29rem) {
   .budgetLayout__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-.budgetLayout__sidebar {
-  display: grid;
-  gap: inherit;
-  min-width: 0;
-  align-self: start;
-}
-.budgetLayout__sidebar > .designLayout__panel { grid-area: auto; }
 @container (min-width: 53rem) {
-  .budgetLayout { grid-template-rows: auto auto auto; }
-  .budgetLayout__overview { grid-column: 1; grid-row: 2; }
-  .budgetLayout__sidebar { grid-column: 2; grid-row: 1 / 3; }
-  .budgetLayout .designLayout__next { grid-column: 1 / -1; grid-row: 3; }
+  .budgetLayout { grid-template-rows: auto auto; }
+  .budgetLayout > .designLayout__main { grid-column: 1; grid-row: 1; }
+  .budgetLayout > .designLayout__sidebar { grid-column: 2; grid-row: 1; }
+  .budgetLayout .designLayout__next { grid-column: 1 / -1; grid-row: 2; }
 }

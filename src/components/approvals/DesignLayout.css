@@ -92,8 +92,8 @@
 .designLayout__player p { width: auto; padding: .5rem; text-align: center; }
 .designLayout__statusMessage { display: flex; gap: .7rem; align-items: flex-start; }
 .designLayout__statusMessage > svg { flex: none; font-size: 1.75rem; color: var(--design-gold); }
-.designLayout:has(> .designLayout__summary .designLayout__approved) .designLayout__approval .designLayout__statusMessage > svg,
-.designLayout:has(> .designLayout__summary .designLayout__approved) .designLayout__approval .designLayout__statusMessage strong { color: #91e393; }
+.designLayout:has(.designLayout__summary .designLayout__approved) .designLayout__approval .designLayout__statusMessage > svg,
+.designLayout:has(.designLayout__summary .designLayout__approved) .designLayout__approval .designLayout__statusMessage strong { color: #91e393; }
 .designLayout__approval form, .designLayout__approval > .designReview__actions, .designLayout__approval .designLayout__comments { margin-top: .85rem; }
 .designLayout__approval .designLayout__comments { color: #e4ddd0; white-space: pre-wrap; }
 .designLayout__details { padding-top: .7rem; margin: .75rem 0 0; border-top: 1px solid var(--design-border); font-size: .85rem; }
@@ -214,6 +214,21 @@
 .designLayout button, .designLayout a { min-height: 2.75rem; }
 .designLayout button:hover:not(:disabled), .designLayout a:hover { border-color: var(--design-gold); }
 
+.designLayout__main {
+  display: grid;
+  align-content: start;
+  gap: inherit;
+  min-width: 0;
+}
+.designLayout__main > .designLayout__summary { grid-area: auto; }
+
+.designLayout__sidebar {
+  display: grid;
+  gap: inherit;
+  min-width: 0;
+  align-self: start;
+}
+.designLayout__sidebar > .designLayout__panel { grid-area: auto; }
 @container (min-width: 53rem) {
   .designLayout { grid-template-columns: minmax(0, 2fr) minmax(17rem, 1fr); grid-template-rows: auto auto auto 1fr; align-items: start; }
   .designLayout__summary { grid-column: 1; grid-row: 1; }
