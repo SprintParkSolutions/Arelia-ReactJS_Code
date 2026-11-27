@@ -34,7 +34,6 @@ import {
   useRef,
   useState,
   useMemo,
-  useTransition,
   type ReactNode,
   type SubmitEvent,
 } from "react";
@@ -68,7 +67,8 @@ import {
   FiZap,
 } from "react-icons/fi";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { dashboardSectionPath, readDashboardSection } from "../utils/dashboardSection";
 import { LogoutModal } from "../components/auth/LogoutModal";
 import { ProjectDetailsPanel } from "../components/projectDetails/ProjectDetailsPanel";
 import { useSupervisorNotifications } from "../components/projectDetails/useSupervisorNotifications";
@@ -77,7 +77,7 @@ import { ProjectSupervisorsPanel } from "../components/projectDetails/ProjectSup
 import { useApprovalProjects } from "../components/projectDetails/useApprovalStatus";
 import { useProjectReminder, useProjectApprovalNotifications, useProjectConversionNotifications } from "../components/projectDetails/useProjectReminder";
 import { useProjectDetails } from "../components/projectDetails/useProjectDetails";
-import { dashboardTabs, isProjectTrackingTab } from "../constants/dashboardTabs";
+import { dashboardTabs, isProjectTrackingTab, type DashboardTabId } from "../constants/dashboardTabs";
 import { useAuth } from "../context/AuthContext";
 import {
   createSupportCase,
@@ -2660,15 +2660,11 @@ function CasesTab({
 // nav/notification/account chrome.
 export function DashboardPage() {
   const navigate = useNavigate();
-  const {
-    activeDashboardTab,
-    client: authClient,
-    logout,
-    setActiveDashboardTab,
-  } = useAuth();
+  const { search } = useLocation();
+  const { client: authClient, logout } = useAuth();
+  const { tab: activeDashboardTab, approval: selectedApproval } = readDashboardSection(search);
   const [trackingExpanded, setTrackingExpanded] = useState(isProjectTrackingTab(activeDashboardTab));
   const [approvalsExpanded, setApprovalsExpanded] = useState(activeDashboardTab === "approvals");
-  const [selectedApproval, setSelectedApproval] = useState<ApprovalCategory>("3D Design Approvals");
   const [journeyDesignProjectId, setJourneyDesignProjectId] = useState<string>();
   const [highlightDesignId, setHighlightDesignId] = useState<string | null>(null);
   const designApprovals = useDesignApprovals(authClient?.contactId || "");
@@ -2702,8 +2698,8 @@ export function DashboardPage() {
   const conversionHistory = useProjectConversionNotifications(leadId, approvedProjects);
   const approvalHistory = useProjectApprovalNotifications(leadId, approvedProjects);
   const projectReminderHistory = useProjectReminder(leadId, needsProjectDetails);
-  const deferredDashboardTab = useDeferredValue(activeDashboardTab);
-  const [isTabPending, startTabTransition] = useTransition();
+  const deferredSearch = useDeferredValue(search);
+  const { tab: deferredDashboardTab, approval: deferredApproval } = readDashboardSection(deferredSearch);
   const [portalData, setPortalData] = useState<ClientPortalResponse | null>(
     null,
   );
@@ -3190,11 +3186,12 @@ export function DashboardPage() {
     unreadNotificationCount,
   );
 
-  const handleTabChange = (tabId: (typeof desktopNavItems)[number]["id"]) => {
+  const handleTabChange = (tabId: DashboardTabId, approval?: ApprovalCategory) => {
     if (isProjectTrackingTab(tabId)) setTrackingExpanded(true);
-    startTabTransition(() => {
-      setActiveDashboardTab(tabId);
-    });
+    if (tabId === "approvals") setApprovalsExpanded(true);
+    if (tabId !== activeDashboardTab || (approval && approval !== selectedApproval)) {
+      void navigate(dashboardSectionPath(tabId, approval));
+    }
     setIsMobileMenuOpen(false);
   };
 
@@ -3221,37 +3218,29 @@ export function DashboardPage() {
     if (notification.paymentOpportunityId) {
       setHighlightPaymentId(notification.paymentOpportunityId);
       paymentHistory.markRead(notification.id);
-      setSelectedApproval("Payment Terms Approvals");
-      setApprovalsExpanded(true);
       setIsNotificationPanelOpen(false);
-      handleTabChange("approvals");
+      handleTabChange("approvals", "Payment Terms Approvals");
       return;
     }
     if (notification.budgetOpportunityId) {
       setHighlightBudgetId(notification.budgetOpportunityId);
       budgetHistory.markRead(notification.id);
-      setSelectedApproval("Budget Review Approvals");
-      setApprovalsExpanded(true);
       setIsNotificationPanelOpen(false);
-      handleTabChange("approvals");
+      handleTabChange("approvals", "Budget Review Approvals");
       return;
     }
     if (notification.invoiceId) {
       proformaHistory.markRead(notification.id);
       setHighlightInvoiceId(notification.invoiceId);
-      setSelectedApproval("Proforma Invoice Approvals");
-      setApprovalsExpanded(true);
       setIsNotificationPanelOpen(false);
-      handleTabChange("approvals");
+      handleTabChange("approvals", "Proforma Invoice Approvals");
       return;
     }
     if (notification.designId) {
       designHistory.markRead(notification.id);
       setHighlightDesignId(notification.designId);
-      setSelectedApproval("3D Design Approvals");
-      setApprovalsExpanded(true);
       setIsNotificationPanelOpen(false);
-      handleTabChange("approvals");
+      handleTabChange("approvals", "3D Design Approvals");
       return;
     }
     if (notification.type === "siteVisit") { setSelectedSiteVisitLeadId(notification.siteVisitLeadId); siteVisitHistory.markRead(notification.id); setIsNotificationPanelOpen(false); handleTabChange("siteVisit"); return; }
@@ -3264,10 +3253,8 @@ export function DashboardPage() {
     }
     if (notification.id.startsWith("project-converted:")) {
       conversionHistory.markRead(notification.id);
-      setSelectedApproval("3D Design Approvals");
-      setApprovalsExpanded(true);
       setIsNotificationPanelOpen(false);
-      handleTabChange("approvals");
+      handleTabChange("approvals", "3D Design Approvals");
       return;
     }
     if (notification.id.startsWith("project-details-approved:")) {
@@ -3378,9 +3365,7 @@ export function DashboardPage() {
     setHighlightInvoiceId(item.kind === "invoice" ? item.targetId : null);
     setHighlightBudgetId(item.kind === "budget" ? item.targetId : null);
     setHighlightPaymentId(item.kind === "payment" ? item.targetId : null);
-    setSelectedApproval(categories[item.kind]);
-    setApprovalsExpanded(true);
-    handleTabChange("approvals");
+    handleTabChange("approvals", categories[item.kind]);
   };
   const pendingApprovalsPanel = <PendingApprovals overview={pendingOverview} onReview={reviewPendingItem} />;
 
@@ -3528,7 +3513,7 @@ export function DashboardPage() {
                   if (item.id === "approvals") return <ApprovalNavigation key={item.id} mobile
                     active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
                     onToggle={() => setApprovalsExpanded(value => !value)}
-                    onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
+                    onSelect={category => handleTabChange("approvals", category)} />;
                   const Icon = item.icon;
                   const isActive = activeDashboardTab === item.id;
                   const notificationBadge =
@@ -3626,7 +3611,7 @@ export function DashboardPage() {
               if (item.id === "approvals") return <ApprovalNavigation key={item.id}
                 active={activeDashboardTab === "approvals"} expanded={approvalsExpanded} selected={selectedApproval}
                 onToggle={() => setApprovalsExpanded(value => !value)}
-                onSelect={category => { setSelectedApproval(category); handleTabChange("approvals"); }} />;
+                onSelect={category => handleTabChange("approvals", category)} />;
               const Icon = item.icon;
               const isActive = activeDashboardTab === item.id;
               const notificationBadge =
@@ -3714,7 +3699,7 @@ export function DashboardPage() {
           {!isLoading && error && (deferredDashboardTab !== "projectDetails" && deferredDashboardTab !== "supervisor" && deferredDashboardTab !== "siteVisit" && deferredDashboardTab !== "notifications" && deferredDashboardTab !== "approvals") ? (
             <div className="dashboardError">{error}</div>
           ) : null}
-          {!isLoading && !error && isTabPending ? (
+          {!isLoading && !error && deferredSearch !== search ? (
             <div className="dashboardState">Loading section...</div>
           ) : null}
 
@@ -3722,7 +3707,7 @@ export function DashboardPage() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={deferredDashboardTab}
-                className={`dashboardContent${(deferredDashboardTab === "profile" || deferredDashboardTab === "projectDetails" || deferredDashboardTab === "supervisor" || deferredDashboardTab === "siteVisit" || (deferredDashboardTab === "approvals" && selectedApproval === "3D Design Approvals")) ? " dashboardContent--wide" : ""}`}
+                className={`dashboardContent${(deferredDashboardTab === "profile" || deferredDashboardTab === "projectDetails" || deferredDashboardTab === "supervisor" || deferredDashboardTab === "siteVisit" || (deferredDashboardTab === "approvals" && deferredApproval === "3D Design Approvals")) ? " dashboardContent--wide" : ""}`}
                 initial={{ opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -14 }}
@@ -3851,30 +3836,22 @@ export function DashboardPage() {
                       onOpenDesignApprovals={projectId => {
                         setJourneyDesignProjectId(projectId);
                         setHighlightDesignId(null);
-                        setSelectedApproval("3D Design Approvals");
-                        setApprovalsExpanded(true);
-                        handleTabChange("approvals");
+                        handleTabChange("approvals", "3D Design Approvals");
                       }}
                       onOpenProformaApprovals={projectId => {
                         setJourneyInvoiceProjectId(projectId);
                         setHighlightInvoiceId(null);
-                        setSelectedApproval("Proforma Invoice Approvals");
-                        setApprovalsExpanded(true);
-                        handleTabChange("approvals");
+                        handleTabChange("approvals", "Proforma Invoice Approvals");
                       }}
                       onOpenBudgetApprovals={projectId => {
                         setJourneyBudgetProjectId(projectId);
                         setHighlightBudgetId(null);
-                        setSelectedApproval("Budget Review Approvals");
-                        setApprovalsExpanded(true);
-                        handleTabChange("approvals");
+                        handleTabChange("approvals", "Budget Review Approvals");
                       }}
                       onOpenPaymentApprovals={projectId => {
                         setJourneyPaymentProjectId(projectId);
                         setHighlightPaymentId(null);
-                        setSelectedApproval("Payment Terms Approvals");
-                        setApprovalsExpanded(true);
-                        handleTabChange("approvals");
+                        handleTabChange("approvals", "Payment Terms Approvals");
                       }}
                       onOpenPaymentSchedule={projectId => {
                         selectJourneyProject(projectId);
@@ -4134,11 +4111,11 @@ export function DashboardPage() {
                     error={leadId && !approvedProjects && !projectDetails.loading && !projectDetails.result?.success ? projectDetails.result?.message || "Unable to load projects." : undefined}
                     retry={projectDetails.reload} /> : null}
                   {deferredDashboardTab === "approvals" ? (
-                    <ReviewApprovals selected={selectedApproval}>
-                      {selectedApproval === "3D Design Approvals" && <ProjectDesignApprovals clientName={client?.name} onOpenTimeline={openProjectTimeline} key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} projectLeadIds={proformaProjectIds} accountProjects={(approvedProjects || projectDetails.result)?.projects} state={designApprovals} requestedProjectId={journeyDesignProjectId} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
-                      {selectedApproval === "Payment Terms Approvals" && <ProjectPaymentTermsApprovals onOpenTimeline={openProjectTimeline} clientName={client?.name} key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} requestedProjectId={journeyPaymentProjectId} highlightId={highlightPaymentId} onProjectChange={() => setHighlightPaymentId(null)} />}
-                      {selectedApproval === "Budget Review Approvals" && <ProjectBudgetReviewApprovals onOpenTimeline={openProjectTimeline} clientName={client?.name} key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} requestedProjectId={journeyBudgetProjectId} highlightId={highlightBudgetId} onProjectChange={() => setHighlightBudgetId(null)} />}
-                      {selectedApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals clientName={client?.name} onOpenTimeline={openProjectTimeline} key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} requestedProjectId={journeyInvoiceProjectId} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}
+                    <ReviewApprovals selected={deferredApproval}>
+                      {deferredApproval === "3D Design Approvals" && <ProjectDesignApprovals clientName={client?.name} onOpenTimeline={openProjectTimeline} key={authClient?.contactId || "no-contact"} contactId={authClient?.contactId || ""} projectLeadIds={proformaProjectIds} accountProjects={(approvedProjects || projectDetails.result)?.projects} state={designApprovals} requestedProjectId={journeyDesignProjectId} highlightId={highlightDesignId} onProjectChange={() => setHighlightDesignId(null)} />}
+                      {deferredApproval === "Payment Terms Approvals" && <ProjectPaymentTermsApprovals onOpenTimeline={openProjectTimeline} clientName={client?.name} key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={paymentReview} requestedProjectId={journeyPaymentProjectId} highlightId={highlightPaymentId} onProjectChange={() => setHighlightPaymentId(null)} />}
+                      {deferredApproval === "Budget Review Approvals" && <ProjectBudgetReviewApprovals onOpenTimeline={openProjectTimeline} clientName={client?.name} key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={budgetReview} requestedProjectId={journeyBudgetProjectId} highlightId={highlightBudgetId} onProjectChange={() => setHighlightBudgetId(null)} />}
+                      {deferredApproval === "Proforma Invoice Approvals" && <ProjectProformaApprovals clientName={client?.name} onOpenTimeline={openProjectTimeline} key={authClient?.leadId || "no-lead"} leadId={authClient?.leadId || ""} state={proformaApprovals} requestedProjectId={journeyInvoiceProjectId} highlightId={highlightInvoiceId} onProjectChange={() => setHighlightInvoiceId(null)} />}
                     </ReviewApprovals>
                   ) : null}
                   {deferredDashboardTab === "status" ? (

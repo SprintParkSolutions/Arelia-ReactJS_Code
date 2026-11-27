@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { FiLogOut, FiMenu, FiPhone, FiX } from 'react-icons/fi'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { dashboardTabs } from '../../constants/dashboardTabs'
+import { dashboardSectionPath, readDashboardSection } from '../../utils/dashboardSection'
 import { useAuth } from '../../context/AuthContext'
 import { LogoutModal } from '../auth/LogoutModal'
 import './navigationMenu.css'
@@ -42,7 +43,8 @@ export default function NavigationMenu({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const menuToggleRef = useRef<HTMLButtonElement>(null)
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
-  const { activeDashboardTab, client, isAuthenticated, logout, setActiveDashboardTab } = useAuth()
+  const { client, isAuthenticated, logout } = useAuth()
+  const { tab: activeDashboardTab } = readDashboardSection(location.search)
 
   useEffect(() => {
     const handleResize = () => {
@@ -79,8 +81,7 @@ export default function NavigationMenu({
   const handleBrandClick = () => {
     setIsMobileMenuOpen(false)
     if (isAuthenticated) {
-      setActiveDashboardTab('profile')
-      navigate('/dashboard')
+      navigate(dashboardSectionPath('profile'))
       setIsMobileMenuOpen(false)
       return
     }
@@ -96,9 +97,8 @@ export default function NavigationMenu({
   }
 
   const handleDashboardTabClick = (tabId: (typeof dashboardTabs)[number]['id']) => {
-    setActiveDashboardTab(tabId)
-    if (pathname !== '/dashboard') {
-      navigate('/dashboard')
+    if (pathname !== '/dashboard' || activeDashboardTab !== tabId) {
+      navigate(dashboardSectionPath(tabId))
     }
     setIsMobileMenuOpen(false)
   }
